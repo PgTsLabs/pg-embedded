@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2024-01-28
+
 ### Added
 - Initial release of pg-embedded
 - PostgreSQL embedded instance management
@@ -54,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error handling and edge case testing
 - Thread safety and concurrent operation tests
 
-## [0.1.0] - 2024-01-XX
+## [0.1.0] - 2024-01-15
 
 ### Added
 - Initial project setup

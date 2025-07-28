@@ -26,7 +26,16 @@
     "rust",
     "napi-rs",
     "node-addon",
-    "cross-platform"
+    "cross-platform",
+    "embedded-database",
+    "test-database",
+    "development-database",
+    "in-memory-database",
+    "database-testing",
+    "ci-cd",
+    "unit-testing",
+    "sql",
+    "relational-database"
   ],
   "files": [
     "index.d.ts",
@@ -36,7 +45,8 @@
     "LICENSE",
     "CHANGELOG.md",
     "API.md",
-    "examples/"
+    "examples/",
+    "*.node"
   ],
   "napi": {
     "binaryName": "pg-embeded",
@@ -61,30 +71,64 @@
     "types": "./index.d.ts"
   },
   "engines": {
-    "node": ">= 10"
+    "node": ">= 16.0.0"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/PgTsLab"
+  },
+  "author": {
+    "name": "PgTsLab",
+    "email": "kingsword09@gmail.com",
+    "url": "https://github.com/PgTsLab"
+  },
+  "contributors": [
+    {
+      "name": "Kingsword",
+      "email": "kingsword09@gmail.com",
+      "url": "https://github.com/kingsword09"
+    }
+  ],
   "scripts": {
     "artifacts": "napi artifacts",
     "bench": "node --import @oxc-node/core/register benchmark/bench.ts",
     "build": "napi build --platform --release --js index.cjs",
     "build:debug": "napi build --platform --js index.cjs",
+    "build:all": "napi build --platform --release --js index.cjs && pnpm artifacts",
+    "build:check": "node scripts/build-check.js",
+    "clean": "rimraf target/ *.node npm/ index.js index.d.ts index.cjs",
     "format": "run-p format:prettier format:rs format:toml",
     "format:prettier": "prettier . -w",
     "format:toml": "taplo format",
     "format:rs": "cargo fmt",
     "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "check": "run-s format lint test:basic",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
+    "test:basic": "ava test/basic.test.ts test/connection.test.ts test/async-integration.test.ts test/sync-integration.test.ts",
     "test:performance": "ava test/performance-benchmarks.test.ts",
     "test:stability": "ava test/stability.test.ts",
+    "test:all": "run-s test:basic test:performance test:stability",
     "examples": "run-s examples:*",
     "examples:async": "node examples/async-example.js",
     "examples:sync": "node examples/sync-example.js",
     "examples:testing": "node examples/testing-example.js",
+    "validate": "node scripts/validate-release.js",
+    "prerelease": "run-s validate",
+    "release:prepare": "node scripts/prepare-release.js",
+    "release:prepare:minor": "node scripts/prepare-release.js minor",
+    "release:prepare:major": "node scripts/prepare-release.js major",
+    "release:publish": "node scripts/publish-release.js",
+    "release:publish:dry": "node scripts/publish-release.js --dry-run",
+    "release:patch": "run-s release:prepare release:publish",
+    "release:minor": "run-s release:prepare:minor release:publish",
+    "release:major": "run-s release:prepare:major release:publish",
     "version": "napi version"
   },
   "devDependencies": {
@@ -99,6 +143,7 @@
     "npm-run-all2": "^8.0.4",
     "oxlint": "^1.8.0",
     "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
     "tinybench": "^4.0.1",
     "typescript": "^5.8.3"
   },
