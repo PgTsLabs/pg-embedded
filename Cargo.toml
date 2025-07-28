@@ -19,7 +19,7 @@ postgresql_embedded = { version = "0.19.0", default-features = false, features =
   "blocking",
   "tokio",
   "theseus",
-  "native-tls",
+  "rustls",
   "bundled",
 ] }
 uuid = { version = "1.0", features = ["v4"] }
@@ -49,6 +49,28 @@ openssl-sys = { version = "0.9.109", features = ["vendored"] }
 
 [build-dependencies]
 napi-build = "2"
+
+# For cross-compilation, ensure build scripts also use vendored OpenSSL
+[target.x86_64-unknown-linux-gnu.build-dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
+
+[target.armv7-unknown-linux-gnueabihf.build-dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
+
+[target.aarch64-unknown-linux-gnu.build-dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
+
+[target.x86_64-unknown-linux-musl.build-dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
+
+[target.aarch64-unknown-linux-musl.build-dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
+
+[target.aarch64-linux-android.build-dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
+
+[target.armv7-linux-androideabi.build-dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
 
 [profile.release]
 lto = true

@@ -71,7 +71,7 @@ jobs:
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            build: pnpm build --target x86_64-unknown-linux-gnu --use-napi-cross
+            build: pnpm build --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             build: pnpm build --target x86_64-unknown-linux-musl -x
@@ -141,7 +141,7 @@ jobs:
         if: ${{ matrix.settings.host == 'ubuntu-latest' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config
+          sudo apt-get install -y build-essential pkg-config libssl-dev
       - name: Install dependencies
         run: pnpm install
         env:
@@ -171,6 +171,8 @@ jobs:
           POSTGRESQL_RELEASES_URL: "https://github.com/theseus-rs/postgresql-binaries"
           OPENSSL_STATIC: "1"
           OPENSSL_VENDORED: "1"
+          OPENSSL_NO_PKG_CONFIG: "1"
+          PKG_CONFIG_ALLOW_CROSS: "1"
       - name: List generated files
         run: |
           echo "Files in current directory:"
