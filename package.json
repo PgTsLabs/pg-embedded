@@ -70,7 +70,7 @@
     "types": "./index.d.ts"
   },
   "engines": {
-    "node": ">= 16.0.0"
+    "node": ">= 10"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
