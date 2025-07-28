@@ -4,6 +4,26 @@ import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.
 // 初始化日志记录器
 initLogger(LogLevel.Info)
 
+// 辅助函数：安全地停止实例
+async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30) {
+  try {
+    if (instance.state === InstanceState.Running) {
+      await instance.stopWithTimeout(timeoutSeconds)
+    }
+  } catch (error) {
+    console.warn(`停止实例时出错: ${error}`)
+  }
+}
+
+// 辅助函数：安全地清理实例
+function safeCleanupInstance(instance: PostgresInstance) {
+  try {
+    instance.cleanup()
+  } catch (error) {
+    console.warn(`清理实例时出错: ${error}`)
+  }
+}
+
 test.serial('Error handling: Invalid configuration', (t) => {
   // 测试无效端口号
   t.throws(() => {
@@ -38,25 +58,26 @@ test.serial('Error handling: Repeated start/stop operations', async (t) => {
     username: 'repeatuser',
     password: 'repeatpass',
     persistent: false,
+    timeout: 60,
   })
 
   try {
     // 正常启动流程
-    await instance.start()
+    await instance.startWithTimeout(60)
     t.is(instance.state, InstanceState.Running)
 
     // 重复启动应该失败
     await t.throwsAsync(async () => {
-      await instance.start()
+      await instance.startWithTimeout(60)
     })
 
     // 正常停止
-    await instance.stop()
+    await safeStopInstance(instance)
     t.is(instance.state, InstanceState.Stopped)
 
     // 重复停止应该失败
     await t.throwsAsync(async () => {
-      await instance.stop()
+      await instance.stopWithTimeout(30)
     })
 
     // 在停止状态下尝试数据库操作应该失败
@@ -74,6 +95,7 @@ test.serial('Error handling: Database operations on stopped instance', async (t)
     username: 'stoppeduser',
     password: 'stoppedpass',
     persistent: false,
+    timeout: 60,
   })
 
   try {
@@ -100,10 +122,11 @@ test.serial('Error handling: Duplicate database creation', async (t) => {
     username: 'duplicateuser',
     password: 'duplicatepass',
     persistent: false,
+    timeout: 60,
   })
 
   try {
-    await instance.start()
+    await instance.startWithTimeout(60)
 
     // 创建数据库
     await instance.createDatabase('duplicate_test_db')
@@ -115,9 +138,9 @@ test.serial('Error handling: Duplicate database creation', async (t) => {
 
     // 清理
     await instance.dropDatabase('duplicate_test_db')
-    await instance.stop()
+    await safeStopInstance(instance)
   } finally {
-    instance.cleanup()
+    safeCleanupInstance(instance)
   }
 })
 

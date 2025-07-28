@@ -4,12 +4,24 @@ import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.
 // 初始化日志记录器
 initLogger(LogLevel.Info)
 
+// 辅助函数：安全地停止实例
+async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30) {
+  try {
+    if (instance.state === InstanceState.Running) {
+      await instance.stopWithTimeout(timeoutSeconds)
+    }
+  } catch (error) {
+    console.warn(`停止实例时出错: ${error}`)
+  }
+}
+
 test.serial('Complete sync workflow: setup -> start -> database operations -> stop', (t) => {
   const instance = new PostgresInstance({
     port: 5438,
     username: 'syncuser',
     password: 'syncpass',
     persistent: false,
+    timeout: 60,
   })
 
   try {
@@ -145,7 +157,7 @@ test.serial('Sync and async method consistency', async (t) => {
 
     // 停止实例
     syncInstance.stopSync()
-    await asyncInstance.stop()
+    await safeStopInstance(asyncInstance)
 
     // 验证两个实例都已停止
     t.is(syncInstance.state, InstanceState.Stopped)

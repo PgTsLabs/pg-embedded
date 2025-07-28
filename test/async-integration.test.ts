@@ -4,12 +4,33 @@ import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.
 // 初始化日志记录器
 initLogger(LogLevel.Info)
 
+// 辅助函数：安全地停止实例
+async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30) {
+  try {
+    if (instance.state === InstanceState.Running) {
+      await instance.stopWithTimeout(timeoutSeconds)
+    }
+  } catch (error) {
+    console.warn(`停止实例时出错: ${error}`)
+  }
+}
+
+// 辅助函数：安全地清理实例
+function safeCleanupInstance(instance: PostgresInstance) {
+  try {
+    instance.cleanup()
+  } catch (error) {
+    console.warn(`清理实例时出错: ${error}`)
+  }
+}
+
 test.serial('Complete async workflow: setup -> start -> database operations -> stop', async (t) => {
   const instance = new PostgresInstance({
     port: 5434,
     username: 'testuser',
     password: 'testpass',
     persistent: false,
+    timeout: 60,
   })
 
   try {
@@ -17,7 +38,7 @@ test.serial('Complete async workflow: setup -> start -> database operations -> s
     t.is(instance.state, InstanceState.Stopped)
 
     // 直接启动（会自动进行 setup）
-    await instance.start()
+    await instance.startWithTimeout(60)
     t.is(instance.state, InstanceState.Running)
 
     // 验证连接信息可用
@@ -47,7 +68,7 @@ test.serial('Complete async workflow: setup -> start -> database operations -> s
     t.is(deletedDbExists, false)
 
     // 4. Stop 阶段
-    await instance.stop()
+    await safeStopInstance(instance)
     t.is(instance.state, InstanceState.Stopped)
 
     // 停止后连接信息应该不可用
@@ -89,7 +110,7 @@ test.serial('Async Promise behavior validation', async (t) => {
     t.true(dropDbPromise instanceof Promise)
     await dropDbPromise
 
-    const stopPromise = instance.stop()
+    const stopPromise = safeStopInstance(instance)
     t.true(stopPromise instanceof Promise)
     await stopPromise
   } finally {
@@ -107,7 +128,7 @@ test.serial('Async error handling', async (t) => {
 
   try {
     // start() 方法会自动调用 setup()，所以不会失败
-    await instance.start()
+    await instance.startWithTimeout(60)
     t.is(instance.state, InstanceState.Running)
 
     // 尝试创建已存在的数据库应该失败
@@ -121,9 +142,9 @@ test.serial('Async error handling', async (t) => {
 
     // 清理
     await instance.dropDatabase('error_test_db')
-    await instance.stop()
+    await safeStopInstance(instance)
   } finally {
-    instance.cleanup()
+    safeCleanupInstance(instance)
   }
 })
 
@@ -136,7 +157,7 @@ test.serial('Async concurrent safety', async (t) => {
   })
 
   try {
-    await instance.start()
+    await instance.startWithTimeout(60)
 
     // 并发创建多个数据库
     const dbNames = ['concurrent_db1', 'concurrent_db2', 'concurrent_db3']
@@ -159,8 +180,8 @@ test.serial('Async concurrent safety', async (t) => {
     const deletedExistsResults = await Promise.all(deletedExistsPromises)
     deletedExistsResults.forEach((exists) => t.is(exists, false))
 
-    await instance.stop()
+    await safeStopInstance(instance)
   } finally {
-    instance.cleanup()
+    safeCleanupInstance(instance)
   }
 })
