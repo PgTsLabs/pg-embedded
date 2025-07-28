@@ -244,7 +244,7 @@ test.serial('Stability: Memory leak detection test', async (t) => {
     instances.forEach((instance) => {
       try {
         instance.cleanup()
-      } catch (e) {
+      } catch {
         // 忽略清理错误
       }
     })

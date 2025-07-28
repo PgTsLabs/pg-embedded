@@ -24,7 +24,7 @@ npm install pg-embedded
 ### Async/Await (Recommended)
 
 ```typescript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
 async function example() {
   // Create a new PostgreSQL instance
@@ -32,64 +32,64 @@ async function example() {
     port: 5432,
     username: 'postgres',
     password: 'password',
-    persistent: false
-  });
+    persistent: false,
+  })
 
   try {
     // Start the PostgreSQL server
-    await postgres.start();
-    console.log('PostgreSQL started successfully!');
+    await postgres.start()
+    console.log('PostgreSQL started successfully!')
 
     // Create a database
-    await postgres.createDatabase('myapp');
-    
+    await postgres.createDatabase('myapp')
+
     // Check if database exists
-    const exists = await postgres.databaseExists('myapp');
-    console.log(`Database exists: ${exists}`);
+    const exists = await postgres.databaseExists('myapp')
+    console.log(`Database exists: ${exists}`)
 
     // Get connection information
-    const connectionInfo = postgres.connectionInfo;
-    console.log(`Connect to: ${connectionInfo.connectionString}`);
+    const connectionInfo = postgres.connectionInfo
+    console.log(`Connect to: ${connectionInfo.connectionString}`)
 
     // Drop the database
-    await postgres.dropDatabase('myapp');
+    await postgres.dropDatabase('myapp')
 
     // Stop the server
-    await postgres.stop();
+    await postgres.stop()
   } finally {
     // Clean up resources
-    postgres.cleanup();
+    postgres.cleanup()
   }
 }
 
-example().catch(console.error);
+example().catch(console.error)
 ```
 
 ### Synchronous API
 
 ```typescript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
 const postgres = new PostgresInstance({
   port: 5433,
   username: 'testuser',
-  password: 'testpass'
-});
+  password: 'testpass',
+})
 
 try {
   // Start synchronously
-  postgres.startSync();
-  console.log('PostgreSQL started!');
+  postgres.startSync()
+  console.log('PostgreSQL started!')
 
   // Database operations
-  postgres.createDatabaseSync('testdb');
-  const exists = postgres.databaseExistsSync('testdb');
-  console.log(`Database exists: ${exists}`);
+  postgres.createDatabaseSync('testdb')
+  const exists = postgres.databaseExistsSync('testdb')
+  console.log(`Database exists: ${exists}`)
 
   // Stop synchronously
-  postgres.stopSync();
+  postgres.stopSync()
 } finally {
-  postgres.cleanup();
+  postgres.cleanup()
 }
 ```
 
@@ -100,31 +100,31 @@ The `PostgresSettings` object supports the following options:
 ```typescript
 interface PostgresSettings {
   /** PostgreSQL version (e.g., "15.0", ">=14.0") */
-  version?: string;
-  
+  version?: string
+
   /** Port number (1-65535, default: 5432) */
-  port?: number;
-  
+  port?: number
+
   /** Username for database connection (default: "postgres") */
-  username?: string;
-  
+  username?: string
+
   /** Password for database connection (default: "postgres") */
-  password?: string;
-  
+  password?: string
+
   /** Default database name (default: "postgres") */
-  database_name?: string;
-  
+  database_name?: string
+
   /** Custom data directory path */
-  data_dir?: string;
-  
+  data_dir?: string
+
   /** Custom installation directory path */
-  installation_dir?: string;
-  
+  installation_dir?: string
+
   /** Timeout in seconds (default: 30) */
-  timeout?: number;
-  
+  timeout?: number
+
   /** Whether to persist data between runs (default: false) */
-  persistent?: boolean;
+  persistent?: boolean
 }
 ```
 
@@ -177,12 +177,12 @@ Creates a new PostgreSQL instance with the specified settings.
 
 ```typescript
 interface ConnectionInfo {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  database: string;
-  connectionString: string;
+  host: string
+  port: number
+  username: string
+  password: string
+  database: string
+  connectionString: string
 }
 ```
 
@@ -190,10 +190,10 @@ interface ConnectionInfo {
 
 ```typescript
 enum InstanceState {
-  Stopped = "Stopped",
-  Starting = "Starting", 
-  Running = "Running",
-  Stopping = "Stopping"
+  Stopped = 'Stopped',
+  Starting = 'Starting',
+  Running = 'Running',
+  Stopping = 'Stopping',
 }
 ```
 
@@ -204,109 +204,109 @@ enum InstanceState {
 #### Jest
 
 ```typescript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
 describe('Database Tests', () => {
-  let postgres: PostgresInstance;
+  let postgres: PostgresInstance
 
   beforeAll(async () => {
     postgres = new PostgresInstance({
       port: 5434,
-      persistent: false
-    });
-    await postgres.start();
-  });
+      persistent: false,
+    })
+    await postgres.start()
+  })
 
   afterAll(async () => {
-    await postgres.stop();
-    postgres.cleanup();
-  });
+    await postgres.stop()
+    postgres.cleanup()
+  })
 
   beforeEach(async () => {
-    await postgres.createDatabase('test_db');
-  });
+    await postgres.createDatabase('test_db')
+  })
 
   afterEach(async () => {
-    await postgres.dropDatabase('test_db');
-  });
+    await postgres.dropDatabase('test_db')
+  })
 
   test('should create and connect to database', async () => {
-    const exists = await postgres.databaseExists('test_db');
-    expect(exists).toBe(true);
-  });
-});
+    const exists = await postgres.databaseExists('test_db')
+    expect(exists).toBe(true)
+  })
+})
 ```
 
 #### Mocha
 
 ```typescript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
-describe('Database Tests', function() {
-  let postgres: PostgresInstance;
+describe('Database Tests', function () {
+  let postgres: PostgresInstance
 
-  before(async function() {
-    this.timeout(30000); // Allow time for PostgreSQL to start
-    postgres = new PostgresInstance();
-    await postgres.start();
-  });
+  before(async function () {
+    this.timeout(30000) // Allow time for PostgreSQL to start
+    postgres = new PostgresInstance()
+    await postgres.start()
+  })
 
-  after(async function() {
-    await postgres.stop();
-    postgres.cleanup();
-  });
+  after(async function () {
+    await postgres.stop()
+    postgres.cleanup()
+  })
 
-  it('should handle database operations', async function() {
-    await postgres.createDatabase('mocha_test');
-    const exists = await postgres.databaseExists('mocha_test');
-    expect(exists).to.be.true;
-    await postgres.dropDatabase('mocha_test');
-  });
-});
+  it('should handle database operations', async function () {
+    await postgres.createDatabase('mocha_test')
+    const exists = await postgres.databaseExists('mocha_test')
+    expect(exists).to.be.true
+    await postgres.dropDatabase('mocha_test')
+  })
+})
 ```
 
 ### Performance Monitoring
 
 ```typescript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
-const postgres = new PostgresInstance();
+const postgres = new PostgresInstance()
 
 // Monitor startup performance
-const startTime = Date.now();
-await postgres.start();
-const externalStartupTime = Date.now() - startTime;
+const startTime = Date.now()
+await postgres.start()
+const externalStartupTime = Date.now() - startTime
 
 // Get internal startup time measurement
-const internalStartupTime = postgres.getStartupTime();
+const internalStartupTime = postgres.getStartupTime()
 
-console.log(`External measurement: ${externalStartupTime}ms`);
-console.log(`Internal measurement: ${internalStartupTime * 1000}ms`);
+console.log(`External measurement: ${externalStartupTime}ms`)
+console.log(`Internal measurement: ${internalStartupTime * 1000}ms`)
 
 // Check instance health
 if (postgres.isHealthy()) {
-  console.log('PostgreSQL instance is healthy');
+  console.log('PostgreSQL instance is healthy')
 }
 ```
 
 ### Connection Caching
 
 ```typescript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
-const postgres = new PostgresInstance();
-await postgres.start();
+const postgres = new PostgresInstance()
+await postgres.start()
 
 // Connection info is cached for performance
-const info1 = postgres.connectionInfo;
-const info2 = postgres.connectionInfo; // Uses cached version
+const info1 = postgres.connectionInfo
+const info2 = postgres.connectionInfo // Uses cached version
 
 // Check cache validity
-console.log(`Cache valid: ${postgres.isConnectionCacheValid()}`);
+console.log(`Cache valid: ${postgres.isConnectionCacheValid()}`)
 
 // Manually clear cache if needed
-postgres.clearConnectionCache();
-console.log(`Cache valid after clear: ${postgres.isConnectionCacheValid()}`);
+postgres.clearConnectionCache()
+console.log(`Cache valid after clear: ${postgres.isConnectionCacheValid()}`)
 ```
 
 ## Error Handling
@@ -314,19 +314,19 @@ console.log(`Cache valid after clear: ${postgres.isConnectionCacheValid()}`);
 The library provides detailed error information for different scenarios:
 
 ```typescript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
 const postgres = new PostgresInstance({
-  port: 80 // Invalid port for PostgreSQL
-});
+  port: 80, // Invalid port for PostgreSQL
+})
 
 try {
-  await postgres.start();
+  await postgres.start()
 } catch (error) {
-  console.error('Failed to start PostgreSQL:', error.message);
+  console.error('Failed to start PostgreSQL:', error.message)
   // Handle specific error types
   if (error.code === 'ConfigurationError') {
-    console.log('Configuration issue detected');
+    console.log('Configuration issue detected')
   }
 }
 ```
@@ -336,15 +336,19 @@ try {
 ### Common Issues
 
 1. **Port already in use**
+
    ```
    Error: PostgreSQL error: could not bind IPv4 address "127.0.0.1": Address already in use
    ```
+
    Solution: Use a different port or stop the conflicting service.
 
 2. **Permission denied**
+
    ```
    Error: Permission denied
    ```
+
    Solution: Ensure your application has write permissions to the data directory.
 
 3. **Startup timeout**
@@ -358,42 +362,44 @@ try {
 Enable debug logging to get more information:
 
 ```typescript
-import { initLogger, LogLevel } from 'pg-embedded';
+import { initLogger, LogLevel } from 'pg-embedded'
 
 // Enable debug logging
-initLogger(LogLevel.Debug);
+initLogger(LogLevel.Debug)
 
-const postgres = new PostgresInstance();
-await postgres.start(); // Will output detailed logs
+const postgres = new PostgresInstance()
+await postgres.start() // Will output detailed logs
 ```
 
 ### Performance Tips
 
 1. **Use persistent instances for development**:
+
    ```typescript
    const postgres = new PostgresInstance({
      persistent: true,
-     data_dir: './postgres-data'
-   });
+     data_dir: './postgres-data',
+   })
    ```
 
 2. **Reuse instances across tests**:
+
    ```typescript
    // Create once, use multiple times
-   const postgres = new PostgresInstance();
-   await postgres.start();
-   
+   const postgres = new PostgresInstance()
+   await postgres.start()
+
    // Run multiple test suites...
-   
-   await postgres.stop();
+
+   await postgres.stop()
    ```
 
 3. **Monitor startup times**:
    ```typescript
-   await postgres.start();
-   const startupTime = postgres.getStartupTime();
+   await postgres.start()
+   const startupTime = postgres.getStartupTime()
    if (startupTime > 5) {
-     console.warn(`Slow startup detected: ${startupTime}s`);
+     console.warn(`Slow startup detected: ${startupTime}s`)
    }
    ```
 

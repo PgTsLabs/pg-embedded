@@ -10,7 +10,7 @@ test('Logger can be initialized', (t) => {
 test('Log functions exist and can be called', (t) => {
   // 初始化日志记录器
   initLogger(LogLevel.Debug)
-  
+
   // 测试各种日志级别的函数
   t.notThrows(() => {
     logInfo('Test info message')
@@ -22,8 +22,8 @@ test('Log functions exist and can be called', (t) => {
 
 test('Logger can be initialized with different levels', (t) => {
   const levels = [LogLevel.Error, LogLevel.Warn, LogLevel.Info, LogLevel.Debug, LogLevel.Trace]
-  
-  levels.forEach(level => {
+
+  levels.forEach((level) => {
     t.notThrows(() => {
       initLogger(level)
     })

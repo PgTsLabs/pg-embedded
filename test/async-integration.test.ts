@@ -9,7 +9,7 @@ test.serial('Complete async workflow: setup -> start -> database operations -> s
     port: 5434,
     username: 'testuser',
     password: 'testpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -56,7 +56,6 @@ test.serial('Complete async workflow: setup -> start -> database operations -> s
     })
     t.truthy(error)
     t.true(error.message.includes('not running'))
-
   } finally {
     // 确保清理
     instance.cleanup()
@@ -68,7 +67,7 @@ test.serial('Async Promise behavior validation', async (t) => {
     port: 5435,
     username: 'promiseuser',
     password: 'promisepass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -93,7 +92,6 @@ test.serial('Async Promise behavior validation', async (t) => {
     const stopPromise = instance.stop()
     t.true(stopPromise instanceof Promise)
     await stopPromise
-
   } finally {
     instance.cleanup()
   }
@@ -104,7 +102,7 @@ test.serial('Async error handling', async (t) => {
     port: 5436,
     username: 'erroruser',
     password: 'errorpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -124,7 +122,6 @@ test.serial('Async error handling', async (t) => {
     // 清理
     await instance.dropDatabase('error_test_db')
     await instance.stop()
-
   } finally {
     instance.cleanup()
   }
@@ -135,7 +132,7 @@ test.serial('Async concurrent safety', async (t) => {
     port: 5437,
     username: 'concurrentuser',
     password: 'concurrentpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -143,27 +140,26 @@ test.serial('Async concurrent safety', async (t) => {
 
     // 并发创建多个数据库
     const dbNames = ['concurrent_db1', 'concurrent_db2', 'concurrent_db3']
-    const createPromises = dbNames.map(name => instance.createDatabase(name))
-    
+    const createPromises = dbNames.map((name) => instance.createDatabase(name))
+
     // 等待所有创建操作完成
     await Promise.all(createPromises)
 
     // 验证所有数据库都被创建
-    const existsPromises = dbNames.map(name => instance.databaseExists(name))
+    const existsPromises = dbNames.map((name) => instance.databaseExists(name))
     const existsResults = await Promise.all(existsPromises)
-    existsResults.forEach(exists => t.is(exists, true))
+    existsResults.forEach((exists) => t.is(exists, true))
 
     // 并发删除所有数据库
-    const dropPromises = dbNames.map(name => instance.dropDatabase(name))
+    const dropPromises = dbNames.map((name) => instance.dropDatabase(name))
     await Promise.all(dropPromises)
 
     // 验证所有数据库都被删除
-    const deletedExistsPromises = dbNames.map(name => instance.databaseExists(name))
+    const deletedExistsPromises = dbNames.map((name) => instance.databaseExists(name))
     const deletedExistsResults = await Promise.all(deletedExistsPromises)
-    deletedExistsResults.forEach(exists => t.is(exists, false))
+    deletedExistsResults.forEach((exists) => t.is(exists, false))
 
     await instance.stop()
-
   } finally {
     instance.cleanup()
   }

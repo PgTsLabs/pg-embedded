@@ -10,7 +10,7 @@ test.serial('Error handling: Invalid configuration', (t) => {
     new PostgresInstance({
       port: -1,
       username: 'testuser',
-      password: 'testpass'
+      password: 'testpass',
     })
   })
 
@@ -18,7 +18,7 @@ test.serial('Error handling: Invalid configuration', (t) => {
     new PostgresInstance({
       port: 70000, // 超出有效端口范围
       username: 'testuser',
-      password: 'testpass'
+      password: 'testpass',
     })
   })
 
@@ -27,7 +27,7 @@ test.serial('Error handling: Invalid configuration', (t) => {
     new PostgresInstance({
       port: 5443,
       username: '',
-      password: 'testpass'
+      password: 'testpass',
     })
   })
 })
@@ -37,7 +37,7 @@ test.serial('Error handling: Repeated start/stop operations', async (t) => {
     port: 5444,
     username: 'repeatuser',
     password: 'repeatpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -63,7 +63,6 @@ test.serial('Error handling: Repeated start/stop operations', async (t) => {
     await t.throwsAsync(async () => {
       await instance.createDatabase('should_fail_db')
     })
-
   } finally {
     instance.cleanup()
   }
@@ -74,7 +73,7 @@ test.serial('Error handling: Database operations on stopped instance', async (t)
     port: 5445,
     username: 'stoppeduser',
     password: 'stoppedpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -90,7 +89,6 @@ test.serial('Error handling: Database operations on stopped instance', async (t)
     await t.throwsAsync(async () => {
       await instance.dropDatabase('any_db')
     })
-
   } finally {
     instance.cleanup()
   }
@@ -101,7 +99,7 @@ test.serial('Error handling: Duplicate database creation', async (t) => {
     port: 5446,
     username: 'duplicateuser',
     password: 'duplicatepass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -109,7 +107,7 @@ test.serial('Error handling: Duplicate database creation', async (t) => {
 
     // 创建数据库
     await instance.createDatabase('duplicate_test_db')
-    
+
     // 尝试创建同名数据库应该失败
     await t.throwsAsync(async () => {
       await instance.createDatabase('duplicate_test_db')
@@ -118,7 +116,6 @@ test.serial('Error handling: Duplicate database creation', async (t) => {
     // 清理
     await instance.dropDatabase('duplicate_test_db')
     await instance.stop()
-
   } finally {
     instance.cleanup()
   }
@@ -129,7 +126,7 @@ test.serial('Error handling: Connection info access when stopped', (t) => {
     port: 5447,
     username: 'connectionuser',
     password: 'connectionpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -137,7 +134,6 @@ test.serial('Error handling: Connection info access when stopped', (t) => {
     t.throws(() => {
       instance.connectionInfo
     })
-
   } finally {
     instance.cleanup()
   }
@@ -148,13 +144,12 @@ test.serial('Error handling: Health check on stopped instance', (t) => {
     port: 5448,
     username: 'healthuser',
     password: 'healthpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
     // 停止状态下应该不健康
     t.is(instance.isHealthy(), false)
-
   } finally {
     instance.cleanup()
   }

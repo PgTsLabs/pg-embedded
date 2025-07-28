@@ -9,7 +9,7 @@ test.serial('Complete sync workflow: setup -> start -> database operations -> st
     port: 5438,
     username: 'syncuser',
     password: 'syncpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -56,7 +56,6 @@ test.serial('Complete sync workflow: setup -> start -> database operations -> st
     })
     t.truthy(error)
     t.true(error.message.includes('not running'))
-
   } finally {
     // 确保清理
     instance.cleanup()
@@ -68,7 +67,7 @@ test.serial('Sync exception throwing behavior', (t) => {
     port: 5439,
     username: 'exceptionuser',
     password: 'exceptionpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -88,7 +87,6 @@ test.serial('Sync exception throwing behavior', (t) => {
     // 清理
     instance.dropDatabaseSync('exception_test_db')
     instance.stopSync()
-
   } finally {
     instance.cleanup()
   }
@@ -99,14 +97,14 @@ test.serial('Sync and async method consistency', async (t) => {
     port: 5440,
     username: 'consistencyuser1',
     password: 'consistencypass1',
-    persistent: false
+    persistent: false,
   })
 
   const asyncInstance = new PostgresInstance({
     port: 5441,
     username: 'consistencyuser2',
     password: 'consistencypass2',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -152,7 +150,6 @@ test.serial('Sync and async method consistency', async (t) => {
     // 验证两个实例都已停止
     t.is(syncInstance.state, InstanceState.Stopped)
     t.is(asyncInstance.state, InstanceState.Stopped)
-
   } finally {
     syncInstance.cleanup()
     asyncInstance.cleanup()
@@ -164,7 +161,7 @@ test.serial('Sync method correctness validation', (t) => {
     port: 5442,
     username: 'validationuser',
     password: 'validationpass',
-    persistent: false
+    persistent: false,
   })
 
   try {
@@ -174,7 +171,7 @@ test.serial('Sync method correctness validation', (t) => {
 
     // 验证数据库操作的返回值
     const dbName = 'validation_test_db'
-    
+
     // createDatabaseSync 应该没有返回值（undefined）
     const createResult = instance.createDatabaseSync(dbName)
     t.is(createResult, undefined)
@@ -197,7 +194,6 @@ test.serial('Sync method correctness validation', (t) => {
     const stopResult = instance.stopSync()
     t.is(stopResult, undefined)
     t.is(instance.state, InstanceState.Stopped)
-
   } finally {
     instance.cleanup()
   }

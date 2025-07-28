@@ -7,91 +7,93 @@ static INIT: Once = Once::new();
 #[napi]
 #[derive(Clone, Copy)]
 pub enum LogLevel {
-    /// 错误级别
-    Error,
-    /// 警告级别
-    Warn,
-    /// 信息级别
-    Info,
-    /// 调试级别
-    Debug,
-    /// 跟踪级别
-    Trace,
+  /// 错误级别
+  Error,
+  /// 警告级别
+  Warn,
+  /// 信息级别
+  Info,
+  /// 调试级别
+  Debug,
+  /// 跟踪级别
+  Trace,
 }
 
 /// 简单的日志记录器实现
 struct SimpleLogger {
-    level: log::Level,
+  level: log::Level,
 }
 
 impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
-        metadata.level() <= self.level
-    }
+  fn enabled(&self, metadata: &log::Metadata) -> bool {
+    metadata.level() <= self.level
+  }
 
-    fn log(&self, record: &log::Record) {
-        if self.enabled(record.metadata()) {
-            eprintln!("[{}] {}", record.level(), record.args());
-        }
+  fn log(&self, record: &log::Record) {
+    if self.enabled(record.metadata()) {
+      eprintln!("[{}] {}", record.level(), record.args());
     }
+  }
 
-    fn flush(&self) {}
+  fn flush(&self) {}
 }
 
 impl From<LogLevel> for log::Level {
-    fn from(level: LogLevel) -> Self {
-        match level {
-            LogLevel::Error => log::Level::Error,
-            LogLevel::Warn => log::Level::Warn,
-            LogLevel::Info => log::Level::Info,
-            LogLevel::Debug => log::Level::Debug,
-            LogLevel::Trace => log::Level::Trace,
-        }
+  fn from(level: LogLevel) -> Self {
+    match level {
+      LogLevel::Error => log::Level::Error,
+      LogLevel::Warn => log::Level::Warn,
+      LogLevel::Info => log::Level::Info,
+      LogLevel::Debug => log::Level::Debug,
+      LogLevel::Trace => log::Level::Trace,
     }
+  }
 }
 
 /// 初始化日志记录器
 #[napi]
 pub fn init_logger(level: Option<LogLevel>) -> napi::Result<()> {
-    INIT.call_once(|| {
-        let log_level = level.unwrap_or(LogLevel::Info);
-        let level_filter = log::Level::from(log_level).to_level_filter();
-        let logger = SimpleLogger { level: log::Level::from(log_level) };
-        log::set_boxed_logger(Box::new(logger))
-            .map(|()| log::set_max_level(level_filter))
-            .unwrap_or_else(|_| {});
-    });
-    Ok(())
+  INIT.call_once(|| {
+    let log_level = level.unwrap_or(LogLevel::Info);
+    let level_filter = log::Level::from(log_level).to_level_filter();
+    let logger = SimpleLogger {
+      level: log::Level::from(log_level),
+    };
+    log::set_boxed_logger(Box::new(logger))
+      .map(|()| log::set_max_level(level_filter))
+      .unwrap_or_else(|_| {});
+  });
+  Ok(())
 }
 
 /// 记录错误日志
 #[napi]
 pub fn log_error(message: String) {
-    log::error!("{}", message);
+  log::error!("{}", message);
 }
 
 /// 记录警告日志
 #[napi]
 pub fn log_warn(message: String) {
-    log::warn!("{}", message);
+  log::warn!("{}", message);
 }
 
 /// 记录信息日志
 #[napi]
 pub fn log_info(message: String) {
-    log::info!("{}", message);
+  log::info!("{}", message);
 }
 
 /// 记录调试日志
 #[napi]
 pub fn log_debug(message: String) {
-    log::debug!("{}", message);
+  log::debug!("{}", message);
 }
 
 /// 记录跟踪日志
 #[napi]
 pub fn log_trace(message: String) {
-    log::trace!("{}", message);
+  log::trace!("{}", message);
 }
 
 /// 内部日志记录宏

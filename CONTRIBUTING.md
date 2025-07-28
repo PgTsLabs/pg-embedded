@@ -53,11 +53,13 @@ Before you begin, ensure you have the following installed:
 ## Development Setup
 
 1. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 2. Build the project:
+
    ```bash
    pnpm run build
    ```
@@ -90,6 +92,7 @@ pg-embedded/
 ### Branching Strategy
 
 1. Create a new branch for your feature or bug fix:
+
    ```bash
    git checkout -b feature/your-feature-name
    # or
@@ -98,9 +101,10 @@ pg-embedded/
 
 2. Make your changes in logical, atomic commits
 3. Write clear commit messages following conventional commits format:
+
    ```
    type(scope): description
-   
+
    feat(postgres): add connection pooling support
    fix(settings): validate port range correctly
    docs(readme): update installation instructions
@@ -153,28 +157,29 @@ pnpm run test:performance
 - Use appropriate test data and cleanup resources
 
 Example test structure:
+
 ```typescript
-import test from 'ava';
-import { PostgresInstance } from '../index.js';
+import test from 'ava'
+import { PostgresInstance } from '../index.js'
 
 test('should create database successfully', async (t) => {
   // Arrange
-  const instance = new PostgresInstance({ port: 5432 });
-  await instance.start();
-  
+  const instance = new PostgresInstance({ port: 5432 })
+  await instance.start()
+
   try {
     // Act
-    await instance.createDatabase('test_db');
-    
+    await instance.createDatabase('test_db')
+
     // Assert
-    const exists = await instance.databaseExists('test_db');
-    t.is(exists, true);
+    const exists = await instance.databaseExists('test_db')
+    t.is(exists, true)
   } finally {
     // Cleanup
-    await instance.stop();
-    instance.cleanup();
+    await instance.stop()
+    instance.cleanup()
   }
-});
+})
 ```
 
 ## Submitting Changes
@@ -182,12 +187,14 @@ test('should create database successfully', async (t) => {
 ### Pull Request Process
 
 1. Ensure your branch is up to date with the main branch:
+
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
 
 2. Push your changes to your fork:
+
    ```bash
    git push origin your-branch-name
    ```
@@ -202,9 +209,11 @@ test('should create database successfully', async (t) => {
 
 ```markdown
 ## Description
+
 Brief description of the changes made.
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
@@ -212,11 +221,13 @@ Brief description of the changes made.
 - [ ] Code refactoring
 
 ## Testing
+
 - [ ] Tests pass locally
 - [ ] New tests added for new functionality
 - [ ] Manual testing completed
 
 ## Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Documentation updated if needed
@@ -241,16 +252,17 @@ Brief description of the changes made.
 - Handle errors appropriately (don't use `unwrap()` in library code)
 
 Example:
-```rust
+
+````rust
 /// Creates a new database with the specified name
-/// 
+///
 /// # Arguments
 /// * `name` - The name of the database to create
-/// 
+///
 /// # Returns
 /// * `Ok(())` if the database was created successfully
 /// * `Err(napi::Error)` if creation failed
-/// 
+///
 /// # Example
 /// ```rust
 /// instance.create_database("my_database".to_string())?;
@@ -259,7 +271,7 @@ Example:
 pub async unsafe fn create_database(&mut self, name: String) -> napi::Result<()> {
     // Implementation
 }
-```
+````
 
 ### TypeScript/JavaScript Code Style
 
@@ -331,18 +343,22 @@ We follow [Semantic Versioning](https://semver.org/):
 ## [1.2.0] - 2024-01-15
 
 ### Added
+
 - New connection pooling feature
 - Support for PostgreSQL 16
 
 ### Changed
+
 - Improved startup performance by 20%
 - Updated default timeout to 30 seconds
 
 ### Fixed
+
 - Fixed memory leak in connection caching
 - Resolved issue with database name validation
 
 ### Deprecated
+
 - Old configuration format (will be removed in v2.0)
 ```
 

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-01-28
 
 ### Added
+
 - Initial release of pg-embedded
 - PostgreSQL embedded instance management
 - Both synchronous and asynchronous API support
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete documentation and examples
 
 ### Features
+
 - **Easy Setup**: Simple API for starting and managing PostgreSQL instances
 - **Cross-Platform**: Support for macOS, Linux, and Windows
 - **TypeScript Support**: Full type definitions with JSDoc documentation
@@ -33,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Testing Ready**: Perfect for integration tests and development
 
 ### API
+
 - `PostgresInstance` class with full lifecycle management
 - `PostgresSettings` interface for configuration
 - `ConnectionInfo` interface for connection details
@@ -43,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Timeout methods: `startWithTimeout()`, `stopWithTimeout()`
 
 ### Documentation
+
 - Comprehensive README with quick start guide
 - Complete API reference documentation
 - Usage examples for async/await and synchronous patterns
@@ -50,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Troubleshooting guide and performance tips
 
 ### Testing
+
 - Unit tests for all core functionality
 - Integration tests for real-world scenarios
 - Performance benchmarks and stability tests
@@ -59,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-01-15
 
 ### Added
+
 - Initial project setup
 - Basic PostgreSQL instance management
 - Core Rust implementation with NAPI bindings
@@ -76,50 +82,61 @@ This is the first release of pg-embedded, providing a complete solution for embe
 #### Key Features
 
 **🚀 Easy to Use**
+
 - Simple API that works out of the box
 - No external PostgreSQL installation required
 - Automatic setup and configuration
 
 **⚡ High Performance**
+
 - Optimized startup times with lazy initialization
 - Connection information caching
 - Efficient resource management
 
 **🛡️ Type Safe**
+
 - Complete TypeScript support
 - Comprehensive JSDoc documentation
 - Runtime type validation
 
 **🧪 Testing Ready**
+
 - Perfect for integration tests
 - Isolated database instances
 - Automatic cleanup
 
 **🔧 Highly Configurable**
+
 - Flexible configuration options
 - Support for persistent and temporary databases
 - Custom data and installation directories
 
 #### Breaking Changes
+
 - None (initial release)
 
 #### Migration Guide
+
 - None (initial release)
 
 #### Known Issues
+
 - None currently known
 
 #### Supported Platforms
+
 - macOS (x64, ARM64)
 - Linux (x64, ARM64, ARM)
 - Windows (x64)
 - FreeBSD (x64)
 
 #### Dependencies
+
 - Node.js >= 16.0.0
 - Rust toolchain (for building from source)
 
 #### Performance Benchmarks
+
 - Average startup time: < 3 seconds
 - Memory usage: < 50MB per instance
 - Database operations: > 10 ops/second

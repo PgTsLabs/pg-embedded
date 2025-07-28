@@ -5,9 +5,11 @@ This directory contains practical examples demonstrating how to use pg-embedded 
 ## Available Examples
 
 ### 1. [async-example.js](async-example.js)
+
 **Comprehensive async/await usage example**
 
 This example demonstrates:
+
 - Creating and configuring PostgreSQL instances
 - Async lifecycle management (start/stop)
 - Database operations (create, check, drop)
@@ -17,14 +19,17 @@ This example demonstrates:
 - Timeout functionality
 
 **Run with:**
+
 ```bash
 node examples/async-example.js
 ```
 
 ### 2. [sync-example.js](sync-example.js)
+
 **Synchronous API usage example**
 
 This example shows:
+
 - Synchronous instance management
 - Sync database operations
 - State management and health checks
@@ -33,14 +38,17 @@ This example shows:
 - Resource cleanup
 
 **Run with:**
+
 ```bash
 node examples/sync-example.js
 ```
 
 ### 3. [testing-example.js](testing-example.js)
+
 **Testing framework integration example**
 
 This example includes:
+
 - Test suite setup and teardown patterns
 - Database isolation for tests
 - Concurrent operation testing
@@ -49,6 +57,7 @@ This example includes:
 - Best practices for testing with pg-embedded
 
 **Run with:**
+
 ```bash
 node examples/testing-example.js
 ```
@@ -73,7 +82,7 @@ pnpm run build
 # Run async example
 node examples/async-example.js
 
-# Run sync example  
+# Run sync example
 node examples/sync-example.js
 
 # Run testing example
@@ -96,20 +105,20 @@ done
 ### Basic Usage Pattern
 
 ```javascript
-import { PostgresInstance } from 'pg-embedded';
+import { PostgresInstance } from 'pg-embedded'
 
 const postgres = new PostgresInstance({
   port: 5432,
   username: 'postgres',
-  password: 'password'
-});
+  password: 'password',
+})
 
 try {
-  await postgres.start();
+  await postgres.start()
   // Use the database...
-  await postgres.stop();
+  await postgres.stop()
 } finally {
-  postgres.cleanup();
+  postgres.cleanup()
 }
 ```
 
@@ -117,88 +126,92 @@ try {
 
 ```javascript
 // Setup
-let postgres;
+let postgres
 beforeAll(async () => {
-  postgres = new PostgresInstance({ port: 5433 });
-  await postgres.start();
-});
+  postgres = new PostgresInstance({ port: 5433 })
+  await postgres.start()
+})
 
 // Cleanup
 afterAll(async () => {
-  await postgres.stop();
-  postgres.cleanup();
-});
+  await postgres.stop()
+  postgres.cleanup()
+})
 
 // Test isolation
 beforeEach(async () => {
-  await postgres.createDatabase('test_db');
-});
+  await postgres.createDatabase('test_db')
+})
 
 afterEach(async () => {
-  await postgres.dropDatabase('test_db');
-});
+  await postgres.dropDatabase('test_db')
+})
 ```
 
 ### Error Handling Pattern
 
 ```javascript
 try {
-  await postgres.start();
-  await postgres.createDatabase('mydb');
+  await postgres.start()
+  await postgres.createDatabase('mydb')
 } catch (error) {
-  console.error('Operation failed:', error.message);
-  
+  console.error('Operation failed:', error.message)
+
   // Handle specific error types
   if (error.code === 'DatabaseError') {
     // Handle database-specific errors
   }
 } finally {
   // Always cleanup
-  postgres.cleanup();
+  postgres.cleanup()
 }
 ```
 
 ## Common Use Cases
 
 ### 1. Integration Testing
+
 Use pg-embedded to create isolated database instances for your integration tests:
 
 ```javascript
 // Each test gets a fresh database
-const testDb = await postgres.createTestDatabase('my_test');
+const testDb = await postgres.createTestDatabase('my_test')
 // Run your test...
-await postgres.dropDatabase(testDb);
+await postgres.dropDatabase(testDb)
 ```
 
 ### 2. Development Environment
+
 Start a local PostgreSQL instance for development:
 
 ```javascript
 const postgres = new PostgresInstance({
   port: 5432,
-  persistent: true,  // Keep data between runs
-  data_dir: './dev-data'
-});
+  persistent: true, // Keep data between runs
+  data_dir: './dev-data',
+})
 ```
 
 ### 3. CI/CD Pipelines
+
 Use in continuous integration for reliable, isolated testing:
 
 ```javascript
 // Fast startup for CI
 const postgres = new PostgresInstance({
-  persistent: false,  // Temporary data
-  timeout: 60        // Allow more time in CI
-});
+  persistent: false, // Temporary data
+  timeout: 60, // Allow more time in CI
+})
 ```
 
 ### 4. Microservice Testing
+
 Test microservices with dedicated database instances:
 
 ```javascript
 // Each service gets its own database
-const userServiceDb = new PostgresInstance({ port: 5432 });
-const orderServiceDb = new PostgresInstance({ port: 5433 });
+const userServiceDb = new PostgresInstance({ port: 5432 })
+const orderServiceDb = new PostgresInstance({ port: 5433 })
 ```
 
 ## Performance Tips
@@ -223,9 +236,9 @@ const orderServiceDb = new PostgresInstance({ port: 5433 });
 Enable debug logging to see detailed operation logs:
 
 ```javascript
-import { initLogger, LogLevel } from 'pg-embedded';
+import { initLogger, LogLevel } from 'pg-embedded'
 
-initLogger(LogLevel.Debug);
+initLogger(LogLevel.Debug)
 ```
 
 ## Contributing Examples
@@ -240,6 +253,7 @@ If you have a useful example that demonstrates a specific use case:
 6. Submit a pull request
 
 Examples should be:
+
 - **Self-contained**: Runnable without external dependencies
 - **Well-documented**: Clear comments explaining each step
 - **Robust**: Include proper error handling

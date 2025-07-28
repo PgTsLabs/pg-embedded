@@ -68,7 +68,9 @@ test.serial('Performance: Startup time benchmark', async (t) => {
   const avgStartupTime = startupTimes.reduce((a, b) => a + b, 0) / startupTimes.length
   const minStartupTime = Math.min(...startupTimes)
   const maxStartupTime = Math.max(...startupTimes)
-  const stdDev = Math.sqrt(startupTimes.reduce((sq, n) => sq + Math.pow(n - avgStartupTime, 2), 0) / startupTimes.length)
+  const stdDev = Math.sqrt(
+    startupTimes.reduce((sq, n) => sq + Math.pow(n - avgStartupTime, 2), 0) / startupTimes.length,
+  )
 
   // 记录的启动时间统计
   const avgRecordedTime = recordedStartupTimes.reduce((a, b) => a + b, 0) / recordedStartupTimes.length
@@ -85,25 +87,29 @@ test.serial('Performance: Startup time benchmark', async (t) => {
   console.log(`内部记录时间范围: ${minRecordedTime.toFixed(2)}ms - ${maxRecordedTime.toFixed(2)}ms`)
 
   // 性能断言：启动时间应该在合理范围内
-  t.true(avgStartupTime < BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_STARTUP_TIME_MS, 
-    `平均启动时间 (${avgStartupTime.toFixed(2)}ms) 应该小于 ${BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_STARTUP_TIME_MS}ms`)
+  t.true(
+    avgStartupTime < BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_STARTUP_TIME_MS,
+    `平均启动时间 (${avgStartupTime.toFixed(2)}ms) 应该小于 ${BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_STARTUP_TIME_MS}ms`,
+  )
   t.true(minStartupTime > 0, '最小启动时间应该为正数')
-  t.true(maxStartupTime < BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_STARTUP_TIME_MS * 1.5, 
-    `最大启动时间 (${maxStartupTime}ms) 应该在合理范围内`)
-  
+  t.true(
+    maxStartupTime < BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_STARTUP_TIME_MS * 1.5,
+    `最大启动时间 (${maxStartupTime}ms) 应该在合理范围内`,
+  )
+
   // 验证内部记录时间的准确性（应该与外部测量时间相近）
   const timeDifference = Math.abs(avgStartupTime - avgRecordedTime)
   t.true(timeDifference < 1000, `内部记录时间与外部测量时间差异 (${timeDifference.toFixed(2)}ms) 应该小于1秒`)
 })
 
 test.serial('Performance: Memory usage monitoring', async (t) => {
-  const memorySnapshots: Array<{ 
-    time: number; 
-    heapUsed: number; 
-    heapTotal: number; 
-    external: number; 
-    rss: number;
-    instanceCount: number;
+  const memorySnapshots: Array<{
+    time: number
+    heapUsed: number
+    heapTotal: number
+    external: number
+    rss: number
+    instanceCount: number
   }> = []
 
   console.log(`\n=== 内存使用监控测试 ===`)
@@ -131,7 +137,7 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
     // 创建多个实例来测试内存使用
     for (let i = 0; i < instanceCount; i++) {
       console.log(`创建实例 ${i + 1}/${instanceCount}`)
-      
+
       const instance = new PostgresInstance({
         port: 5510 + i,
         username: `memory_test_${i}`,
@@ -162,18 +168,18 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
       await instance.createDatabase(dbName)
       const exists = await instance.databaseExists(dbName)
       t.is(exists, true)
-      
+
       // 测试连接信息缓存
       const connectionInfo = instance.connectionInfo
       t.truthy(connectionInfo)
       t.is(instance.isConnectionCacheValid(), true)
-      
+
       await instance.dropDatabase(dbName)
       const existsAfterDrop = await instance.databaseExists(dbName)
       t.is(existsAfterDrop, false)
 
       // 短暂等待以观察内存变化
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 500))
     }
 
     // 执行内存压力测试
@@ -191,7 +197,7 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
     if (global.gc) {
       global.gc()
     }
-    
+
     const finalMemory = process.memoryUsage()
     memorySnapshots.push({
       time: Date.now(),
@@ -206,10 +212,10 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
     memorySnapshots.forEach((snapshot, index) => {
       console.log(
         `快照 ${index} (实例数: ${snapshot.instanceCount}): ` +
-        `堆内存使用 = ${(snapshot.heapUsed / 1024 / 1024).toFixed(2)}MB, ` +
-        `堆内存总计 = ${(snapshot.heapTotal / 1024 / 1024).toFixed(2)}MB, ` +
-        `外部内存 = ${(snapshot.external / 1024 / 1024).toFixed(2)}MB, ` +
-        `RSS = ${(snapshot.rss / 1024 / 1024).toFixed(2)}MB`,
+          `堆内存使用 = ${(snapshot.heapUsed / 1024 / 1024).toFixed(2)}MB, ` +
+          `堆内存总计 = ${(snapshot.heapTotal / 1024 / 1024).toFixed(2)}MB, ` +
+          `外部内存 = ${(snapshot.external / 1024 / 1024).toFixed(2)}MB, ` +
+          `RSS = ${(snapshot.rss / 1024 / 1024).toFixed(2)}MB`,
       )
     })
 
@@ -239,15 +245,15 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
     if (memorySnapshots.length >= 3) {
       const firstSnapshot = memorySnapshots[1] // 第一个实例后
       const lastSnapshot = memorySnapshots[memorySnapshots.length - 2] // 最后一个实例后
-      const memoryGrowthRate = (lastSnapshot.heapUsed - firstSnapshot.heapUsed) / (lastSnapshot.instanceCount - firstSnapshot.instanceCount)
-      
+      const memoryGrowthRate =
+        (lastSnapshot.heapUsed - firstSnapshot.heapUsed) / (lastSnapshot.instanceCount - firstSnapshot.instanceCount)
+
       console.log(`内存增长率: ${(memoryGrowthRate / 1024 / 1024).toFixed(2)}MB/实例`)
-      
+
       // 内存增长应该相对稳定
       t.true(memoryGrowthRate > 0, '内存增长率应该为正数')
       t.true(memoryGrowthRate < maxMemoryPerInstanceMB * 1024 * 1024, '内存增长率应该在合理范围内')
     }
-
   } finally {
     // 清理所有实例
     console.log('清理所有实例...')
@@ -295,9 +301,11 @@ test.serial('Performance: Concurrent performance test', async (t) => {
 
     const individualStartupTimes = await Promise.all(startupPromises)
     const totalStartupTime = Date.now() - startupStartTime
-    
+
     console.log(`并发启动总时间: ${totalStartupTime}ms`)
-    console.log(`平均单实例启动时间: ${(individualStartupTimes.reduce((a, b) => a + b, 0) / individualStartupTimes.length).toFixed(2)}ms`)
+    console.log(
+      `平均单实例启动时间: ${(individualStartupTimes.reduce((a, b) => a + b, 0) / individualStartupTimes.length).toFixed(2)}ms`,
+    )
 
     // 验证所有实例都启动成功
     instances.forEach((instance, index) => {
@@ -311,22 +319,22 @@ test.serial('Performance: Concurrent performance test', async (t) => {
     const operationPromises = instances.map(async (instance, index) => {
       const dbName = `concurrent_db_${index}`
       const opStartTime = Date.now()
-      
+
       // 创建数据库
       await instance.createDatabase(dbName)
       const exists = await instance.databaseExists(dbName)
       t.is(exists, true, `数据库 ${dbName} 应该存在`)
-      
+
       // 测试连接信息获取
       const connectionInfo = instance.connectionInfo
       t.truthy(connectionInfo)
       t.is(connectionInfo.port, 5520 + index)
-      
+
       // 删除数据库
       await instance.dropDatabase(dbName)
       const existsAfterDrop = await instance.databaseExists(dbName)
       t.is(existsAfterDrop, false, `数据库 ${dbName} 删除后应该不存在`)
-      
+
       const opTime = Date.now() - opStartTime
       console.log(`实例 ${index + 1} 数据库操作时间: ${opTime}ms`)
       return opTime
@@ -334,20 +342,22 @@ test.serial('Performance: Concurrent performance test', async (t) => {
 
     const individualOperationTimes = await Promise.all(operationPromises)
     const totalOperationTime = Date.now() - operationStartTime
-    
+
     console.log(`并发数据库操作总时间: ${totalOperationTime}ms`)
-    console.log(`平均单实例操作时间: ${(individualOperationTimes.reduce((a, b) => a + b, 0) / individualOperationTimes.length).toFixed(2)}ms`)
+    console.log(
+      `平均单实例操作时间: ${(individualOperationTimes.reduce((a, b) => a + b, 0) / individualOperationTimes.length).toFixed(2)}ms`,
+    )
 
     // 测试并发配置哈希一致性
     console.log('测试配置哈希一致性...')
-    const configHashes = instances.map(instance => instance.getConfigHash())
+    const configHashes = instances.map((instance) => instance.getConfigHash())
     const uniqueHashes = new Set(configHashes)
     t.is(uniqueHashes.size, concurrentCount, '每个实例应该有唯一的配置哈希')
 
     // 测试并发连接缓存性能
     console.log('测试并发连接缓存性能...')
     const cacheTestStartTime = Date.now()
-    const cachePromises = instances.map(async (instance, index) => {
+    const cachePromises = instances.map(async (instance, _index) => {
       const iterations = 100
       for (let i = 0; i < iterations; i++) {
         const connectionInfo = instance.connectionInfo
@@ -355,7 +365,7 @@ test.serial('Performance: Concurrent performance test', async (t) => {
       }
       return iterations
     })
-    
+
     await Promise.all(cachePromises)
     const cacheTestTime = Date.now() - cacheTestStartTime
     console.log(`并发连接缓存测试时间: ${cacheTestTime}ms`)
@@ -373,9 +383,11 @@ test.serial('Performance: Concurrent performance test', async (t) => {
 
     const individualStopTimes = await Promise.all(stopPromises)
     const totalStopTime = Date.now() - stopStartTime
-    
+
     console.log(`并发停止总时间: ${totalStopTime}ms`)
-    console.log(`平均单实例停止时间: ${(individualStopTimes.reduce((a, b) => a + b, 0) / individualStopTimes.length).toFixed(2)}ms`)
+    console.log(
+      `平均单实例停止时间: ${(individualStopTimes.reduce((a, b) => a + b, 0) / individualStopTimes.length).toFixed(2)}ms`,
+    )
 
     // 验证所有实例都已停止
     instances.forEach((instance, index) => {
@@ -385,27 +397,29 @@ test.serial('Performance: Concurrent performance test', async (t) => {
     const totalTestTime = Date.now() - startTime
     console.log(`\n=== 并发性能测试结果 ===`)
     console.log(`总测试时间: ${totalTestTime}ms`)
-    console.log(`并发启动效率: ${(totalStartupTime / Math.max(...individualStartupTimes) * 100).toFixed(1)}%`)
-    console.log(`并发操作效率: ${(totalOperationTime / Math.max(...individualOperationTimes) * 100).toFixed(1)}%`)
-    console.log(`并发停止效率: ${(totalStopTime / Math.max(...individualStopTimes) * 100).toFixed(1)}%`)
+    console.log(`并发启动效率: ${((totalStartupTime / Math.max(...individualStartupTimes)) * 100).toFixed(1)}%`)
+    console.log(`并发操作效率: ${((totalOperationTime / Math.max(...individualOperationTimes)) * 100).toFixed(1)}%`)
+    console.log(`并发停止效率: ${((totalStopTime / Math.max(...individualStopTimes)) * 100).toFixed(1)}%`)
 
     // 性能断言
     const maxConcurrentStartupTime = BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_CONCURRENT_STARTUP_TIME_MS
     const maxOperationTime = BENCHMARK_CONFIG.PERFORMANCE_THRESHOLD.MAX_OPERATION_TIME_MS
-    
-    t.true(totalStartupTime < maxConcurrentStartupTime, 
-      `并发启动时间 (${totalStartupTime}ms) 应该小于 ${maxConcurrentStartupTime}ms`)
-    t.true(totalOperationTime < maxOperationTime, 
-      `并发操作时间 (${totalOperationTime}ms) 应该小于 ${maxOperationTime}ms`)
-    t.true(totalStopTime < maxOperationTime, 
-      `并发停止时间 (${totalStopTime}ms) 应该小于 ${maxOperationTime}ms`)
-    
+
+    t.true(
+      totalStartupTime < maxConcurrentStartupTime,
+      `并发启动时间 (${totalStartupTime}ms) 应该小于 ${maxConcurrentStartupTime}ms`,
+    )
+    t.true(
+      totalOperationTime < maxOperationTime,
+      `并发操作时间 (${totalOperationTime}ms) 应该小于 ${maxOperationTime}ms`,
+    )
+    t.true(totalStopTime < maxOperationTime, `并发停止时间 (${totalStopTime}ms) 应该小于 ${maxOperationTime}ms`)
+
     // 验证并发效率（并发执行应该比串行执行更快）
     const serialStartupTime = individualStartupTimes.reduce((a, b) => a + b, 0)
     const concurrencySpeedup = serialStartupTime / totalStartupTime
     console.log(`并发加速比: ${concurrencySpeedup.toFixed(2)}x`)
     t.true(concurrencySpeedup > 1.5, `并发加速比 (${concurrencySpeedup.toFixed(2)}x) 应该大于 1.5x`)
-
   } finally {
     // 确保清理所有实例
     console.log('清理所有并发实例...')
@@ -479,12 +493,12 @@ test.serial('Performance: Long-running stability test', async (t) => {
   console.log(`内存检查间隔: ${checkInterval / 1000}秒`)
 
   const memoryHistory: Array<{
-    timestamp: number;
-    heapUsed: number;
-    heapTotal: number;
-    external: number;
-    rss: number;
-    operationCount: number;
+    timestamp: number
+    heapUsed: number
+    heapTotal: number
+    external: number
+    rss: number
+    operationCount: number
   }> = []
 
   let operationCount = 0
@@ -524,12 +538,13 @@ test.serial('Performance: Long-running stability test', async (t) => {
       })
 
       const currentMemoryMB = memory.heapUsed / 1024 / 1024
-      console.log(`[${new Date().toISOString()}] 内存使用: ${currentMemoryMB.toFixed(2)}MB, 操作次数: ${operationCount}, 错误次数: ${errorCount}`)
+      console.log(
+        `[${new Date().toISOString()}] 内存使用: ${currentMemoryMB.toFixed(2)}MB, 操作次数: ${operationCount}, 错误次数: ${errorCount}`,
+      )
     }, checkInterval)
 
     // 执行长时间运行测试
     const testEndTime = startTime + testDuration
-    let lastOperationTime = Date.now()
 
     while (Date.now() < testEndTime) {
       try {
@@ -538,7 +553,7 @@ test.serial('Performance: Long-running stability test', async (t) => {
 
         // 创建数据库
         await instance.createDatabase(dbName)
-        
+
         // 检查数据库是否存在
         const exists = await instance.databaseExists(dbName)
         t.is(exists, true, `数据库 ${dbName} 应该存在`)
@@ -550,7 +565,7 @@ test.serial('Performance: Long-running stability test', async (t) => {
 
         // 删除数据库
         await instance.dropDatabase(dbName)
-        
+
         // 验证删除成功
         const existsAfterDrop = await instance.databaseExists(dbName)
         t.is(existsAfterDrop, false, `数据库 ${dbName} 删除后应该不存在`)
@@ -560,16 +575,15 @@ test.serial('Performance: Long-running stability test', async (t) => {
         t.is(instance.state, InstanceState.Running, '实例应该保持运行状态')
 
         operationCount++
-        lastOperationTime = Date.now()
 
         // 每50次操作后短暂休息（增加休息频率）
         if (operationCount % 50 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 200))
-          
+          await new Promise((resolve) => setTimeout(resolve, 200))
+
           // 清除连接缓存测试
           instance.clearConnectionCache()
           t.is(instance.isConnectionCacheValid(), false, '缓存清除后应该无效')
-          
+
           // 重新获取连接信息应该重建缓存
           const newConnectionInfo = instance.connectionInfo
           t.truthy(newConnectionInfo)
@@ -580,25 +594,25 @@ test.serial('Performance: Long-running stability test', async (t) => {
         if (operationCount % 500 === 0 && global.gc) {
           global.gc()
         }
-
       } catch (error) {
         errorCount++
         const errorMessage = error instanceof Error ? error.message : String(error)
         errors.push(`操作 ${operationCount}: ${errorMessage}`)
         console.error(`操作错误 ${errorCount}: ${errorMessage}`)
-        
+
         // 如果错误太多，提前结束测试
-        if (errorCount > 5) { // 降低错误容忍度
+        if (errorCount > 5) {
+          // 降低错误容忍度
           console.error('错误次数过多，提前结束测试')
           break
         }
-        
+
         // 出错后等待更长时间
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 500))
       }
 
       // 增加休息时间以避免过度占用CPU和连接池
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
 
     clearInterval(memoryMonitorInterval)
@@ -621,15 +635,15 @@ test.serial('Performance: Long-running stability test', async (t) => {
     console.log(`实际运行时间: ${(actualDuration / 1000).toFixed(2)}秒`)
     console.log(`总操作次数: ${operationCount}`)
     console.log(`错误次数: ${errorCount}`)
-    console.log(`操作成功率: ${((operationCount - errorCount) / operationCount * 100).toFixed(2)}%`)
+    console.log(`操作成功率: ${(((operationCount - errorCount) / operationCount) * 100).toFixed(2)}%`)
     console.log(`平均操作速度: ${operationsPerSecond.toFixed(2)} 操作/秒`)
 
     // 内存分析
     const initialMemoryMB = memoryHistory[0].heapUsed / 1024 / 1024
     const finalMemoryMB = finalMemory.heapUsed / 1024 / 1024
     const memoryIncrease = finalMemoryMB - initialMemoryMB
-    const maxMemoryMB = Math.max(...memoryHistory.map(h => h.heapUsed)) / 1024 / 1024
-    const minMemoryMB = Math.min(...memoryHistory.map(h => h.heapUsed)) / 1024 / 1024
+    const maxMemoryMB = Math.max(...memoryHistory.map((h) => h.heapUsed)) / 1024 / 1024
+    const minMemoryMB = Math.min(...memoryHistory.map((h) => h.heapUsed)) / 1024 / 1024
 
     console.log(`\n=== 内存稳定性分析 ===`)
     console.log(`初始内存: ${initialMemoryMB.toFixed(2)}MB`)
@@ -640,11 +654,11 @@ test.serial('Performance: Long-running stability test', async (t) => {
     console.log(`内存波动范围: ${(maxMemoryMB - minMemoryMB).toFixed(2)}MB`)
 
     // 调整稳定性断言以更现实
-    const errorRate = operationCount > 0 ? (errorCount / operationCount * 100) : 0
+    const errorRate = operationCount > 0 ? (errorCount / operationCount) * 100 : 0
     t.true(errorCount < operationCount * 0.05, `错误率 (${errorRate.toFixed(2)}%) 应该小于5%`)
     t.true(operationCount > 10, `应该完成一些操作 (${operationCount})`)
     t.true(operationsPerSecond > 0.1, `操作速度 (${operationsPerSecond.toFixed(2)} ops/s) 应该合理`)
-    
+
     // 内存稳定性断言
     t.true(memoryIncrease < 100, `内存增长 (${memoryIncrease.toFixed(2)}MB) 应该小于100MB`)
     t.true(maxMemoryMB - minMemoryMB < 200, `内存波动 (${(maxMemoryMB - minMemoryMB).toFixed(2)}MB) 应该小于200MB`)
@@ -653,13 +667,13 @@ test.serial('Performance: Long-running stability test', async (t) => {
     if (memoryHistory.length >= 10) {
       const firstHalf = memoryHistory.slice(0, Math.floor(memoryHistory.length / 2))
       const secondHalf = memoryHistory.slice(Math.floor(memoryHistory.length / 2))
-      
+
       const firstHalfAvg = firstHalf.reduce((sum, h) => sum + h.heapUsed, 0) / firstHalf.length
       const secondHalfAvg = secondHalf.reduce((sum, h) => sum + h.heapUsed, 0) / secondHalf.length
-      
+
       const memoryTrend = (secondHalfAvg - firstHalfAvg) / 1024 / 1024
       console.log(`内存趋势: ${memoryTrend > 0 ? '+' : ''}${memoryTrend.toFixed(2)}MB (后半段相对前半段)`)
-      
+
       // 内存趋势不应该过度增长
       t.true(memoryTrend < 50, `内存增长趋势 (${memoryTrend.toFixed(2)}MB) 应该在合理范围内`)
     }
@@ -671,7 +685,7 @@ test.serial('Performance: Long-running stability test', async (t) => {
     // 输出错误详情（如果有）
     if (errors.length > 0) {
       console.log(`\n=== 错误详情 ===`)
-      errors.slice(0, 5).forEach(error => console.log(error)) // 只显示前5个错误
+      errors.slice(0, 5).forEach((error) => console.log(error)) // 只显示前5个错误
       if (errors.length > 5) {
         console.log(`... 还有 ${errors.length - 5} 个错误`)
       }
@@ -679,7 +693,6 @@ test.serial('Performance: Long-running stability test', async (t) => {
 
     await instance.stop()
     t.is(instance.state, InstanceState.Stopped)
-
   } finally {
     instance.cleanup()
   }
@@ -752,19 +765,19 @@ test.serial('Performance: Database operation throughput test', async (t) => {
     // 进一步减少操作数量并简化测试
     const operationCounts = [3, 5]
     const results: Array<{
-      operationCount: number;
-      totalTime: number;
-      avgTime: number;
-      throughput: number;
-      successCount: number;
+      operationCount: number
+      totalTime: number
+      avgTime: number
+      throughput: number
+      successCount: number
     }> = []
 
     for (const count of operationCounts) {
       console.log(`测试 ${count} 次数据库操作...`)
-      
+
       const startTime = Date.now()
       let successCount = 0
-      
+
       // 串行执行以避免连接池超时，使用更简单的操作
       for (let i = 0; i < count; i++) {
         const dbName = `throughput_db_${Date.now()}_${i}` // 使用时间戳确保唯一性
@@ -775,25 +788,24 @@ test.serial('Performance: Database operation throughput test', async (t) => {
           if (exists) {
             successCount++
           }
-          
+
           // 尝试删除，但不等待太久
           try {
             await Promise.race([
               instance.dropDatabase(dbName),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Drop timeout')), 5000))
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Drop timeout')), 5000)),
             ])
           } catch (dropError) {
             console.warn(`删除数据库 ${dbName} 超时或失败: ${dropError}`)
             // 继续执行，不影响测试
           }
-          
         } catch (error) {
           console.warn(`操作 ${i} 失败: ${error}`)
           // 继续执行其他操作
         }
-        
+
         // 每次操作后都休息一下
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise((resolve) => setTimeout(resolve, 200))
       }
 
       const totalTime = Date.now() - startTime
@@ -808,26 +820,30 @@ test.serial('Performance: Database operation throughput test', async (t) => {
         successCount,
       })
 
-      console.log(`${count} 次操作完成: 成功=${successCount}, 总时间=${totalTime}ms, 平均=${avgTime.toFixed(2)}ms, 吞吐量=${throughput.toFixed(2)} ops/s`)
+      console.log(
+        `${count} 次操作完成: 成功=${successCount}, 总时间=${totalTime}ms, 平均=${avgTime.toFixed(2)}ms, 吞吐量=${throughput.toFixed(2)} ops/s`,
+      )
     }
 
     console.log(`\n=== 数据库操作吞吐量测试结果 ===`)
-    results.forEach(result => {
-      console.log(`${result.operationCount} 次操作: 成功率=${(result.successCount/result.operationCount*100).toFixed(1)}%, 吞吐量=${result.throughput.toFixed(2)} ops/s`)
+    results.forEach((result) => {
+      console.log(
+        `${result.operationCount} 次操作: 成功率=${((result.successCount / result.operationCount) * 100).toFixed(1)}%, 吞吐量=${result.throughput.toFixed(2)} ops/s`,
+      )
     })
 
     // 验证至少有一些操作成功
     const totalSuccessCount = results.reduce((sum, r) => sum + r.successCount, 0)
     t.true(totalSuccessCount > 0, `应该至少有一些操作成功 (${totalSuccessCount})`)
-    
+
     // 验证平均操作时间合理
     if (results.length > 0) {
       const avgOperationTime = results.reduce((sum, r) => sum + r.avgTime, 0) / results.length
       t.true(avgOperationTime < 30000, `平均操作时间 (${avgOperationTime.toFixed(2)}ms) 应该小于30秒`)
-      
+
       // 验证至少有合理的成功率
       const overallSuccessRate = totalSuccessCount / results.reduce((sum, r) => sum + r.operationCount, 0)
-      t.true(overallSuccessRate > 0.5, `总体成功率 (${(overallSuccessRate*100).toFixed(1)}%) 应该大于50%`)
+      t.true(overallSuccessRate > 0.5, `总体成功率 (${(overallSuccessRate * 100).toFixed(1)}%) 应该大于50%`)
     }
 
     await instance.stop()
@@ -853,7 +869,7 @@ test.serial('Performance: Connection info caching performance test', async (t) =
     // 测试缓存命中性能
     const cacheHitIterations = 1000 // 减少迭代次数
     console.log(`测试缓存命中性能 (${cacheHitIterations} 次访问)...`)
-    
+
     // 预热缓存
     const warmupInfo = instance.connectionInfo
     t.truthy(warmupInfo)
@@ -873,20 +889,20 @@ test.serial('Performance: Connection info caching performance test', async (t) =
     // 测试缓存未命中性能
     const cacheMissIterations = 10 // 大幅减少迭代次数
     console.log(`测试缓存未命中性能 (${cacheMissIterations} 次重建)...`)
-    
+
     let cacheMissTime = 0
     for (let i = 0; i < cacheMissIterations; i++) {
       instance.clearConnectionCache()
       t.is(instance.isConnectionCacheValid(), false)
-      
+
       const missStartTime = Date.now()
       const connectionInfo = instance.connectionInfo
       const missTime = Date.now() - missStartTime
       cacheMissTime += missTime
-      
+
       t.truthy(connectionInfo)
       t.is(instance.isConnectionCacheValid(), true)
-      
+
       console.log(`缓存未命中 ${i + 1}: ${missTime}ms`)
     }
     const cacheMissAvgTime = cacheMissTime / cacheMissIterations
@@ -898,7 +914,7 @@ test.serial('Performance: Connection info caching performance test', async (t) =
     if (cacheHitAvgTime > 0.001 && cacheMissAvgTime > 0.001) {
       cacheEfficiency = cacheMissAvgTime / cacheHitAvgTime
     }
-    
+
     console.log(`缓存效率: ${cacheEfficiency.toFixed(2)}x (未命中时间/命中时间)`)
 
     console.log(`\n=== 连接信息缓存性能测试结果 ===`)
@@ -909,7 +925,7 @@ test.serial('Performance: Connection info caching performance test', async (t) =
     // 调整性能断言以更现实
     t.true(cacheHitAvgTime < 1, `缓存命中时间 (${cacheHitAvgTime.toFixed(4)}ms) 应该很快`)
     t.true(cacheMissAvgTime < 100, `缓存未命中时间 (${cacheMissAvgTime.toFixed(4)}ms) 应该合理`)
-    
+
     // 检查缓存功能是否正常工作
     if (cacheHitAvgTime > 0.001 && cacheMissAvgTime > 0.001) {
       // 只有当两个时间都可测量时才检查效率
@@ -917,7 +933,9 @@ test.serial('Performance: Connection info caching performance test', async (t) =
         t.pass(`缓存效率 (${cacheEfficiency.toFixed(2)}x) 正常`)
       } else {
         // 如果缓存命中比未命中还慢，说明缓存实现有问题，但不一定是性能问题
-        console.log(`注意: 缓存命中时间 (${cacheHitAvgTime.toFixed(4)}ms) 比未命中时间 (${cacheMissAvgTime.toFixed(4)}ms) 长，可能是测量精度问题`)
+        console.log(
+          `注意: 缓存命中时间 (${cacheHitAvgTime.toFixed(4)}ms) 比未命中时间 (${cacheMissAvgTime.toFixed(4)}ms) 长，可能是测量精度问题`,
+        )
         t.pass('缓存功能测试完成，时间测量精度限制')
       }
     } else {
@@ -936,7 +954,7 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
 
   const instanceCount = 5
   const instances: PostgresInstance[] = []
-  
+
   // 创建多个实例
   for (let i = 0; i < instanceCount; i++) {
     const instance = new PostgresInstance({
@@ -951,7 +969,7 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
   try {
     // 启动所有实例
     console.log(`启动 ${instanceCount} 个实例...`)
-    const startupPromises = instances.map(instance => instance.start())
+    const startupPromises = instances.map((instance) => instance.start())
     await Promise.all(startupPromises)
 
     // 验证所有实例都在运行
@@ -966,7 +984,7 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
       await instance.createDatabase('cleanup_test_db')
       const exists = await instance.databaseExists('cleanup_test_db')
       t.is(exists, true)
-      
+
       // 获取连接信息以创建缓存
       const connectionInfo = instance.connectionInfo
       t.truthy(connectionInfo)
@@ -975,12 +993,12 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     // 测试正常停止清理
     console.log('测试正常停止清理...')
     const normalStopStartTime = Date.now()
-    
+
     const stopPromises = instances.slice(0, Math.floor(instanceCount / 2)).map(async (instance, index) => {
       await instance.stop()
       t.is(instance.state, InstanceState.Stopped, `实例 ${index} 应该已停止`)
     })
-    
+
     await Promise.all(stopPromises)
     const normalStopTime = Date.now() - normalStopStartTime
     console.log(`正常停止清理时间: ${normalStopTime}ms`)
@@ -988,14 +1006,14 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     // 测试强制清理
     console.log('测试强制清理...')
     const forceCleanupStartTime = Date.now()
-    
+
     const remainingInstances = instances.slice(Math.floor(instanceCount / 2))
     remainingInstances.forEach((instance, index) => {
       // 直接调用cleanup而不先stop
       instance.cleanup()
       t.is(instance.state, InstanceState.Stopped, `强制清理后实例 ${index} 应该已停止`)
     })
-    
+
     const forceCleanupTime = Date.now() - forceCleanupStartTime
     console.log(`强制清理时间: ${forceCleanupTime}ms`)
 
@@ -1010,18 +1028,20 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     const avgNormalStopTime = normalStopTime / Math.floor(instanceCount / 2)
     const avgForceCleanupTime = forceCleanupTime / remainingInstances.length
 
-    t.true(avgNormalStopTime < maxCleanupTimePerInstance, 
-      `平均正常停止时间 (${avgNormalStopTime.toFixed(2)}ms) 应该合理`)
-    t.true(avgForceCleanupTime < maxCleanupTimePerInstance, 
-      `平均强制清理时间 (${avgForceCleanupTime.toFixed(2)}ms) 应该合理`)
-    
-    // 强制清理应该比正常停止更快（因为跳过了优雅关闭）
-    t.true(avgForceCleanupTime <= avgNormalStopTime * 2, 
-      '强制清理时间应该不会比正常停止慢太多')
+    t.true(
+      avgNormalStopTime < maxCleanupTimePerInstance,
+      `平均正常停止时间 (${avgNormalStopTime.toFixed(2)}ms) 应该合理`,
+    )
+    t.true(
+      avgForceCleanupTime < maxCleanupTimePerInstance,
+      `平均强制清理时间 (${avgForceCleanupTime.toFixed(2)}ms) 应该合理`,
+    )
 
+    // 强制清理应该比正常停止更快（因为跳过了优雅关闭）
+    t.true(avgForceCleanupTime <= avgNormalStopTime * 2, '强制清理时间应该不会比正常停止慢太多')
   } finally {
     // 确保所有实例都被清理
-    instances.forEach(instance => {
+    instances.forEach((instance) => {
       try {
         instance.cleanup()
       } catch (error) {
@@ -1103,10 +1123,12 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
   // 性能断言
   t.true(avgColdStart > 0, '冷启动时间应该为正数')
   t.true(avgWarmStart > 0, '热启动时间应该为正数')
-  
+
   // 热启动应该不会比冷启动慢太多（由于延迟初始化等优化）
-  t.true(avgWarmStart <= avgColdStart * 1.2, 
-    `热启动时间 (${avgWarmStart.toFixed(2)}ms) 不应该比冷启动时间 (${avgColdStart.toFixed(2)}ms) 慢太多`)
+  t.true(
+    avgWarmStart <= avgColdStart * 1.2,
+    `热启动时间 (${avgWarmStart.toFixed(2)}ms) 不应该比冷启动时间 (${avgColdStart.toFixed(2)}ms) 慢太多`,
+  )
 
   // 验证启动时间记录的准确性
   const lastColdInstance = new PostgresInstance({
@@ -1122,9 +1144,9 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
     t.truthy(recordedStartupTime, '应该记录启动时间')
     t.true(recordedStartupTime! > 0, '记录的启动时间应该为正数')
     t.true(recordedStartupTime! < 30, '记录的启动时间应该在合理范围内（30秒以内）')
-    
+
     console.log(`启动时间记录验证: ${recordedStartupTime!.toFixed(3)}秒`)
-    
+
     await lastColdInstance.stop()
   } finally {
     lastColdInstance.cleanup()

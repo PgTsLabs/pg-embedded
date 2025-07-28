@@ -5,6 +5,7 @@ This checklist ensures that all necessary steps are completed before releasing a
 ## Pre-Release Preparation
 
 ### Code Quality
+
 - [ ] All tests pass locally (`pnpm test:basic`)
 - [ ] Code is properly formatted (`pnpm format`)
 - [ ] Linting passes (`pnpm lint`)
@@ -12,6 +13,7 @@ This checklist ensures that all necessary steps are completed before releasing a
 - [ ] All examples work correctly (`pnpm examples`)
 
 ### Documentation
+
 - [ ] README.md is up to date
 - [ ] API.md reflects current API
 - [ ] CHANGELOG.md includes all changes
@@ -19,12 +21,14 @@ This checklist ensures that all necessary steps are completed before releasing a
 - [ ] JSDoc comments are complete
 
 ### Version Management
+
 - [ ] Version number follows semantic versioning
 - [ ] Version is consistent across package.json and Cargo.toml
 - [ ] CHANGELOG.md includes the new version
 - [ ] Breaking changes are documented
 
 ### Build and Artifacts
+
 - [ ] Project builds successfully (`pnpm build`)
 - [ ] All required artifacts are generated
 - [ ] TypeScript definitions are correct
@@ -33,14 +37,16 @@ This checklist ensures that all necessary steps are completed before releasing a
 ## Release Process
 
 ### Automated Release (Recommended)
+
 1. **Prepare Release**
+
    ```bash
    # For patch release (bug fixes)
    pnpm release:prepare
-   
+
    # For minor release (new features)
    pnpm release:prepare:minor
-   
+
    # For major release (breaking changes)
    pnpm release:prepare:major
    ```
@@ -51,10 +57,11 @@ This checklist ensures that all necessary steps are completed before releasing a
    - [ ] Verify release notes are accurate
 
 3. **Publish Release**
+
    ```bash
    # Dry run first
    pnpm release:publish:dry
-   
+
    # Actual publish
    pnpm release:publish
    ```
@@ -62,6 +69,7 @@ This checklist ensures that all necessary steps are completed before releasing a
 ### Manual Release Process
 
 1. **Pre-flight Checks**
+
    ```bash
    pnpm validate
    pnpm build:check
@@ -73,6 +81,7 @@ This checklist ensures that all necessary steps are completed before releasing a
    - [ ] Update CHANGELOG.md
 
 3. **Build and Test**
+
    ```bash
    pnpm clean
    pnpm install
@@ -81,6 +90,7 @@ This checklist ensures that all necessary steps are completed before releasing a
    ```
 
 4. **Create Release Commit and Tag**
+
    ```bash
    git add .
    git commit -m "chore: release v1.0.0"
@@ -88,11 +98,13 @@ This checklist ensures that all necessary steps are completed before releasing a
    ```
 
 5. **Push to Repository**
+
    ```bash
    git push origin main --tags
    ```
 
 6. **Publish to npm**
+
    ```bash
    npm publish --access public
    ```
@@ -106,17 +118,20 @@ This checklist ensures that all necessary steps are completed before releasing a
 ## Post-Release Tasks
 
 ### Immediate
+
 - [ ] Verify package is available on npm
 - [ ] Test installation: `npm install pg-embeded`
 - [ ] Check GitHub release is created
 - [ ] Monitor for any immediate issues
 
 ### Communication
+
 - [ ] Announce release on relevant channels
 - [ ] Update any dependent projects
 - [ ] Respond to community feedback
 
 ### Monitoring
+
 - [ ] Monitor npm download statistics
 - [ ] Watch for bug reports or issues
 - [ ] Check CI/CD pipeline status
@@ -126,9 +141,11 @@ This checklist ensures that all necessary steps are completed before releasing a
 If issues are discovered after release:
 
 1. **For Critical Issues**
+
    ```bash
    npm unpublish pg-embeded@1.0.0 --force
    ```
+
    (Only within 72 hours and if no dependents)
 
 2. **For Non-Critical Issues**
@@ -143,18 +160,21 @@ If issues are discovered after release:
 ## Release Types
 
 ### Patch Release (1.0.0 → 1.0.1)
+
 - Bug fixes
 - Documentation updates
 - Performance improvements (non-breaking)
 - Security patches
 
 ### Minor Release (1.0.0 → 1.1.0)
+
 - New features (backward compatible)
 - New API methods
 - Deprecations (with backward compatibility)
 - Significant performance improvements
 
 ### Major Release (1.0.0 → 2.0.0)
+
 - Breaking changes
 - Removed deprecated features
 - API changes that break backward compatibility
@@ -163,6 +183,7 @@ If issues are discovered after release:
 ## Automation Scripts
 
 ### Available Scripts
+
 - `pnpm validate` - Validate release readiness
 - `pnpm build:check` - Check build artifacts
 - `pnpm release:prepare` - Prepare patch release
@@ -172,6 +193,7 @@ If issues are discovered after release:
 - `pnpm release:publish:dry` - Dry run publish
 
 ### Script Locations
+
 - `scripts/validate-release.js` - Release validation
 - `scripts/build-check.js` - Build verification
 - `scripts/prepare-release.js` - Release preparation
