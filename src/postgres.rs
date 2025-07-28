@@ -9,34 +9,55 @@ use crate::{
     types::{ConnectionInfo, InstanceState},
 };
 
-/// 连接信息缓存
+/// Connection information cache
 #[derive(Clone)]
 struct ConnectionInfoCache {
     info: ConnectionInfo,
     created_at: Instant,
 }
 
-/// 全局实例缓存，用于复用相同配置的实例
+/// Global instance cache for reusing instances with same configuration
 static INSTANCE_CACHE: OnceLock<Mutex<HashMap<String, Arc<Mutex<postgresql_embedded::Settings>>>>> = OnceLock::new();
 
-/// PostgreSQL 实例管理器
+/**
+ * PostgreSQL embedded instance manager
+ * 
+ * This class provides a high-level interface for managing embedded PostgreSQL instances.
+ * It supports both synchronous and asynchronous operations, automatic resource management,
+ * and connection caching for optimal performance.
+ * 
+ * @example
+ * ```typescript
+ * import { PostgresInstance } from 'pg-embedded';
+ * 
+ * const instance = new PostgresInstance({
+ *   port: 5432,
+ *   username: 'postgres',
+ *   password: 'password'
+ * });
+ * 
+ * await instance.start();
+ * await instance.createDatabase('mydb');
+ * await instance.stop();
+ * ```
+ */
 #[napi]
 pub struct PostgresInstance {
-    /// 异步实例（延迟初始化）
+    /// Async instance (lazy initialized)
     async_instance: Option<postgresql_embedded::PostgreSQL>,
-    /// 同步实例（延迟初始化）
+    /// Sync instance (lazy initialized)
     blocking_instance: Option<postgresql_embedded::blocking::PostgreSQL>,
-    /// 配置设置
+    /// Configuration settings
     settings: postgresql_embedded::Settings,
-    /// 实例状态
+    /// Instance state
     state: Arc<Mutex<InstanceState>>,
-    /// 实例ID，用于跟踪和调试
+    /// Instance ID for tracking and debugging
     instance_id: String,
-    /// 连接信息缓存
+    /// Connection information cache
     connection_cache: Arc<Mutex<Option<ConnectionInfoCache>>>,
-    /// 配置哈希，用于缓存键
+    /// Configuration hash for caching key
     config_hash: String,
-    /// 启动时间记录
+    /// Startup time recording
     startup_time: Arc<Mutex<Option<Duration>>>,
 }
 
@@ -44,23 +65,23 @@ impl Drop for PostgresInstance {
     fn drop(&mut self) {
         pg_log!(info, "Dropping PostgresInstance {} - cleaning up resources", self.instance_id);
         
-        // 尝试停止异步实例
+        // Try to stop async instance
         if let Some(_instance) = self.async_instance.take() {
             pg_log!(debug, "Cleaning up async PostgreSQL instance for {}", self.instance_id);
-            // 注意：在 Drop 中我们不能使用 async，所以这里只是记录日志
-            // 实际的清理会由 postgresql_embedded 库的 Drop 实现处理
+            // Note: We can't use async in Drop, so we just log here
+            // Actual cleanup will be handled by postgresql_embedded library's Drop implementation
         }
         
-        // 尝试停止同步实例
+        // Try to stop sync instance
         if let Some(mut instance) = self.blocking_instance.take() {
             pg_log!(debug, "Cleaning up blocking PostgreSQL instance for {}", self.instance_id);
-            // 尝试同步停止
+            // Try synchronous stop
             if let Err(e) = instance.stop() {
                 pg_log!(warn, "Failed to stop PostgreSQL instance {} during cleanup: {}", self.instance_id, e);
             }
         }
         
-        // 更新状态为已停止
+        // Update state to stopped
         if let Ok(mut state) = self.state.lock() {
             *state = InstanceState::Stopped;
         }
@@ -71,14 +92,29 @@ impl Drop for PostgresInstance {
 
 #[napi]
 impl PostgresInstance {
-    /// 构造函数
+    /**
+     * Creates a new PostgreSQL instance with the specified settings
+     * 
+     * @param settings - Configuration settings for the PostgreSQL instance
+     * @returns A new PostgresInstance
+     * 
+     * @example
+     * ```typescript
+     * const instance = new PostgresInstance({
+     *   port: 5432,
+     *   username: 'postgres',
+     *   password: 'password',
+     *   persistent: false
+     * });
+     * ```
+     */
     #[napi(constructor)]
     pub fn new(settings: Option<PostgresSettings>) -> napi::Result<Self> {
         let postgres_settings = settings.unwrap_or_default();
         let embedded_settings = postgres_settings.to_embedded_settings()?;
         let instance_id = uuid::Uuid::new_v4().to_string();
 
-        // 生成配置哈希用于缓存
+        // Generate configuration hash for caching
         let config_hash = Self::generate_config_hash(&embedded_settings);
 
         pg_log!(info, "Creating new PostgresInstance with ID: {} (config hash: {})", instance_id, config_hash);
@@ -95,7 +131,7 @@ impl PostgresInstance {
         })
     }
 
-    /// 生成配置哈希
+    /// Generate configuration hash for caching
     fn generate_config_hash(settings: &postgresql_embedded::Settings) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
@@ -108,13 +144,21 @@ impl PostgresInstance {
         format!("{:x}", hasher.finish())
     }
 
-    /// 获取实例ID
+    /**
+     * Gets the unique instance ID
+     * 
+     * @returns The unique identifier for this PostgreSQL instance
+     */
     #[napi(getter)]
     pub fn get_instance_id(&self) -> String {
         self.instance_id.clone()
     }
 
-    /// 获取当前状态
+    /**
+     * Gets the current state of the PostgreSQL instance
+     * 
+     * @returns The current instance state (Stopped, Starting, Running, or Stopping)
+     */
     #[napi(getter)]
     pub fn get_state(&self) -> napi::Result<InstanceState> {
         let state = self.state.lock()
@@ -127,7 +171,15 @@ impl PostgresInstance {
         })
     }
 
-    /// 获取连接信息（带缓存优化）
+    /**
+     * Gets the connection information for the PostgreSQL instance
+     * 
+     * This method returns cached connection information when available for better performance.
+     * The cache is automatically invalidated after 5 minutes.
+     * 
+     * @returns Connection information including host, port, username, and connection string
+     * @throws Error if the instance is not running
+     */
     #[napi(getter)]
     pub fn get_connection_info(&self) -> napi::Result<ConnectionInfo> {
         let state = self.state.lock()
@@ -135,17 +187,17 @@ impl PostgresInstance {
         
         match *state {
             InstanceState::Running => {
-                // 检查缓存
+                // Check cache
                 if let Ok(mut cache) = self.connection_cache.lock() {
                     if let Some(cached) = cache.as_ref() {
-                        // 缓存有效期为5分钟
+                        // Cache valid for 5 minutes
                         if cached.created_at.elapsed() < Duration::from_secs(300) {
                             pg_log!(debug, "Using cached connection info for instance {}", self.instance_id);
                             return Ok(cached.info.clone());
                         }
                     }
                     
-                    // 创建新的连接信息
+                    // Create new connection info
                     let host = self.settings.host.clone();
                     let port = self.settings.port;
                     let username = self.settings.username.clone();
@@ -154,7 +206,7 @@ impl PostgresInstance {
                     
                     let connection_info = ConnectionInfo::new(host, port, username, password, database_name);
                     
-                    // 更新缓存
+                    // Update cache
                     *cache = Some(ConnectionInfoCache {
                         info: connection_info.clone(),
                         created_at: Instant::now(),
@@ -163,7 +215,7 @@ impl PostgresInstance {
                     pg_log!(debug, "Created and cached new connection info for instance {}", self.instance_id);
                     Ok(connection_info)
                 } else {
-                    // 缓存锁获取失败，直接创建连接信息
+                    // Cache lock failed, create connection info directly
                     let host = self.settings.host.clone();
                     let port = self.settings.port;
                     let username = self.settings.username.clone();
@@ -177,18 +229,18 @@ impl PostgresInstance {
         }
     }
 
-    /// 设置状态
+    /// Set instance state
     fn set_state(&self, new_state: InstanceState) -> napi::Result<()> {
         let mut state = self.state.lock()
             .map_err(|_| setup_error("Failed to acquire state lock"))?;
         
-        // 记录状态变化
+        // Log state transition
         pg_log!(debug, "State transition: {:?} -> {:?}", *state, new_state);
         *state = new_state;
         Ok(())
     }
 
-    /// 安全地检查是否可以执行操作
+    /// Safely check if operation can be performed
     fn can_perform_operation(&self, required_state: InstanceState) -> napi::Result<bool> {
         let state = self.state.lock()
             .map_err(|_| setup_error("Failed to acquire state lock"))?;
@@ -196,14 +248,18 @@ impl PostgresInstance {
         Ok(matches!(*state, state if state == required_state))
     }
 
-    /// 检查实例是否健康
+    /**
+     * Checks if the PostgreSQL instance is healthy and running
+     * 
+     * @returns true if the instance is running and healthy, false otherwise
+     */
     #[napi]
     pub fn is_healthy(&self) -> napi::Result<bool> {
         let state = self.get_state()?;
         
         match state {
             InstanceState::Running => {
-                // 检查实例是否真的在运行
+                // Check if instance is actually running
                 let has_async = self.async_instance.is_some();
                 let has_blocking = self.blocking_instance.is_some();
                 
@@ -213,7 +269,15 @@ impl PostgresInstance {
         }
     }
 
-    /// 异步设置方法
+    /**
+     * Sets up the PostgreSQL instance asynchronously
+     * 
+     * This method initializes the PostgreSQL instance but does not start it.
+     * It's automatically called by start() if needed.
+     * 
+     * @returns Promise that resolves when setup is complete
+     * @throws Error if setup fails
+     */
     #[napi]
     pub async unsafe fn setup(&mut self) -> napi::Result<()> {
         pg_log!(info, "Starting PostgreSQL setup on port {}", self.settings.port);
@@ -234,7 +298,21 @@ impl PostgresInstance {
         }
     }
 
-    /// 异步启动方法（优化版本）
+    /**
+     * Starts the PostgreSQL instance asynchronously
+     * 
+     * This method starts the PostgreSQL server and makes it ready to accept connections.
+     * It includes automatic setup if the instance hasn't been set up yet.
+     * 
+     * @returns Promise that resolves when the instance is started and ready
+     * @throws Error if the instance is already running or if startup fails
+     * 
+     * @example
+     * ```typescript
+     * await instance.start();
+     * console.log('PostgreSQL is ready!');
+     * ```
+     */
     #[napi]
     pub async unsafe fn start(&mut self) -> napi::Result<()> {
         let start_time = Instant::now();
@@ -255,7 +333,7 @@ impl PostgresInstance {
         pg_log!(info, "Starting PostgreSQL instance on port {}", self.settings.port);
         self.set_state(InstanceState::Starting)?;
 
-        // 延迟初始化：只在需要时创建实例
+        // Lazy initialization: create instance only when needed
         if self.async_instance.is_none() {
             self.setup().await?;
         }
@@ -265,7 +343,7 @@ impl PostgresInstance {
                 Ok(_) => {
                     let startup_duration = start_time.elapsed();
                     
-                    // 记录启动时间
+                    // Record startup time
                     if let Ok(mut startup_time) = self.startup_time.lock() {
                         *startup_time = Some(startup_duration);
                     }
@@ -288,7 +366,20 @@ impl PostgresInstance {
         }
     }
 
-    /// 异步停止方法
+    /**
+     * Stops the PostgreSQL instance asynchronously
+     * 
+     * This method gracefully shuts down the PostgreSQL server.
+     * 
+     * @returns Promise that resolves when the instance is stopped
+     * @throws Error if the instance is already stopped or if stopping fails
+     * 
+     * @example
+     * ```typescript
+     * await instance.stop();
+     * console.log('PostgreSQL stopped');
+     * ```
+     */
     #[napi]
     pub async unsafe fn stop(&mut self) -> napi::Result<()> {
         let current_state = self.get_state()?;
@@ -327,7 +418,18 @@ impl PostgresInstance {
         }
     }
 
-    /// 异步创建数据库
+    /**
+     * Creates a new database asynchronously
+     * 
+     * @param name - The name of the database to create
+     * @returns Promise that resolves when the database is created
+     * @throws Error if the instance is not running or if database creation fails
+     * 
+     * @example
+     * ```typescript
+     * await instance.createDatabase('myapp');
+     * ```
+     */
     #[napi]
     pub async unsafe fn create_database(&mut self, name: String) -> napi::Result<()> {
         let current_state = self.get_state()?;
@@ -349,7 +451,18 @@ impl PostgresInstance {
         }
     }
 
-    /// 异步删除数据库
+    /**
+     * Drops (deletes) a database asynchronously
+     * 
+     * @param name - The name of the database to drop
+     * @returns Promise that resolves when the database is dropped
+     * @throws Error if the instance is not running or if database deletion fails
+     * 
+     * @example
+     * ```typescript
+     * await instance.dropDatabase('myapp');
+     * ```
+     */
     #[napi]
     pub async unsafe fn drop_database(&mut self, name: String) -> napi::Result<()> {
         let current_state = self.get_state()?;
@@ -371,7 +484,21 @@ impl PostgresInstance {
         }
     }
 
-    /// 异步检查数据库是否存在
+    /**
+     * Checks if a database exists asynchronously
+     * 
+     * @param name - The name of the database to check
+     * @returns Promise that resolves to true if the database exists, false otherwise
+     * @throws Error if the instance is not running or if the check fails
+     * 
+     * @example
+     * ```typescript
+     * const exists = await instance.databaseExists('myapp');
+     * if (exists) {
+     *   console.log('Database exists');
+     * }
+     * ```
+     */
     #[napi]
     pub async fn database_exists(&self, name: String) -> napi::Result<bool> {
         let current_state = self.get_state()?;
@@ -393,9 +520,17 @@ impl PostgresInstance {
         }
     }
 
-    // 同步方法
+    // Synchronous methods
     
-    /// 同步设置方法
+    /**
+     * Sets up the PostgreSQL instance synchronously
+     * 
+     * This method initializes the PostgreSQL instance but does not start it.
+     * It's automatically called by startSync() if needed.
+     * 
+     * @returns void
+     * @throws Error if setup fails
+     */
     #[napi]
     pub fn setup_sync(&mut self) -> napi::Result<()> {
         self.set_state(InstanceState::Starting)?;
@@ -413,7 +548,21 @@ impl PostgresInstance {
         }
     }
 
-    /// 同步启动方法
+    /**
+     * Starts the PostgreSQL instance synchronously
+     * 
+     * This method starts the PostgreSQL server and makes it ready to accept connections.
+     * It includes automatic setup if the instance hasn't been set up yet.
+     * 
+     * @returns void
+     * @throws Error if the instance is already running or if startup fails
+     * 
+     * @example
+     * ```typescript
+     * instance.startSync();
+     * console.log('PostgreSQL is ready!');
+     * ```
+     */
     #[napi]
     pub fn start_sync(&mut self) -> napi::Result<()> {
         let current_state = self.get_state()?;
@@ -450,7 +599,20 @@ impl PostgresInstance {
         }
     }
 
-    /// 同步停止方法
+    /**
+     * Stops the PostgreSQL instance synchronously
+     * 
+     * This method gracefully shuts down the PostgreSQL server.
+     * 
+     * @returns void
+     * @throws Error if the instance is already stopped or if stopping fails
+     * 
+     * @example
+     * ```typescript
+     * instance.stopSync();
+     * console.log('PostgreSQL stopped');
+     * ```
+     */
     #[napi]
     pub fn stop_sync(&mut self) -> napi::Result<()> {
         let current_state = self.get_state()?;
@@ -483,7 +645,18 @@ impl PostgresInstance {
         }
     }
 
-    /// 同步创建数据库
+    /**
+     * Creates a new database synchronously
+     * 
+     * @param name - The name of the database to create
+     * @returns void
+     * @throws Error if the instance is not running or if database creation fails
+     * 
+     * @example
+     * ```typescript
+     * instance.createDatabaseSync('myapp');
+     * ```
+     */
     #[napi]
     pub fn create_database_sync(&mut self, name: String) -> napi::Result<()> {
         let current_state = self.get_state()?;
@@ -505,7 +678,18 @@ impl PostgresInstance {
         }
     }
 
-    /// 同步删除数据库
+    /**
+     * Drops (deletes) a database synchronously
+     * 
+     * @param name - The name of the database to drop
+     * @returns void
+     * @throws Error if the instance is not running or if database deletion fails
+     * 
+     * @example
+     * ```typescript
+     * instance.dropDatabaseSync('myapp');
+     * ```
+     */
     #[napi]
     pub fn drop_database_sync(&mut self, name: String) -> napi::Result<()> {
         let current_state = self.get_state()?;
@@ -527,7 +711,21 @@ impl PostgresInstance {
         }
     }
 
-    /// 同步检查数据库是否存在
+    /**
+     * Checks if a database exists synchronously
+     * 
+     * @param name - The name of the database to check
+     * @returns true if the database exists, false otherwise
+     * @throws Error if the instance is not running or if the check fails
+     * 
+     * @example
+     * ```typescript
+     * const exists = instance.databaseExistsSync('myapp');
+     * if (exists) {
+     *   console.log('Database exists');
+     * }
+     * ```
+     */
     #[napi]
     pub fn database_exists_sync(&self, name: String) -> napi::Result<bool> {
         let current_state = self.get_state()?;
@@ -549,14 +747,25 @@ impl PostgresInstance {
         }
     }
 
-    /// 带超时的异步启动方法
+    /**
+     * Starts the PostgreSQL instance asynchronously with a timeout
+     * 
+     * @param timeout_seconds - Maximum time to wait for startup in seconds
+     * @returns Promise that resolves when the instance is started and ready
+     * @throws Error if the instance is already running, if startup fails, or if timeout is exceeded
+     * 
+     * @example
+     * ```typescript
+     * await instance.startWithTimeout(30); // 30 second timeout
+     * ```
+     */
     #[napi]
     pub async unsafe fn start_with_timeout(&mut self, timeout_seconds: u32) -> napi::Result<()> {
         let timeout_duration = Duration::from_secs(timeout_seconds as u64);
         
         pg_log!(info, "Starting PostgreSQL instance with timeout of {} seconds", timeout_seconds);
         
-        // 使用 tokio::time::timeout 来包装启动操作
+        // Use tokio::time::timeout to wrap the start operation
         match tokio::time::timeout(timeout_duration, self.start()).await {
             Ok(result) => result,
             Err(_) => {
@@ -567,25 +776,49 @@ impl PostgresInstance {
         }
     }
 
-    /// 带超时的异步停止方法
+    /**
+     * Stops the PostgreSQL instance asynchronously with a timeout
+     * 
+     * @param timeout_seconds - Maximum time to wait for shutdown in seconds
+     * @returns Promise that resolves when the instance is stopped
+     * @throws Error if the instance is already stopped, if stopping fails, or if timeout is exceeded
+     * 
+     * @example
+     * ```typescript
+     * await instance.stopWithTimeout(10); // 10 second timeout
+     * ```
+     */
     #[napi]
     pub async unsafe fn stop_with_timeout(&mut self, timeout_seconds: u32) -> napi::Result<()> {
         let timeout_duration = Duration::from_secs(timeout_seconds as u64);
         
         pg_log!(info, "Stopping PostgreSQL instance with timeout of {} seconds", timeout_seconds);
         
-        // 使用 tokio::time::timeout 来包装停止操作
+        // Use tokio::time::timeout to wrap the stop operation
         match tokio::time::timeout(timeout_duration, self.stop()).await {
             Ok(result) => result,
             Err(_) => {
                 pg_log!(error, "PostgreSQL stop operation timed out after {} seconds", timeout_seconds);
-                // 在超时情况下，我们不确定实际状态，保持当前状态
+                // In timeout case, we're not sure of actual state, keep current state
                 Err(timeout_error(&format!("Stop operation timed out after {} seconds", timeout_seconds)))
             }
         }
     }
 
-    /// 获取启动时间（用于性能监控）
+    /**
+     * Gets the startup time of the PostgreSQL instance in seconds
+     * 
+     * This method returns the time it took for the last successful start operation.
+     * 
+     * @returns The startup time in seconds, or null if the instance hasn't been started yet
+     * 
+     * @example
+     * ```typescript
+     * await instance.start();
+     * const startupTime = instance.getStartupTime();
+     * console.log(`Started in ${startupTime} seconds`);
+     * ```
+     */
     #[napi]
     pub fn get_startup_time(&self) -> Option<f64> {
         if let Ok(startup_time) = self.startup_time.lock() {
@@ -595,13 +828,25 @@ impl PostgresInstance {
         }
     }
 
-    /// 获取配置哈希（用于缓存键）
+    /**
+     * Gets the configuration hash for this instance
+     * 
+     * This hash is used internally for caching and can be useful for debugging.
+     * 
+     * @returns A string hash of the instance configuration
+     */
     #[napi]
     pub fn get_config_hash(&self) -> String {
         self.config_hash.clone()
     }
 
-    /// 清除连接信息缓存
+    /**
+     * Clears the connection information cache
+     * 
+     * This forces the next call to connectionInfo to regenerate the connection information.
+     * 
+     * @returns void
+     */
     #[napi]
     pub fn clear_connection_cache(&self) -> napi::Result<()> {
         if let Ok(mut cache) = self.connection_cache.lock() {
@@ -611,7 +856,13 @@ impl PostgresInstance {
         Ok(())
     }
 
-    /// 检查连接信息缓存是否有效
+    /**
+     * Checks if the connection information cache is valid
+     * 
+     * The cache is considered valid if it exists and is less than 5 minutes old.
+     * 
+     * @returns true if the cache is valid, false otherwise
+     */
     #[napi]
     pub fn is_connection_cache_valid(&self) -> bool {
         if let Ok(cache) = self.connection_cache.lock() {
@@ -622,17 +873,31 @@ impl PostgresInstance {
         false
     }
 
-    /// 清理资源的方法
+    /**
+     * Manually cleans up all resources associated with this instance
+     * 
+     * This method stops the PostgreSQL instance (if running) and cleans up all resources.
+     * It's automatically called when the instance is dropped, but can be called manually
+     * for immediate cleanup.
+     * 
+     * @returns void
+     * 
+     * @example
+     * ```typescript
+     * instance.cleanup();
+     * console.log('Resources cleaned up');
+     * ```
+     */
     #[napi]
     pub fn cleanup(&mut self) -> napi::Result<()> {
         pg_log!(info, "Manually cleaning up PostgreSQL instance resources");
         
-        // 清理异步实例
+        // Clean up async instance
         if let Some(_) = self.async_instance.take() {
             pg_log!(debug, "Cleaned up async PostgreSQL instance");
         }
         
-        // 清理同步实例
+        // Clean up sync instance
         if let Some(mut instance) = self.blocking_instance.take() {
             pg_log!(debug, "Stopping and cleaning up blocking PostgreSQL instance");
             if let Err(e) = instance.stop() {
@@ -640,7 +905,7 @@ impl PostgresInstance {
             }
         }
         
-        // 更新状态
+        // Update state
         self.set_state(InstanceState::Stopped)?;
         
         pg_log!(info, "Manual cleanup completed");

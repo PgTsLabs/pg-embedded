@@ -20,55 +20,320 @@ export declare class ConnectionInfo {
   jdbcUrl(): string
 }
 
-/** PostgreSQL 实例管理器 */
+/**
+ * PostgreSQL embedded instance manager
+ *
+ * This class provides a high-level interface for managing embedded PostgreSQL instances.
+ * It supports both synchronous and asynchronous operations, automatic resource management,
+ * and connection caching for optimal performance.
+ *
+ * @example
+ * ```typescript
+ * import { PostgresInstance } from 'pg-embedded';
+ *
+ * const instance = new PostgresInstance({
+ *   port: 5432,
+ *   username: 'postgres',
+ *   password: 'password'
+ * });
+ *
+ * await instance.start();
+ * await instance.createDatabase('mydb');
+ * await instance.stop();
+ * ```
+ */
 export declare class PostgresInstance {
-  /** 构造函数 */
+  /**
+   * Creates a new PostgreSQL instance with the specified settings
+   *
+   * @param settings - Configuration settings for the PostgreSQL instance
+   * @returns A new PostgresInstance
+   *
+   * @example
+   * ```typescript
+   * const instance = new PostgresInstance({
+   *   port: 5432,
+   *   username: 'postgres',
+   *   password: 'password',
+   *   persistent: false
+   * });
+   * ```
+   */
   constructor(settings?: PostgresSettings | undefined | null)
-  /** 获取实例ID */
+  /**
+   * Gets the unique instance ID
+   *
+   * @returns The unique identifier for this PostgreSQL instance
+   */
   get instanceId(): string
-  /** 获取当前状态 */
+  /**
+   * Gets the current state of the PostgreSQL instance
+   *
+   * @returns The current instance state (Stopped, Starting, Running, or Stopping)
+   */
   get state(): InstanceState
-  /** 获取连接信息（带缓存优化） */
+  /**
+   * Gets the connection information for the PostgreSQL instance
+   *
+   * This method returns cached connection information when available for better performance.
+   * The cache is automatically invalidated after 5 minutes.
+   *
+   * @returns Connection information including host, port, username, and connection string
+   * @throws Error if the instance is not running
+   */
   get connectionInfo(): ConnectionInfo
-  /** 检查实例是否健康 */
+  /**
+   * Checks if the PostgreSQL instance is healthy and running
+   *
+   * @returns true if the instance is running and healthy, false otherwise
+   */
   isHealthy(): boolean
-  /** 异步设置方法 */
+  /**
+   * Sets up the PostgreSQL instance asynchronously
+   *
+   * This method initializes the PostgreSQL instance but does not start it.
+   * It's automatically called by start() if needed.
+   *
+   * @returns Promise that resolves when setup is complete
+   * @throws Error if setup fails
+   */
   setup(): Promise<void>
-  /** 异步启动方法（优化版本） */
+  /**
+   * Starts the PostgreSQL instance asynchronously
+   *
+   * This method starts the PostgreSQL server and makes it ready to accept connections.
+   * It includes automatic setup if the instance hasn't been set up yet.
+   *
+   * @returns Promise that resolves when the instance is started and ready
+   * @throws Error if the instance is already running or if startup fails
+   *
+   * @example
+   * ```typescript
+   * await instance.start();
+   * console.log('PostgreSQL is ready!');
+   * ```
+   */
   start(): Promise<void>
-  /** 异步停止方法 */
+  /**
+   * Stops the PostgreSQL instance asynchronously
+   *
+   * This method gracefully shuts down the PostgreSQL server.
+   *
+   * @returns Promise that resolves when the instance is stopped
+   * @throws Error if the instance is already stopped or if stopping fails
+   *
+   * @example
+   * ```typescript
+   * await instance.stop();
+   * console.log('PostgreSQL stopped');
+   * ```
+   */
   stop(): Promise<void>
-  /** 异步创建数据库 */
+  /**
+   * Creates a new database asynchronously
+   *
+   * @param name - The name of the database to create
+   * @returns Promise that resolves when the database is created
+   * @throws Error if the instance is not running or if database creation fails
+   *
+   * @example
+   * ```typescript
+   * await instance.createDatabase('myapp');
+   * ```
+   */
   createDatabase(name: string): Promise<void>
-  /** 异步删除数据库 */
+  /**
+   * Drops (deletes) a database asynchronously
+   *
+   * @param name - The name of the database to drop
+   * @returns Promise that resolves when the database is dropped
+   * @throws Error if the instance is not running or if database deletion fails
+   *
+   * @example
+   * ```typescript
+   * await instance.dropDatabase('myapp');
+   * ```
+   */
   dropDatabase(name: string): Promise<void>
-  /** 异步检查数据库是否存在 */
+  /**
+   * Checks if a database exists asynchronously
+   *
+   * @param name - The name of the database to check
+   * @returns Promise that resolves to true if the database exists, false otherwise
+   * @throws Error if the instance is not running or if the check fails
+   *
+   * @example
+   * ```typescript
+   * const exists = await instance.databaseExists('myapp');
+   * if (exists) {
+   *   console.log('Database exists');
+   * }
+   * ```
+   */
   databaseExists(name: string): Promise<boolean>
-  /** 同步设置方法 */
+  /**
+   * Sets up the PostgreSQL instance synchronously
+   *
+   * This method initializes the PostgreSQL instance but does not start it.
+   * It's automatically called by startSync() if needed.
+   *
+   * @returns void
+   * @throws Error if setup fails
+   */
   setupSync(): void
-  /** 同步启动方法 */
+  /**
+   * Starts the PostgreSQL instance synchronously
+   *
+   * This method starts the PostgreSQL server and makes it ready to accept connections.
+   * It includes automatic setup if the instance hasn't been set up yet.
+   *
+   * @returns void
+   * @throws Error if the instance is already running or if startup fails
+   *
+   * @example
+   * ```typescript
+   * instance.startSync();
+   * console.log('PostgreSQL is ready!');
+   * ```
+   */
   startSync(): void
-  /** 同步停止方法 */
+  /**
+   * Stops the PostgreSQL instance synchronously
+   *
+   * This method gracefully shuts down the PostgreSQL server.
+   *
+   * @returns void
+   * @throws Error if the instance is already stopped or if stopping fails
+   *
+   * @example
+   * ```typescript
+   * instance.stopSync();
+   * console.log('PostgreSQL stopped');
+   * ```
+   */
   stopSync(): void
-  /** 同步创建数据库 */
+  /**
+   * Creates a new database synchronously
+   *
+   * @param name - The name of the database to create
+   * @returns void
+   * @throws Error if the instance is not running or if database creation fails
+   *
+   * @example
+   * ```typescript
+   * instance.createDatabaseSync('myapp');
+   * ```
+   */
   createDatabaseSync(name: string): void
-  /** 同步删除数据库 */
+  /**
+   * Drops (deletes) a database synchronously
+   *
+   * @param name - The name of the database to drop
+   * @returns void
+   * @throws Error if the instance is not running or if database deletion fails
+   *
+   * @example
+   * ```typescript
+   * instance.dropDatabaseSync('myapp');
+   * ```
+   */
   dropDatabaseSync(name: string): void
-  /** 同步检查数据库是否存在 */
+  /**
+   * Checks if a database exists synchronously
+   *
+   * @param name - The name of the database to check
+   * @returns true if the database exists, false otherwise
+   * @throws Error if the instance is not running or if the check fails
+   *
+   * @example
+   * ```typescript
+   * const exists = instance.databaseExistsSync('myapp');
+   * if (exists) {
+   *   console.log('Database exists');
+   * }
+   * ```
+   */
   databaseExistsSync(name: string): boolean
-  /** 带超时的异步启动方法 */
+  /**
+   * Starts the PostgreSQL instance asynchronously with a timeout
+   *
+   * @param timeout_seconds - Maximum time to wait for startup in seconds
+   * @returns Promise that resolves when the instance is started and ready
+   * @throws Error if the instance is already running, if startup fails, or if timeout is exceeded
+   *
+   * @example
+   * ```typescript
+   * await instance.startWithTimeout(30); // 30 second timeout
+   * ```
+   */
   startWithTimeout(timeoutSeconds: number): Promise<void>
-  /** 带超时的异步停止方法 */
+  /**
+   * Stops the PostgreSQL instance asynchronously with a timeout
+   *
+   * @param timeout_seconds - Maximum time to wait for shutdown in seconds
+   * @returns Promise that resolves when the instance is stopped
+   * @throws Error if the instance is already stopped, if stopping fails, or if timeout is exceeded
+   *
+   * @example
+   * ```typescript
+   * await instance.stopWithTimeout(10); // 10 second timeout
+   * ```
+   */
   stopWithTimeout(timeoutSeconds: number): Promise<void>
-  /** 获取启动时间（用于性能监控） */
+  /**
+   * Gets the startup time of the PostgreSQL instance in seconds
+   *
+   * This method returns the time it took for the last successful start operation.
+   *
+   * @returns The startup time in seconds, or null if the instance hasn't been started yet
+   *
+   * @example
+   * ```typescript
+   * await instance.start();
+   * const startupTime = instance.getStartupTime();
+   * console.log(`Started in ${startupTime} seconds`);
+   * ```
+   */
   getStartupTime(): number | null
-  /** 获取配置哈希（用于缓存键） */
+  /**
+   * Gets the configuration hash for this instance
+   *
+   * This hash is used internally for caching and can be useful for debugging.
+   *
+   * @returns A string hash of the instance configuration
+   */
   getConfigHash(): string
-  /** 清除连接信息缓存 */
+  /**
+   * Clears the connection information cache
+   *
+   * This forces the next call to connectionInfo to regenerate the connection information.
+   *
+   * @returns void
+   */
   clearConnectionCache(): void
-  /** 检查连接信息缓存是否有效 */
+  /**
+   * Checks if the connection information cache is valid
+   *
+   * The cache is considered valid if it exists and is less than 5 minutes old.
+   *
+   * @returns true if the cache is valid, false otherwise
+   */
   isConnectionCacheValid(): boolean
-  /** 清理资源的方法 */
+  /**
+   * Manually cleans up all resources associated with this instance
+   *
+   * This method stops the PostgreSQL instance (if running) and cleans up all resources.
+   * It's automatically called when the instance is dropped, but can be called manually
+   * for immediate cleanup.
+   *
+   * @returns void
+   *
+   * @example
+   * ```typescript
+   * instance.cleanup();
+   * console.log('Resources cleaned up');
+   * ```
+   */
   cleanup(): void
 }
 
@@ -144,24 +409,39 @@ export interface PostgresErrorInfo {
   details?: string
 }
 
-/** PostgreSQL 配置结构体 */
+/**
+ * PostgreSQL configuration settings
+ *
+ * This object defines all the configuration options for a PostgreSQL embedded instance.
+ * All fields are optional and will use sensible defaults if not provided.
+ *
+ * @example
+ * ```typescript
+ * const settings: PostgresSettings = {
+ *   port: 5432,
+ *   username: 'postgres',
+ *   password: 'mypassword',
+ *   persistent: false
+ * };
+ * ```
+ */
 export interface PostgresSettings {
-  /** PostgreSQL 版本 */
+  /** PostgreSQL version (e.g., "15.0", ">=14.0")  */
   version?: string
-  /** 端口号 */
+  /** Port number (1-65535, default: 5432)  */
   port?: number
-  /** 用户名 */
+  /** Username for database connection (default: "postgres")  */
   username?: string
-  /** 密码 */
+  /** Password for database connection (default: "postgres")  */
   password?: string
-  /** 数据库名 */
+  /** Default database name (default: "postgres")  */
   databaseName?: string
-  /** 数据目录 */
+  /** Custom data directory path  */
   dataDir?: string
-  /** 安装目录 */
+  /** Custom installation directory path  */
   installationDir?: string
-  /** 超时时间（秒） */
+  /** Timeout in seconds (default: 30)  */
   timeout?: number
-  /** 是否持久化 */
+  /** Whether to persist data between runs (default: false)  */
   persistent?: boolean
 }

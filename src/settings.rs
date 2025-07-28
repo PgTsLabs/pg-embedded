@@ -3,26 +3,41 @@ use postgresql_embedded::Settings;
 use crate::error::configuration_error;
 use std::path::PathBuf;
 
-/// PostgreSQL 配置结构体
+/**
+ * PostgreSQL configuration settings
+ * 
+ * This object defines all the configuration options for a PostgreSQL embedded instance.
+ * All fields are optional and will use sensible defaults if not provided.
+ * 
+ * @example
+ * ```typescript
+ * const settings: PostgresSettings = {
+ *   port: 5432,
+ *   username: 'postgres',
+ *   password: 'mypassword',
+ *   persistent: false
+ * };
+ * ```
+ */
 #[napi(object)]
 pub struct PostgresSettings {
-    /// PostgreSQL 版本
+    /** PostgreSQL version (e.g., "15.0", ">=14.0") */
     pub version: Option<String>,
-    /// 端口号
+    /** Port number (1-65535, default: 5432) */
     pub port: Option<u32>,
-    /// 用户名
+    /** Username for database connection (default: "postgres") */
     pub username: Option<String>,
-    /// 密码
+    /** Password for database connection (default: "postgres") */
     pub password: Option<String>,
-    /// 数据库名
+    /** Default database name (default: "postgres") */
     pub database_name: Option<String>,
-    /// 数据目录
+    /** Custom data directory path */
     pub data_dir: Option<String>,
-    /// 安装目录
+    /** Custom installation directory path */
     pub installation_dir: Option<String>,
-    /// 超时时间（秒）
+    /** Timeout in seconds (default: 30) */
     pub timeout: Option<u32>,
-    /// 是否持久化
+    /** Whether to persist data between runs (default: false) */
     pub persistent: Option<bool>,
 }
 
@@ -43,30 +58,30 @@ impl Default for PostgresSettings {
 }
 
 impl PostgresSettings {
-    /// 验证配置参数
+    /// Validate configuration parameters
     pub fn validate(&self) -> napi::Result<()> {
-        // 验证端口号
+        // Validate port number
         if let Some(port) = self.port {
             if port == 0 || port > 65535 {
                 return Err(configuration_error("Port must be between 1 and 65535"));
             }
         }
 
-        // 验证超时时间
+        // Validate timeout
         if let Some(timeout) = self.timeout {
             if timeout == 0 {
                 return Err(configuration_error("Timeout must be greater than 0"));
             }
         }
 
-        // 验证用户名
+        // Validate username
         if let Some(ref username) = self.username {
             if username.is_empty() {
                 return Err(configuration_error("Username cannot be empty"));
             }
         }
 
-        // 验证数据库名
+        // Validate database name
         if let Some(ref database_name) = self.database_name {
             if database_name.is_empty() {
                 return Err(configuration_error("Database name cannot be empty"));
@@ -76,49 +91,49 @@ impl PostgresSettings {
         Ok(())
     }
 
-    /// 转换为 postgresql_embedded::Settings
+    /// Convert to postgresql_embedded::Settings
     pub fn to_embedded_settings(&self) -> napi::Result<Settings> {
         self.validate()?;
 
         let mut settings = Settings::default();
 
-        // 设置版本
+        // Set version
         if let Some(ref version) = self.version {
             let version_req = postgresql_embedded::VersionReq::parse(version)
                 .map_err(|e| configuration_error(&format!("Invalid version format: {}", e)))?;
             settings.version = version_req;
         }
 
-        // 设置端口
+        // Set port
         if let Some(port) = self.port {
             settings.port = port as u16;
         }
 
-        // 设置用户名
+        // Set username
         if let Some(ref username) = self.username {
             settings.username = username.clone();
         }
 
-        // 设置密码
+        // Set password
         if let Some(ref password) = self.password {
             settings.password = password.clone();
         }
 
-        // 注意：postgresql_embedded 不支持直接设置数据库名，使用默认的 "postgres"
+        // Note: postgresql_embedded doesn't support setting database name directly, uses default "postgres"
 
-        // 设置数据目录
+        // Set data directory
         if let Some(ref data_dir) = self.data_dir {
             settings.data_dir = PathBuf::from(data_dir);
         }
 
-        // 设置安装目录
+        // Set installation directory
         if let Some(ref installation_dir) = self.installation_dir {
             settings.installation_dir = PathBuf::from(installation_dir);
         }
 
-        // 注意：postgresql_embedded 不支持直接设置超时时间
+        // Note: postgresql_embedded doesn't support setting timeout directly
 
-        // 设置是否为临时数据库（与持久化相反）
+        // Set temporary flag (opposite of persistent)
         if let Some(persistent) = self.persistent {
             settings.temporary = !persistent;
         }

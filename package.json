@@ -1,7 +1,7 @@
 {
   "name": "pg-embeded",
   "version": "0.1.0",
-  "description": "Embed PostgreSQL database for Node.js",
+  "description": "Embedded PostgreSQL database for Node.js - Easy setup, high performance, TypeScript support",
   "type": "module",
   "module": "index.js",
   "main": "index.cjs",
@@ -10,20 +10,33 @@
     "url": "git+ssh://git@github.com/PgTsLab/pg-embedded.git",
     "type": "git"
   },
+  "homepage": "https://github.com/PgTsLab/pg-embedded#readme",
+  "bugs": {
+    "url": "https://github.com/PgTsLab/pg-embedded/issues"
+  },
   "license": "Apache-2.0",
   "keywords": [
+    "postgresql",
+    "postgres",
+    "embedded",
+    "database",
+    "testing",
+    "integration-tests",
+    "typescript",
+    "rust",
     "napi-rs",
-    "NAPI",
-    "N-API",
-    "Rust",
     "node-addon",
-    "node-addon-api",
-    "PostgreSQL"
+    "cross-platform"
   ],
   "files": [
     "index.d.ts",
     "index.cjs",
-    "index.js"
+    "index.js",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "API.md",
+    "examples/"
   ],
   "napi": {
     "binaryName": "pg-embeded",
@@ -66,6 +79,12 @@
     "lint": "oxlint",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
+    "test:performance": "ava test/performance-benchmarks.test.ts",
+    "test:stability": "ava test/stability.test.ts",
+    "examples": "run-s examples:*",
+    "examples:async": "node examples/async-example.js",
+    "examples:sync": "node examples/sync-example.js",
+    "examples:testing": "node examples/testing-example.js",
     "version": "napi version"
   },
   "devDependencies": {
