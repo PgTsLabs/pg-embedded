@@ -38,7 +38,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: 'pnpm'
 
       - name: Install
@@ -102,7 +102,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: pnpm
       - name: Install
         uses: dtolnay/rust-toolchain@stable
@@ -218,8 +218,6 @@ jobs:
             architecture: arm64
         node:
           - '20'
-          - '22'
-          - '24'
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
@@ -260,8 +258,6 @@ jobs:
           - armv7-unknown-linux-gnueabihf
         node:
           - '20'
-          - '22'
-          - '24'
     runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
