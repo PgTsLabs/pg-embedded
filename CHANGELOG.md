@@ -128,7 +128,6 @@ This is the first release of pg-embedded, providing a complete solution for embe
 - macOS (x64, ARM64)
 - Linux (x64, ARM64, ARM)
 - Windows (x64)
-- FreeBSD (x64)
 
 #### Dependencies
 

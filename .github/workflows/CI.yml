@@ -137,72 +137,45 @@ jobs:
         shell: bash
       - name: Install dependencies
         run: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: |
           for i in {1..3}; do
+            echo "Build attempt $i..."
             if ${{ matrix.settings.build }}; then
+              echo "Build successful!"
               break
             else
-              echo "Build attempt $i failed, retrying in 30 seconds..."
-              sleep 30
+              echo "Build attempt $i failed"
+              if [ $i -lt 3 ]; then
+                echo "Retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All build attempts failed"
+                exit 1
+              fi
             fi
           done
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          POSTGRESQL_VERSION: "17.5"
+          POSTGRESQL_RELEASES_URL: "https://github.com/theseus-rs/postgresql-binaries"
+      - name: List generated files
+        run: |
+          echo "Files in current directory:"
+          ls -la
+          echo "Looking for .node files:"
+          find . -name "*.node" -type f || echo "No .node files found"
+        shell: bash
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
           path: '*.node'
           if-no-files-found: error
-  build-freebsd:
-    runs-on: ubuntu-latest
-    name: Build FreeBSD
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build
-        id: build
-        uses: cross-platform-actions/action@v0.29.0
-        env:
-          DEBUG: napi:*
-          RUSTUP_IO_THREADS: 1
-        with:
-          operating_system: freebsd
-          version: '14.2'
-          memory: 8G
-          cpu_count: 3
-          environment_variables: 'DEBUG RUSTUP_IO_THREADS'
-          shell: bash
-          run: |
-            sudo pkg install -y -f curl node libnghttp2 npm
-            sudo npm install -g corepack
-            curl https://sh.rustup.rs -sSf --output rustup.sh
-            sh rustup.sh -y --profile minimal --default-toolchain beta
-            corepack prepare
-            corepack enable
-            source "$HOME/.cargo/env"
-            echo "~~~~ rustc --version ~~~~"
-            rustc --version
-            echo "~~~~ node -v ~~~~"
-            node -v
-            echo "~~~~ pnpm --version ~~~~"
-            pnpm --version
-            pwd
-            ls -lah
-            whoami
-            env
-            freebsd-version
-            pnpm install
-            pnpm build
-            rm -rf node_modules
-            rm -rf target
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bindings-freebsd
-          path: ${{ env.APP_NAME }}.*.node
-          if-no-files-found: error
+
   test-macOS-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
@@ -237,6 +210,8 @@ jobs:
           architecture: ${{ matrix.settings.architecture }}
       - name: Install dependencies
         run: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -297,6 +272,8 @@ jobs:
       # use --force to download the all platform/arch dependencies
       - name: Install dependencies
         run: pnpm install --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -323,7 +300,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - lint
-      - build-freebsd
       - test-macOS-windows-binding
       - test-linux-binding
     steps:
@@ -337,6 +313,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
