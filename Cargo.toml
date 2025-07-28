@@ -1,0 +1,27 @@
+[package]
+authors = ["Kingsword <kingsword09@gmail.com>"]
+edition = "2021"
+name = "pg-embeded"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "3.0.1", default-features = false, features = ["async", "napi3"] }
+napi-derive = "3.0.0"
+postgresql_embedded = { version = "0.19.0", features = ["blocking", "tokio"] }
+uuid = { version = "1.0", features = ["v4"] }
+log = "0.4"
+env_logger = "0.10"
+tokio = { version = "1.0", features = ["time"] }
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"

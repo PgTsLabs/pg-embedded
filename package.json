@@ -1,0 +1,118 @@
+{
+  "name": "pg-embeded",
+  "version": "0.1.0",
+  "description": "Embed PostgreSQL database for Node.js",
+  "type": "module",
+  "module": "index.js",
+  "main": "index.cjs",
+  "types": "index.d.ts",
+  "repository": {
+    "url": "git+ssh://git@github.com/PgTsLab/pg-embedded.git",
+    "type": "git"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "napi-rs",
+    "NAPI",
+    "N-API",
+    "Rust",
+    "node-addon",
+    "node-addon-api",
+    "PostgreSQL"
+  ],
+  "files": [
+    "index.d.ts",
+    "index.cjs",
+    "index.js"
+  ],
+  "napi": {
+    "binaryName": "pg-embeded",
+    "packageName": "@pg-ts/pg-embeded",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-gnu",
+      "armv7-unknown-linux-gnueabihf",
+      "aarch64-linux-android",
+      "x86_64-unknown-freebsd",
+      "aarch64-unknown-linux-musl",
+      "armv7-linux-androideabi"
+    ]
+  },
+  "exports": {
+    "import": "./index.mjs",
+    "require": "./index.cjs",
+    "types": "./index.d.ts"
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "bench": "node --import @oxc-node/core/register benchmark/bench.ts",
+    "build": "napi build --platform --release --js index.cjs",
+    "build:debug": "napi build --platform --js index.cjs",
+    "format": "run-p format:prettier format:rs format:toml",
+    "format:prettier": "prettier . -w",
+    "format:toml": "taplo format",
+    "format:rs": "cargo fmt",
+    "lint": "oxlint",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "ava",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.3",
+    "@oxc-node/core": "^0.0.30",
+    "@taplo/cli": "^0.7.0",
+    "ava": "^6.4.1",
+    "chalk": "^5.4.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "npm-run-all2": "^8.0.4",
+    "oxlint": "^1.8.0",
+    "prettier": "^3.6.2",
+    "tinybench": "^4.0.1",
+    "typescript": "^5.8.3"
+  },
+  "lint-staged": {
+    "*.@(js|ts|tsx)": [
+      "oxlint --fix"
+    ],
+    "*.@(js|ts|tsx|yml|yaml|md|json)": [
+      "prettier --write"
+    ],
+    "*.toml": [
+      "taplo format"
+    ]
+  },
+  "ava": {
+    "extensions": {
+      "ts": "module"
+    },
+    "timeout": "2m",
+    "workerThreads": false,
+    "environmentVariables": {
+      "TS_NODE_PROJECT": "./tsconfig.json"
+    },
+    "nodeArguments": [
+      "--import",
+      "@oxc-node/core/register"
+    ]
+  },
+  "prettier": {
+    "printWidth": 120,
+    "semi": false,
+    "trailingComma": "all",
+    "singleQuote": true,
+    "arrowParens": "always"
+  },
+  "packageManager": "pnpm@10.13.1"
+}
