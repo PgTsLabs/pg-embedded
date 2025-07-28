@@ -44,6 +44,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ESLint
         run: pnpm lint
@@ -115,7 +117,9 @@ jobs:
             ~/.napi-rs
             .cargo-cache
             target/
-          key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}
+          key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}-
       - uses: goto-bus-stop/setup-zig@v2
         if: ${{ contains(matrix.settings.target, 'musl') }}
         with:
@@ -134,8 +138,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Build
-        run: ${{ matrix.settings.build }}
+        run: |
+          for i in {1..3}; do
+            if ${{ matrix.settings.build }}; then
+              break
+            else
+              echo "Build attempt $i failed, retrying in 30 seconds..."
+              sleep 30
+            fi
+          done
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
