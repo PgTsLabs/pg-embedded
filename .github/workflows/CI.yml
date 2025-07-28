@@ -27,6 +27,10 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      POSTGRESQL_VERSION: "17.5"
+      POSTGRESQL_RELEASES_URL: "https://github.com/theseus-rs/postgresql-binaries"
     steps:
       - uses: actions/checkout@v4
       - name: setup pnpm
@@ -44,8 +48,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ESLint
         run: pnpm lint
@@ -135,6 +137,11 @@ jobs:
         run: ${{ matrix.settings.setup }}
         if: ${{ matrix.settings.setup }}
         shell: bash
+      - name: Install system dependencies
+        if: ${{ matrix.settings.host == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config
       - name: Install dependencies
         run: pnpm install
         env:
@@ -162,6 +169,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           POSTGRESQL_VERSION: "17.5"
           POSTGRESQL_RELEASES_URL: "https://github.com/theseus-rs/postgresql-binaries"
+          OPENSSL_STATIC: "1"
+          OPENSSL_VENDORED: "1"
       - name: List generated files
         run: |
           echo "Files in current directory:"
