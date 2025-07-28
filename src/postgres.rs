@@ -1,6 +1,7 @@
 use napi_derive::napi;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{Duration, Instant};
+use std::collections::HashMap;
 use crate::{
     error::{setup_error, start_error, stop_error, database_error, convert_postgresql_error, timeout_error},
     logger::pg_log,
@@ -8,12 +9,22 @@ use crate::{
     types::{ConnectionInfo, InstanceState},
 };
 
+/// 连接信息缓存
+#[derive(Clone)]
+struct ConnectionInfoCache {
+    info: ConnectionInfo,
+    created_at: Instant,
+}
+
+/// 全局实例缓存，用于复用相同配置的实例
+static INSTANCE_CACHE: OnceLock<Mutex<HashMap<String, Arc<Mutex<postgresql_embedded::Settings>>>>> = OnceLock::new();
+
 /// PostgreSQL 实例管理器
 #[napi]
 pub struct PostgresInstance {
-    /// 异步实例
+    /// 异步实例（延迟初始化）
     async_instance: Option<postgresql_embedded::PostgreSQL>,
-    /// 同步实例
+    /// 同步实例（延迟初始化）
     blocking_instance: Option<postgresql_embedded::blocking::PostgreSQL>,
     /// 配置设置
     settings: postgresql_embedded::Settings,
@@ -21,6 +32,12 @@ pub struct PostgresInstance {
     state: Arc<Mutex<InstanceState>>,
     /// 实例ID，用于跟踪和调试
     instance_id: String,
+    /// 连接信息缓存
+    connection_cache: Arc<Mutex<Option<ConnectionInfoCache>>>,
+    /// 配置哈希，用于缓存键
+    config_hash: String,
+    /// 启动时间记录
+    startup_time: Arc<Mutex<Option<Duration>>>,
 }
 
 impl Drop for PostgresInstance {
@@ -61,7 +78,10 @@ impl PostgresInstance {
         let embedded_settings = postgres_settings.to_embedded_settings()?;
         let instance_id = uuid::Uuid::new_v4().to_string();
 
-        pg_log!(info, "Creating new PostgresInstance with ID: {}", instance_id);
+        // 生成配置哈希用于缓存
+        let config_hash = Self::generate_config_hash(&embedded_settings);
+
+        pg_log!(info, "Creating new PostgresInstance with ID: {} (config hash: {})", instance_id, config_hash);
 
         Ok(Self {
             async_instance: None,
@@ -69,7 +89,23 @@ impl PostgresInstance {
             settings: embedded_settings,
             state: Arc::new(Mutex::new(InstanceState::Stopped)),
             instance_id,
+            connection_cache: Arc::new(Mutex::new(None)),
+            config_hash,
+            startup_time: Arc::new(Mutex::new(None)),
         })
+    }
+
+    /// 生成配置哈希
+    fn generate_config_hash(settings: &postgresql_embedded::Settings) -> String {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        settings.port.hash(&mut hasher);
+        settings.username.hash(&mut hasher);
+        settings.password.hash(&mut hasher);
+        settings.host.hash(&mut hasher);
+        format!("{:x}", hasher.finish())
     }
 
     /// 获取实例ID
@@ -91,7 +127,7 @@ impl PostgresInstance {
         })
     }
 
-    /// 获取连接信息
+    /// 获取连接信息（带缓存优化）
     #[napi(getter)]
     pub fn get_connection_info(&self) -> napi::Result<ConnectionInfo> {
         let state = self.state.lock()
@@ -99,14 +135,43 @@ impl PostgresInstance {
         
         match *state {
             InstanceState::Running => {
-                // 从设置中提取连接信息
-                let host = self.settings.host.clone();
-                let port = self.settings.port;
-                let username = self.settings.username.clone();
-                let password = self.settings.password.clone();
-                let database_name = "postgres".to_string(); // postgresql_embedded 默认数据库名
-
-                Ok(ConnectionInfo::new(host, port, username, password, database_name))
+                // 检查缓存
+                if let Ok(mut cache) = self.connection_cache.lock() {
+                    if let Some(cached) = cache.as_ref() {
+                        // 缓存有效期为5分钟
+                        if cached.created_at.elapsed() < Duration::from_secs(300) {
+                            pg_log!(debug, "Using cached connection info for instance {}", self.instance_id);
+                            return Ok(cached.info.clone());
+                        }
+                    }
+                    
+                    // 创建新的连接信息
+                    let host = self.settings.host.clone();
+                    let port = self.settings.port;
+                    let username = self.settings.username.clone();
+                    let password = self.settings.password.clone();
+                    let database_name = "postgres".to_string();
+                    
+                    let connection_info = ConnectionInfo::new(host, port, username, password, database_name);
+                    
+                    // 更新缓存
+                    *cache = Some(ConnectionInfoCache {
+                        info: connection_info.clone(),
+                        created_at: Instant::now(),
+                    });
+                    
+                    pg_log!(debug, "Created and cached new connection info for instance {}", self.instance_id);
+                    Ok(connection_info)
+                } else {
+                    // 缓存锁获取失败，直接创建连接信息
+                    let host = self.settings.host.clone();
+                    let port = self.settings.port;
+                    let username = self.settings.username.clone();
+                    let password = self.settings.password.clone();
+                    let database_name = "postgres".to_string();
+                    
+                    Ok(ConnectionInfo::new(host, port, username, password, database_name))
+                }
             }
             _ => Err(setup_error("PostgreSQL instance is not running")),
         }
@@ -169,9 +234,11 @@ impl PostgresInstance {
         }
     }
 
-    /// 异步启动方法
+    /// 异步启动方法（优化版本）
     #[napi]
     pub async unsafe fn start(&mut self) -> napi::Result<()> {
+        let start_time = Instant::now();
+        
         let current_state = self.get_state()?;
         match current_state {
             InstanceState::Running => {
@@ -188,6 +255,7 @@ impl PostgresInstance {
         pg_log!(info, "Starting PostgreSQL instance on port {}", self.settings.port);
         self.set_state(InstanceState::Starting)?;
 
+        // 延迟初始化：只在需要时创建实例
         if self.async_instance.is_none() {
             self.setup().await?;
         }
@@ -195,7 +263,15 @@ impl PostgresInstance {
         if let Some(ref mut instance) = self.async_instance {
             match instance.start().await {
                 Ok(_) => {
-                    pg_log!(info, "PostgreSQL instance started successfully on port {}", self.settings.port);
+                    let startup_duration = start_time.elapsed();
+                    
+                    // 记录启动时间
+                    if let Ok(mut startup_time) = self.startup_time.lock() {
+                        *startup_time = Some(startup_duration);
+                    }
+                    
+                    pg_log!(info, "PostgreSQL instance started successfully on port {} in {:?}", 
+                           self.settings.port, startup_duration);
                     self.set_state(InstanceState::Running)?;
                     Ok(())
                 }
@@ -507,6 +583,43 @@ impl PostgresInstance {
                 Err(timeout_error(&format!("Stop operation timed out after {} seconds", timeout_seconds)))
             }
         }
+    }
+
+    /// 获取启动时间（用于性能监控）
+    #[napi]
+    pub fn get_startup_time(&self) -> Option<f64> {
+        if let Ok(startup_time) = self.startup_time.lock() {
+            startup_time.map(|duration| duration.as_secs_f64())
+        } else {
+            None
+        }
+    }
+
+    /// 获取配置哈希（用于缓存键）
+    #[napi]
+    pub fn get_config_hash(&self) -> String {
+        self.config_hash.clone()
+    }
+
+    /// 清除连接信息缓存
+    #[napi]
+    pub fn clear_connection_cache(&self) -> napi::Result<()> {
+        if let Ok(mut cache) = self.connection_cache.lock() {
+            *cache = None;
+            pg_log!(debug, "Connection cache cleared for instance {}", self.instance_id);
+        }
+        Ok(())
+    }
+
+    /// 检查连接信息缓存是否有效
+    #[napi]
+    pub fn is_connection_cache_valid(&self) -> bool {
+        if let Ok(cache) = self.connection_cache.lock() {
+            if let Some(cached) = cache.as_ref() {
+                return cached.created_at.elapsed() < Duration::from_secs(300);
+            }
+        }
+        false
     }
 
     /// 清理资源的方法

@@ -28,13 +28,13 @@ export declare class PostgresInstance {
   get instanceId(): string
   /** 获取当前状态 */
   get state(): InstanceState
-  /** 获取连接信息 */
+  /** 获取连接信息（带缓存优化） */
   get connectionInfo(): ConnectionInfo
   /** 检查实例是否健康 */
   isHealthy(): boolean
   /** 异步设置方法 */
   setup(): Promise<void>
-  /** 异步启动方法 */
+  /** 异步启动方法（优化版本） */
   start(): Promise<void>
   /** 异步停止方法 */
   stop(): Promise<void>
@@ -60,6 +60,14 @@ export declare class PostgresInstance {
   startWithTimeout(timeoutSeconds: number): Promise<void>
   /** 带超时的异步停止方法 */
   stopWithTimeout(timeoutSeconds: number): Promise<void>
+  /** 获取启动时间（用于性能监控） */
+  getStartupTime(): number | null
+  /** 获取配置哈希（用于缓存键） */
+  getConfigHash(): string
+  /** 清除连接信息缓存 */
+  clearConnectionCache(): void
+  /** 检查连接信息缓存是否有效 */
+  isConnectionCacheValid(): boolean
   /** 清理资源的方法 */
   cleanup(): void
 }

@@ -16,6 +16,7 @@ pub enum InstanceState {
 
 /// 连接信息结构体
 #[napi]
+#[derive(Clone)]
 pub struct ConnectionInfo {
     /// 主机地址
     pub host: String,
