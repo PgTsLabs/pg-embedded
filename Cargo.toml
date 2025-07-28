@@ -15,6 +15,12 @@ napi = { version = "3.0.1", default-features = false, features = [
   "napi3",
 ] }
 napi-derive = "3.0.0"
+uuid = { version = "1.0", features = ["v7"] }
+log = { version = "0.4", features = ["std"] }
+tokio = { version = "1.0", features = ["time"] }
+
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+openssl-sys = { version = "0.9.109", features = ["vendored"] }
 postgresql_embedded = { version = "0.19.0", default-features = false, features = [
   "blocking",
   "tokio",
@@ -22,55 +28,18 @@ postgresql_embedded = { version = "0.19.0", default-features = false, features =
   "rustls",
   "bundled",
 ] }
-uuid = { version = "1.0", features = ["v4"] }
-log = { version = "0.4", features = ["std"] }
-tokio = { version = "1.0", features = ["time"] }
 
-[target.x86_64-unknown-linux-gnu.dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.armv7-unknown-linux-gnueabihf.dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.x86_64-unknown-linux-musl.dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.aarch64-unknown-linux-gnu.dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.aarch64-unknown-linux-musl.dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.aarch64-linux-android.dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.armv7-linux-androideabi.dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+postgresql_embedded = { version = "0.19.0", default-features = false, features = [
+  "blocking",
+  "tokio",
+  "theseus",
+  "native-tls",
+  "bundled",
+] }
 
 [build-dependencies]
 napi-build = "2"
-
-# For cross-compilation, ensure build scripts also use vendored OpenSSL
-[target.x86_64-unknown-linux-gnu.build-dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.armv7-unknown-linux-gnueabihf.build-dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.aarch64-unknown-linux-gnu.build-dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.x86_64-unknown-linux-musl.build-dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.aarch64-unknown-linux-musl.build-dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.aarch64-linux-android.build-dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
-
-[target.armv7-linux-androideabi.build-dependencies]
-openssl-sys = { version = "0.9.109", features = ["vendored"] }
 
 [profile.release]
 lto = true

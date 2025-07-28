@@ -131,7 +131,8 @@ impl PostgresInstance {
   pub fn new(settings: Option<PostgresSettings>) -> napi::Result<Self> {
     let postgres_settings = settings.unwrap_or_default();
     let embedded_settings = postgres_settings.to_embedded_settings()?;
-    let instance_id = uuid::Uuid::new_v4().to_string();
+    let ts = uuid::Timestamp::now(uuid::NoContext);
+    let instance_id = uuid::Uuid::new_v7(ts).to_string();
 
     // Generate configuration hash for caching
     let config_hash = Self::generate_config_hash(&embedded_settings);
