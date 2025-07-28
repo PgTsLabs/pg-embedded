@@ -15,14 +15,15 @@ napi = { version = "3.0.1", default-features = false, features = [
   "napi3",
 ] }
 napi-derive = "3.0.0"
-postgresql_embedded = { version = "0.19.0", features = [
+postgresql_embedded = { version = "0.19.0", default-features = false, features = [
   "blocking",
   "tokio",
-  "bundled",
+  "theseus",  # 只使用theseus仓库，不使用zonky
+  "native-tls",  # 使用系统原生TLS而不是rustls
+  # "bundled",
 ] }
 uuid = { version = "1.0", features = ["v4"] }
-log = "0.4"
-env_logger = "0.10"
+log = { version = "0.4", features = ["std"] }
 tokio = { version = "1.0", features = ["time"] }
 
 [build-dependencies]
@@ -32,3 +33,5 @@ napi-build = "2"
 lto = true
 codegen-units = 1
 strip = "symbols"
+opt-level = "z"  # 优化大小而不是速度
+panic = "abort"  # 减少panic处理代码

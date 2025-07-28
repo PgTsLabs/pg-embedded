@@ -5,6 +5,7 @@ static INIT: Once = Once::new();
 
 /// 日志级别枚举
 #[napi]
+#[derive(Clone, Copy)]
 pub enum LogLevel {
     /// 错误级别
     Error,
@@ -16,6 +17,25 @@ pub enum LogLevel {
     Debug,
     /// 跟踪级别
     Trace,
+}
+
+/// 简单的日志记录器实现
+struct SimpleLogger {
+    level: log::Level,
+}
+
+impl log::Log for SimpleLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= self.level
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            eprintln!("[{}] {}", record.level(), record.args());
+        }
+    }
+
+    fn flush(&self) {}
 }
 
 impl From<LogLevel> for log::Level {
@@ -36,9 +56,10 @@ pub fn init_logger(level: Option<LogLevel>) -> napi::Result<()> {
     INIT.call_once(|| {
         let log_level = level.unwrap_or(LogLevel::Info);
         let level_filter = log::Level::from(log_level).to_level_filter();
-        env_logger::Builder::from_default_env()
-            .filter_level(level_filter)
-            .init();
+        let logger = SimpleLogger { level: log::Level::from(log_level) };
+        log::set_boxed_logger(Box::new(logger))
+            .map(|()| log::set_max_level(level_filter))
+            .unwrap_or_else(|_| {});
     });
     Ok(())
 }
