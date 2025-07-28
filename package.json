@@ -114,5 +114,18 @@
     "singleQuote": true,
     "arrowParens": "always"
   },
-  "packageManager": "pnpm@10.13.1"
+  "packageManager": "pnpm@10.13.1",
+  "optionalDependencies": {
+    "@pg-ts/pg-embeded-darwin-x64": "0.1.0",
+    "@pg-ts/pg-embeded-darwin-arm64": "0.1.0",
+    "@pg-ts/pg-embeded-linux-x64-gnu": "0.1.0",
+    "@pg-ts/pg-embeded-win32-x64-msvc": "0.1.0",
+    "@pg-ts/pg-embeded-linux-x64-musl": "0.1.0",
+    "@pg-ts/pg-embeded-linux-arm64-gnu": "0.1.0",
+    "@pg-ts/pg-embeded-linux-arm-gnueabihf": "0.1.0",
+    "@pg-ts/pg-embeded-android-arm64": "0.1.0",
+    "@pg-ts/pg-embeded-freebsd-x64": "0.1.0",
+    "@pg-ts/pg-embeded-linux-arm64-musl": "0.1.0",
+    "@pg-ts/pg-embeded-android-arm-eabi": "0.1.0"
+  }
 }

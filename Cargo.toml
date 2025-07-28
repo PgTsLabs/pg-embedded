@@ -10,9 +10,16 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "3.0.1", default-features = false, features = ["async", "napi3"] }
+napi = { version = "3.0.1", default-features = false, features = [
+  "async",
+  "napi3",
+] }
 napi-derive = "3.0.0"
-postgresql_embedded = { version = "0.19.0", features = ["blocking", "tokio"] }
+postgresql_embedded = { version = "0.19.0", features = [
+  "blocking",
+  "tokio",
+  "bundled",
+] }
 uuid = { version = "1.0", features = ["v4"] }
 log = "0.4"
 env_logger = "0.10"

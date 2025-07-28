@@ -1,0 +1,36 @@
+{
+  "name": "@pg-ts/pg-embeded-darwin-x64",
+  "version": "0.1.0",
+  "cpu": [
+    "x64"
+  ],
+  "main": "pg-embeded.darwin-x64.node",
+  "files": [
+    "pg-embeded.darwin-x64.node"
+  ],
+  "description": "Embed PostgreSQL database for Node.js",
+  "keywords": [
+    "napi-rs",
+    "NAPI",
+    "N-API",
+    "Rust",
+    "node-addon",
+    "node-addon-api",
+    "PostgreSQL"
+  ],
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "url": "git+ssh://git@github.com/PgTsLab/pg-embedded.git",
+    "type": "git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "os": [
+    "darwin"
+  ]
+}
