@@ -100,7 +100,7 @@ impl PostgresSettings {
     // Set version
     if let Some(ref version) = self.version {
       let version_req = postgresql_embedded::VersionReq::parse(version)
-        .map_err(|e| configuration_error(&format!("Invalid version format: {}", e)))?;
+        .map_err(|e| configuration_error(&format!("Invalid version format: {e}")))?;
       settings.version = version_req;
     }
 

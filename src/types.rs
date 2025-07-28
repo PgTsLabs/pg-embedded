@@ -62,10 +62,8 @@ impl ConnectionInfo {
     password: String,
     database_name: String,
   ) -> Self {
-    let connection_string = format!(
-      "postgresql://{}:{}@{}:{}/{}",
-      username, password, host, port, database_name
-    );
+    let connection_string =
+      format!("postgresql://{username}:{password}@{host}:{port}/{database_name}");
 
     Self {
       host,

@@ -7,8 +7,7 @@ use crate::{
   types::{ConnectionInfo, InstanceState},
 };
 use napi_derive::napi;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 /// Connection information cache
@@ -17,10 +16,6 @@ struct ConnectionInfoCache {
   info: ConnectionInfo,
   created_at: Instant,
 }
-
-/// Global instance cache for reusing instances with same configuration
-static INSTANCE_CACHE: OnceLock<Mutex<HashMap<String, Arc<Mutex<postgresql_embedded::Settings>>>>> =
-  OnceLock::new();
 
 /**
  * PostgreSQL embedded instance manager
@@ -84,7 +79,7 @@ impl Drop for PostgresInstance {
     }
 
     // Try to stop sync instance
-    if let Some(mut instance) = self.blocking_instance.take() {
+    if let Some(instance) = self.blocking_instance.take() {
       pg_log!(
         debug,
         "Cleaning up blocking PostgreSQL instance for {}",
@@ -289,16 +284,6 @@ impl PostgresInstance {
     Ok(())
   }
 
-  /// Safely check if operation can be performed
-  fn can_perform_operation(&self, required_state: InstanceState) -> napi::Result<bool> {
-    let state = self
-      .state
-      .lock()
-      .map_err(|_| setup_error("Failed to acquire state lock"))?;
-
-    Ok(matches!(*state, state if state == required_state))
-  }
-
   /**
    * Checks if the PostgreSQL instance is healthy and running
    *
@@ -321,6 +306,7 @@ impl PostgresInstance {
   }
 
   /**
+   * # Safety
    * Sets up the PostgreSQL instance asynchronously
    *
    * This method initializes the PostgreSQL instance but does not start it.
@@ -354,6 +340,7 @@ impl PostgresInstance {
   }
 
   /**
+   * # Safety
    * Starts the PostgreSQL instance asynchronously
    *
    * This method starts the PostgreSQL server and makes it ready to accept connections.
@@ -436,6 +423,7 @@ impl PostgresInstance {
   }
 
   /**
+   * # Safety
    * Stops the PostgreSQL instance asynchronously
    *
    * This method gracefully shuts down the PostgreSQL server.
@@ -494,6 +482,7 @@ impl PostgresInstance {
   }
 
   /**
+   * # Safety
    * Creates a new database asynchronously
    *
    * @param name - The name of the database to create
@@ -527,6 +516,7 @@ impl PostgresInstance {
   }
 
   /**
+   * # Safety
    * Drops (deletes) a database asynchronously
    *
    * @param name - The name of the database to drop
@@ -823,6 +813,7 @@ impl PostgresInstance {
   }
 
   /**
+   * # Safety
    * Starts the PostgreSQL instance asynchronously with a timeout
    *
    * @param timeout_seconds - Maximum time to wait for startup in seconds
@@ -855,14 +846,14 @@ impl PostgresInstance {
         );
         self.set_state(InstanceState::Stopped)?;
         Err(timeout_error(&format!(
-          "Start operation timed out after {} seconds",
-          timeout_seconds
+          "Start operation timed out after {timeout_seconds} seconds"
         )))
       }
     }
   }
 
   /**
+   * # Safety
    * Stops the PostgreSQL instance asynchronously with a timeout
    *
    * @param timeout_seconds - Maximum time to wait for shutdown in seconds
@@ -895,8 +886,7 @@ impl PostgresInstance {
         );
         // In timeout case, we're not sure of actual state, keep current state
         Err(timeout_error(&format!(
-          "Stop operation timed out after {} seconds",
-          timeout_seconds
+          "Stop operation timed out after {timeout_seconds} seconds"
         )))
       }
     }
@@ -994,12 +984,12 @@ impl PostgresInstance {
     pg_log!(info, "Manually cleaning up PostgreSQL instance resources");
 
     // Clean up async instance
-    if let Some(_) = self.async_instance.take() {
+    if self.async_instance.take().is_some() {
       pg_log!(debug, "Cleaned up async PostgreSQL instance");
     }
 
     // Clean up sync instance
-    if let Some(mut instance) = self.blocking_instance.take() {
+    if let Some(instance) = self.blocking_instance.take() {
       pg_log!(
         debug,
         "Stopping and cleaning up blocking PostgreSQL instance"

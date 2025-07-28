@@ -43,7 +43,7 @@ impl PostgresErrorInfo {
 
 /// 将 postgresql_embedded::Error 转换为 napi::Error
 pub fn convert_postgresql_error(err: postgresql_embedded::Error) -> napi::Error {
-  let message = format!("PostgreSQL error: {}", err);
+  let message = format!("PostgreSQL error: {err}");
   napi::Error::new(napi::Status::GenericFailure, message)
 }
 
@@ -51,7 +51,7 @@ pub fn convert_postgresql_error(err: postgresql_embedded::Error) -> napi::Error 
 pub fn setup_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
-    format!("Setup failed: {}", message),
+    format!("Setup failed: {message}"),
   )
 }
 
@@ -59,7 +59,7 @@ pub fn setup_error(message: &str) -> napi::Error {
 pub fn start_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
-    format!("Start failed: {}", message),
+    format!("Start failed: {message}"),
   )
 }
 
@@ -67,7 +67,7 @@ pub fn start_error(message: &str) -> napi::Error {
 pub fn stop_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
-    format!("Stop failed: {}", message),
+    format!("Stop failed: {message}"),
   )
 }
 
@@ -75,7 +75,7 @@ pub fn stop_error(message: &str) -> napi::Error {
 pub fn database_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
-    format!("Database operation failed: {}", message),
+    format!("Database operation failed: {message}"),
   )
 }
 
@@ -83,7 +83,7 @@ pub fn database_error(message: &str) -> napi::Error {
 pub fn configuration_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
-    format!("Configuration error: {}", message),
+    format!("Configuration error: {message}"),
   )
 }
 
@@ -91,7 +91,7 @@ pub fn configuration_error(message: &str) -> napi::Error {
 pub fn connection_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
-    format!("Connection error: {}", message),
+    format!("Connection error: {message}"),
   )
 }
 
@@ -99,6 +99,6 @@ pub fn connection_error(message: &str) -> napi::Error {
 pub fn timeout_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
-    format!("Operation timeout: {}", message),
+    format!("Operation timeout: {message}"),
   )
 }

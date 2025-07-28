@@ -69,31 +69,31 @@ pub fn init_logger(level: Option<LogLevel>) -> napi::Result<()> {
 /// 记录错误日志
 #[napi]
 pub fn log_error(message: String) {
-  log::error!("{}", message);
+  log::error!("{message}");
 }
 
 /// 记录警告日志
 #[napi]
 pub fn log_warn(message: String) {
-  log::warn!("{}", message);
+  log::warn!("{message}");
 }
 
 /// 记录信息日志
 #[napi]
 pub fn log_info(message: String) {
-  log::info!("{}", message);
+  log::info!("{message}");
 }
 
 /// 记录调试日志
 #[napi]
 pub fn log_debug(message: String) {
-  log::debug!("{}", message);
+  log::debug!("{message}");
 }
 
 /// 记录跟踪日志
 #[napi]
 pub fn log_trace(message: String) {
-  log::trace!("{}", message);
+  log::trace!("{message}");
 }
 
 /// 内部日志记录宏

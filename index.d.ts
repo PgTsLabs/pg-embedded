@@ -89,6 +89,7 @@ export declare class PostgresInstance {
    */
   isHealthy(): boolean
   /**
+   * # Safety
    * Sets up the PostgreSQL instance asynchronously
    *
    * This method initializes the PostgreSQL instance but does not start it.
@@ -99,6 +100,7 @@ export declare class PostgresInstance {
    */
   setup(): Promise<void>
   /**
+   * # Safety
    * Starts the PostgreSQL instance asynchronously
    *
    * This method starts the PostgreSQL server and makes it ready to accept connections.
@@ -115,6 +117,7 @@ export declare class PostgresInstance {
    */
   start(): Promise<void>
   /**
+   * # Safety
    * Stops the PostgreSQL instance asynchronously
    *
    * This method gracefully shuts down the PostgreSQL server.
@@ -130,6 +133,7 @@ export declare class PostgresInstance {
    */
   stop(): Promise<void>
   /**
+   * # Safety
    * Creates a new database asynchronously
    *
    * @param name - The name of the database to create
@@ -143,6 +147,7 @@ export declare class PostgresInstance {
    */
   createDatabase(name: string): Promise<void>
   /**
+   * # Safety
    * Drops (deletes) a database asynchronously
    *
    * @param name - The name of the database to drop
@@ -255,6 +260,7 @@ export declare class PostgresInstance {
    */
   databaseExistsSync(name: string): boolean
   /**
+   * # Safety
    * Starts the PostgreSQL instance asynchronously with a timeout
    *
    * @param timeout_seconds - Maximum time to wait for startup in seconds
@@ -268,6 +274,7 @@ export declare class PostgresInstance {
    */
   startWithTimeout(timeoutSeconds: number): Promise<void>
   /**
+   * # Safety
    * Stops the PostgreSQL instance asynchronously with a timeout
    *
    * @param timeout_seconds - Maximum time to wait for shutdown in seconds
