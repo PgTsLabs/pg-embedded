@@ -169,7 +169,10 @@ test.serial('Performance: Startup time benchmark', async (t) => {
 
   // Verify internal record time accuracy (should be close to external measurement)
   const timeDifference = Math.abs(Number(avgStartupTime) / 1e6 - avgRecordedTime)
-  t.true(timeDifference < 1000, `Time difference between internal and external measurements (${timeDifference.toFixed(2)}ms) should be less than 1 second`)
+  t.true(
+    timeDifference < 1000,
+    `Time difference between internal and external measurements (${timeDifference.toFixed(2)}ms) should be less than 1 second`,
+  )
 })
 
 test.serial('Performance: Memory usage monitoring', async (t) => {
@@ -324,7 +327,10 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
 
       // Memory growth should be relatively stable
       t.true(memoryGrowthRate > 0, 'Memory growth rate should be positive')
-      t.true(memoryGrowthRate < maxMemoryPerInstanceMB * 1024 * 1024, 'Memory growth rate should be within reasonable range')
+      t.true(
+        memoryGrowthRate < maxMemoryPerInstanceMB * 1024 * 1024,
+        'Memory growth rate should be within reasonable range',
+      )
     }
   } finally {
     // Cleanup all instances
@@ -527,7 +533,10 @@ test.serial('Performance: Concurrent performance test', async (t) => {
     const serialStartupTime = individualStartupTimes.reduce((a, b) => a + b, 0n)
     const concurrencySpeedup = Number(serialStartupTime) / Number(totalStartupTime)
     console.log(`Concurrency speedup: ${concurrencySpeedup.toFixed(2)}x`)
-    t.true(concurrencySpeedup > 1.2, `Concurrency speedup (${concurrencySpeedup.toFixed(2)}x) should be greater than 1.2x`)
+    t.true(
+      concurrencySpeedup > 1.2,
+      `Concurrency speedup (${concurrencySpeedup.toFixed(2)}x) should be greater than 1.2x`,
+    )
   } finally {
     // Ensure cleanup of all instances
     console.log('Cleaning up all concurrent instances...')
@@ -770,7 +779,10 @@ test.serial('Performance: Long-running stability test', async (t) => {
 
     // Memory stability assertions
     t.true(memoryIncrease < 100, `Memory growth (${memoryIncrease.toFixed(2)}MB) should be less than 100MB`)
-    t.true(maxMemoryMB - minMemoryMB < 200, `Memory fluctuation (${(maxMemoryMB - minMemoryMB).toFixed(2)}MB) should be less than 200MB`)
+    t.true(
+      maxMemoryMB - minMemoryMB < 200,
+      `Memory fluctuation (${(maxMemoryMB - minMemoryMB).toFixed(2)}MB) should be less than 200MB`,
+    )
 
     // Check memory leak trend
     if (memoryHistory.length >= 10) {
@@ -781,7 +793,9 @@ test.serial('Performance: Long-running stability test', async (t) => {
       const secondHalfAvg = secondHalf.reduce((sum, h) => sum + h.heapUsed, 0) / secondHalf.length
 
       const memoryTrend = (secondHalfAvg - firstHalfAvg) / 1024 / 1024
-      console.log(`Memory trend: ${memoryTrend > 0 ? '+' : ''}${memoryTrend.toFixed(2)}MB (second half relative to first half)`)
+      console.log(
+        `Memory trend: ${memoryTrend > 0 ? '+' : ''}${memoryTrend.toFixed(2)}MB (second half relative to first half)`,
+      )
 
       // Memory trend should not grow excessively
       t.true(memoryTrend < 50, `Memory growth trend (${memoryTrend.toFixed(2)}MB) should be within reasonable range`)
@@ -951,11 +965,17 @@ test.serial('Performance: Database operation throughput test', async (t) => {
     // Verify average operation time is reasonable
     if (results.length > 0) {
       const avgOperationTime = results.reduce((sum, r) => sum + r.avgTime, 0) / results.length
-      t.true(avgOperationTime < 30000, `Average operation time (${avgOperationTime.toFixed(2)}ms) should be less than 30 seconds`)
+      t.true(
+        avgOperationTime < 30000,
+        `Average operation time (${avgOperationTime.toFixed(2)}ms) should be less than 30 seconds`,
+      )
 
       // Verify reasonable success rate
       const overallSuccessRate = totalSuccessCount / results.reduce((sum, r) => sum + r.operationCount, 0)
-      t.true(overallSuccessRate > 0.5, `Overall success rate (${(overallSuccessRate * 100).toFixed(1)}%) should be above 50%`)
+      t.true(
+        overallSuccessRate > 0.5,
+        `Overall success rate (${(overallSuccessRate * 100).toFixed(1)}%) should be above 50%`,
+      )
     }
 
     await safeStopInstance(instance)
@@ -1134,8 +1154,12 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     console.log(`\n=== Resource Cleanup Efficiency Test Results ===`)
     console.log(`Normal stop cleanup time: ${Number(normalStopTime) / 1e6}ms`)
     console.log(`Force cleanup time: ${Number(forceCleanupTime) / 1e6}ms`)
-    console.log(`Average normal stop time: ${(Number(normalStopTime) / 1e6 / Math.floor(instanceCount / 2)).toFixed(2)}ms/instance`)
-    console.log(`Average force cleanup time: ${(Number(forceCleanupTime) / 1e6 / remainingInstances.length).toFixed(2)}ms/instance`)
+    console.log(
+      `Average normal stop time: ${(Number(normalStopTime) / 1e6 / Math.floor(instanceCount / 2)).toFixed(2)}ms/instance`,
+    )
+    console.log(
+      `Average force cleanup time: ${(Number(forceCleanupTime) / 1e6 / remainingInstances.length).toFixed(2)}ms/instance`,
+    )
 
     // Performance assertions
     const maxCleanupTimePerInstance = 2000 // 2 seconds
@@ -1156,7 +1180,9 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true' || process.env.NODE_ENV === 'test'
     const multiplier = isCI ? 10 : 3 // Allow 10x difference in CI, 3x locally
     console.log(`CI environment detected: ${isCI}, using multiplier: ${multiplier}`)
-    console.log(`Force cleanup time: ${avgForceCleanupTime.toFixed(2)}ms, normal stop time: ${avgNormalStopTime.toFixed(2)}ms`)
+    console.log(
+      `Force cleanup time: ${avgForceCleanupTime.toFixed(2)}ms, normal stop time: ${avgNormalStopTime.toFixed(2)}ms`,
+    )
 
     // If force cleanup time is reasonable, pass the test
     if (avgForceCleanupTime <= avgNormalStopTime * multiplier) {

@@ -74,11 +74,11 @@ function extractPostgreSQLVersion(version) {
 function incrementVersionWithPgVersion(currentVersion, releaseType) {
   // Extract PostgreSQL version if present
   const pgVersion = extractPostgreSQLVersion(currentVersion)
-  
+
   // Extract base version (without +pg suffix)
   const baseVersion = currentVersion.split('+')[0]
   const [major, minor, patch] = baseVersion.split('.').map(Number)
-  
+
   let newBaseVersion
   switch (releaseType) {
     case 'major':
@@ -92,7 +92,7 @@ function incrementVersionWithPgVersion(currentVersion, releaseType) {
       newBaseVersion = `${major}.${minor}.${patch + 1}`
       break
   }
-  
+
   // Append PostgreSQL version if it was present
   return pgVersion ? `${newBaseVersion}+pg${pgVersion}` : newBaseVersion
 }

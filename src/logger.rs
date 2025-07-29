@@ -7,93 +7,93 @@ static INIT: Once = Once::new();
 #[napi]
 #[derive(Clone, Copy)]
 pub enum LogLevel {
-    /// Error level
-    Error,
-    /// Warning level
-    Warn,
-    /// Information level
-    Info,
-    /// Debug level
-    Debug,
-    /// Trace level
-    Trace,
+  /// Error level
+  Error,
+  /// Warning level
+  Warn,
+  /// Information level
+  Info,
+  /// Debug level
+  Debug,
+  /// Trace level
+  Trace,
 }
 
 /// Simple logger implementation
 struct SimpleLogger {
-    level: log::Level,
+  level: log::Level,
 }
 
 impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
-        metadata.level() <= self.level
-    }
+  fn enabled(&self, metadata: &log::Metadata) -> bool {
+    metadata.level() <= self.level
+  }
 
-    fn log(&self, record: &log::Record) {
-        if self.enabled(record.metadata()) {
-            eprintln!("[{}] {}", record.level(), record.args());
-        }
+  fn log(&self, record: &log::Record) {
+    if self.enabled(record.metadata()) {
+      eprintln!("[{}] {}", record.level(), record.args());
     }
+  }
 
-    fn flush(&self) {}
+  fn flush(&self) {}
 }
 
 impl From<LogLevel> for log::Level {
-    fn from(level: LogLevel) -> Self {
-        match level {
-            LogLevel::Error => log::Level::Error,
-            LogLevel::Warn => log::Level::Warn,
-            LogLevel::Info => log::Level::Info,
-            LogLevel::Debug => log::Level::Debug,
-            LogLevel::Trace => log::Level::Trace,
-        }
+  fn from(level: LogLevel) -> Self {
+    match level {
+      LogLevel::Error => log::Level::Error,
+      LogLevel::Warn => log::Level::Warn,
+      LogLevel::Info => log::Level::Info,
+      LogLevel::Debug => log::Level::Debug,
+      LogLevel::Trace => log::Level::Trace,
     }
+  }
 }
 
 /// Initialize logger
 #[napi]
 pub fn init_logger(level: Option<LogLevel>) -> napi::Result<()> {
-    INIT.call_once(|| {
-        let log_level = level.unwrap_or(LogLevel::Info);
-        let level_filter = log::Level::from(log_level).to_level_filter();
-        let logger = SimpleLogger {
-            level: log::Level::from(log_level),
-        };
-        log::set_boxed_logger(Box::new(logger))
-            .map(|()| log::set_max_level(level_filter))
-            .unwrap_or_else(|_| {});
-    });
-    Ok(())
+  INIT.call_once(|| {
+    let log_level = level.unwrap_or(LogLevel::Info);
+    let level_filter = log::Level::from(log_level).to_level_filter();
+    let logger = SimpleLogger {
+      level: log::Level::from(log_level),
+    };
+    log::set_boxed_logger(Box::new(logger))
+      .map(|()| log::set_max_level(level_filter))
+      .unwrap_or_else(|_| {});
+  });
+  Ok(())
 }
 
 /// Log error message
 #[napi]
 pub fn log_error(message: String) {
-    log::error!("{message}");
+  log::error!("{message}");
 }
 
 /// Log warning message
 #[napi]
 pub fn log_warn(message: String) {
-    log::warn!("{message}");
+  log::warn!("{message}");
 }
 
 /// Log info message
 #[napi]
 pub fn log_info(message: String) {
-    log::info!("{message}");
+  log::info!("{message}");
 }
 
 /// Log debug message
 #[napi]
 pub fn log_debug(message: String) {
-    log::debug!("{message}");
+  log::debug!("{message}");
 }
 
 /// Log trace message
 #[napi]
 pub fn log_trace(message: String) {
-    log::trace!("{message}");
+  log::trace!("{message}");
 }
 
 /// Internal logging macros

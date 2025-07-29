@@ -2,7 +2,7 @@
 
 /**
  * Update PostgreSQL version in package version
- * 
+ *
  * This script updates the PostgreSQL version suffix in both package.json and Cargo.toml
  * For example: "0.1.0+pg17.5" -> "0.1.0+pg18.0"
  */
@@ -34,14 +34,14 @@ function updatePostgreSQLVersion(newPgVersion) {
   // Update package.json
   const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
   const currentVersion = packageJson.version
-  
+
   // Extract base version and replace PostgreSQL version
   const baseVersion = currentVersion.split('+')[0]
   const newVersion = `${baseVersion}+pg${newPgVersion}`
-  
+
   log(`Current version: ${currentVersion}`)
   log(`New version: ${newVersion}`)
-  
+
   packageJson.version = newVersion
   writeFileSync('package.json', JSON.stringify(packageJson, null, 2) + '\n')
   log('Updated package.json', 'success')
@@ -58,7 +58,7 @@ function updatePostgreSQLVersion(newPgVersion) {
 
 function main() {
   const args = process.argv.slice(2)
-  
+
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log('Usage: node scripts/update-pg-version.js <postgresql-version>')
     console.log('')
@@ -69,15 +69,15 @@ function main() {
     console.log('This will update the PostgreSQL version suffix in both package.json and Cargo.toml')
     return
   }
-  
+
   const newPgVersion = args[0]
-  
+
   // Validate version format
   if (!/^\d+\.\d+$/.test(newPgVersion)) {
     log('Invalid PostgreSQL version format. Expected format: X.Y (e.g., 17.5)', 'error')
     process.exit(1)
   }
-  
+
   try {
     updatePostgreSQLVersion(newPgVersion)
   } catch (error) {

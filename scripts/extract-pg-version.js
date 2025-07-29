@@ -2,7 +2,7 @@
 
 /**
  * Extract PostgreSQL version from package version
- * 
+ *
  * This script extracts the PostgreSQL version from the package version string.
  * For example: "0.1.0+pg17.5" -> "17.5"
  */
@@ -15,13 +15,13 @@ function extractPostgreSQLVersion(packageVersion) {
   if (match) {
     return match[1]
   }
-  
+
   // Fallback: if no match, try to find version in different format
   const altMatch = packageVersion.match(/pg(\d+\.\d+)/)
   if (altMatch) {
     return altMatch[1]
   }
-  
+
   throw new Error(`Could not extract PostgreSQL version from: ${packageVersion}`)
 }
 
@@ -37,7 +37,7 @@ function getPostgreSQLVersionFromPackage() {
 
 function main() {
   const args = process.argv.slice(2)
-  
+
   if (args.includes('--help') || args.includes('-h')) {
     console.log('Usage: node scripts/extract-pg-version.js [options]')
     console.log('')
@@ -50,10 +50,10 @@ function main() {
     console.log('  node scripts/extract-pg-version.js --env  # Output: POSTGRESQL_VERSION=17.5')
     return
   }
-  
+
   try {
     const pgVersion = getPostgreSQLVersionFromPackage()
-    
+
     if (args.includes('--env')) {
       console.log(`POSTGRESQL_VERSION=${pgVersion}`)
     } else {

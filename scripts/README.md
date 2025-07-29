@@ -37,6 +37,7 @@ pnpm pg:update 17.6
 ```
 
 This script will:
+
 - Update the version in `package.json` from `0.1.0+pg17.5` to `0.1.0+pg17.6`
 - Update the version in `Cargo.toml` accordingly
 - Preserve the base version number (0.1.0) while only changing the PostgreSQL version
@@ -99,11 +100,13 @@ This ensures that the `POSTGRESQL_VERSION` environment variable always matches t
 When a new PostgreSQL version is released:
 
 1. Update the PostgreSQL version:
+
    ```bash
    pnpm pg:update 17.6
    ```
 
 2. Test the changes:
+
    ```bash
    pnpm test:basic
    ```

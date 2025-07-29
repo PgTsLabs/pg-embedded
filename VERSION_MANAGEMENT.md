@@ -29,6 +29,7 @@ The CI workflow automatically extracts the PostgreSQL version from `package.json
 ```
 
 This ensures that:
+
 1. No hardcoded PostgreSQL versions in CI configuration
 2. The environment variable always matches the package version
 3. Updates to PostgreSQL version automatically propagate to CI
@@ -64,6 +65,7 @@ pnpm pg:update 18.0
 ```
 
 This script:
+
 - Updates `package.json` version from `0.1.0+pg17.5` to `0.1.0+pg17.6`
 - Updates `Cargo.toml` version accordingly
 - Preserves the base package version
@@ -71,6 +73,7 @@ This script:
 ### Method 2: Manual Update
 
 1. Edit `package.json`:
+
    ```json
    {
      "version": "0.1.0+pg17.6"
@@ -116,34 +119,38 @@ When updating PostgreSQL version, these files are automatically updated:
 
 ## Scripts Reference
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `scripts/extract-pg-version.js` | Extract PostgreSQL version from package version | `node scripts/extract-pg-version.js` |
-| `scripts/update-pg-version.js` | Update PostgreSQL version in all files | `node scripts/update-pg-version.js 17.6` |
-| `pnpm pg:version` | Get current PostgreSQL version | `pnpm pg:version` |
-| `pnpm pg:update` | Update PostgreSQL version | `pnpm pg:update 17.6` |
+| Script                          | Purpose                                         | Usage                                    |
+| ------------------------------- | ----------------------------------------------- | ---------------------------------------- |
+| `scripts/extract-pg-version.js` | Extract PostgreSQL version from package version | `node scripts/extract-pg-version.js`     |
+| `scripts/update-pg-version.js`  | Update PostgreSQL version in all files          | `node scripts/update-pg-version.js 17.6` |
+| `pnpm pg:version`               | Get current PostgreSQL version                  | `pnpm pg:version`                        |
+| `pnpm pg:update`                | Update PostgreSQL version                       | `pnpm pg:update 17.6`                    |
 
 ## Example Workflow
 
 ### Updating to a New PostgreSQL Version
 
 1. **Update the version:**
+
    ```bash
    pnpm pg:update 17.6
    ```
 
 2. **Verify the change:**
+
    ```bash
    pnpm pg:version
    # Should output: 17.6
    ```
 
 3. **Test locally:**
+
    ```bash
    pnpm test:basic
    ```
 
 4. **Commit and push:**
+
    ```bash
    git add .
    git commit -m "chore: update PostgreSQL to 17.6"
@@ -155,14 +162,17 @@ When updating PostgreSQL version, these files are automatically updated:
 ### Creating a Release with New PostgreSQL Version
 
 1. **Update PostgreSQL version:**
+
    ```bash
    pnpm pg:update 18.0
    ```
 
 2. **Create a patch release:**
+
    ```bash
    pnpm release:patch
    ```
+
    This creates version `0.1.1+pg18.0` (preserving the PostgreSQL version)
 
 3. **Push and publish:**

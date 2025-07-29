@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // 简单的PostgreSQL启动测试脚本
-import { PostgresInstance, InstanceState, initLogger, LogLevel } from './index.js'
+import { PostgresInstance, initLogger, LogLevel } from './index.js'
 
 // 启用详细日志
 initLogger(LogLevel.Info)
