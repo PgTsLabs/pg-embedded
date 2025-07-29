@@ -1,11 +1,11 @@
 import test from 'ava'
 import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.js'
-import { 
-  createTestInstance, 
-  startInstanceWithRetry, 
-  safeStopInstance, 
-  safeCleanupInstance, 
-  releaseTestPort 
+import {
+  createTestInstance,
+  startInstanceWithRetry,
+  safeStopInstance,
+  safeCleanupInstance,
+  releaseTestPort,
 } from './_test-utils.js'
 
 // 初始化日志记录器

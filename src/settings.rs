@@ -99,7 +99,7 @@ impl PostgresSettings {
     self.validate()?;
 
     let mut settings = Settings::default();
-    
+
     // 设置setup超时时间
     if let Some(setup_timeout) = self.setup_timeout {
       settings.timeout = Some(std::time::Duration::from_secs(setup_timeout as u64));

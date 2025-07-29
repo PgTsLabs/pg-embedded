@@ -29,14 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      POSTGRESQL_VERSION: "17.5"
-      POSTGRESQL_RELEASES_URL: "https://github.com/theseus-rs/postgresql-binaries"
+      POSTGRESQL_VERSION: '17.5'
+      POSTGRESQL_RELEASES_URL: 'https://github.com/theseus-rs/postgresql-binaries'
     steps:
       - uses: actions/checkout@v4
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "10.13.1"
+          version: '10.13.1'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -102,13 +102,13 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "10.13.1"
+          version: '10.13.1'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-          cache-dependency-path: "pnpm-lock.yaml"
+          cache-dependency-path: 'pnpm-lock.yaml'
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -184,12 +184,12 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          POSTGRESQL_VERSION: "17.5"
-          POSTGRESQL_RELEASES_URL: "https://github.com/theseus-rs/postgresql-binaries"
-          OPENSSL_STATIC: "1"
-          OPENSSL_VENDORED: "1"
-          OPENSSL_NO_PKG_CONFIG: "1"
-          PKG_CONFIG_ALLOW_CROSS: "1"
+          POSTGRESQL_VERSION: '17.5'
+          POSTGRESQL_RELEASES_URL: 'https://github.com/theseus-rs/postgresql-binaries'
+          OPENSSL_STATIC: '1'
+          OPENSSL_VENDORED: '1'
+          OPENSSL_NO_PKG_CONFIG: '1'
+          PKG_CONFIG_ALLOW_CROSS: '1'
       - name: List generated files
         run: |
           echo "Files in current directory:"
@@ -229,13 +229,13 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "10.13.1"
+          version: '10.13.1'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
-          cache-dependency-path: "pnpm-lock.yaml"
+          cache-dependency-path: 'pnpm-lock.yaml'
           architecture: ${{ matrix.settings.architecture }}
       - name: Install dependencies
         run: pnpm install
@@ -273,13 +273,13 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "10.13.1"
+          version: '10.13.1'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
-          cache-dependency-path: "pnpm-lock.yaml"
+          cache-dependency-path: 'pnpm-lock.yaml'
       - name: Output docker params
         id: docker
         run: |

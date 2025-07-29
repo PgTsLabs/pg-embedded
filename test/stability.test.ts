@@ -25,32 +25,31 @@ function safeCleanupInstance(instance: PostgresInstance) {
 // 辅助函数：带重试的安全启动实例
 async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, timeoutSeconds = 300) {
   let lastError = null
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`启动实例尝试 ${attempt}/${maxAttempts}...`)
       await instance.startWithTimeout(timeoutSeconds)
-      
+
       // 验证实例状态
       if (instance.state !== InstanceState.Running) {
         throw new Error(`Instance state is ${instance.state}, expected Running`)
       }
-      
+
       if (!instance.isHealthy()) {
         throw new Error('Instance is not healthy after startup')
       }
-      
+
       console.log('实例启动成功')
       return // 成功启动，退出函数
-      
     } catch (startupError) {
       lastError = startupError
       console.error(`启动尝试 ${attempt} 失败:`, startupError)
-      
+
       if (attempt < maxAttempts) {
         console.log('等待5秒后重试...')
-        await new Promise(resolve => setTimeout(resolve, 5000))
-        
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+
         // 清理失败的实例
         try {
           await safeStopInstance(instance)
@@ -61,7 +60,7 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
       }
     }
   }
-  
+
   // 所有尝试都失败了
   console.error('所有启动尝试都失败了')
   throw lastError
@@ -97,10 +96,10 @@ test.serial('Stability: Long-running instance stability test', async (t) => {
     console.log(`Operation interval: ${STABILITY_CONFIG.OPERATION_INTERVAL_MS}ms`)
 
     console.log('Starting PostgreSQL instance...')
-    
+
     // 使用安全启动函数
     await safeStartInstance(instance)
-    
+
     // 测试连接信息
     const connectionInfo = instance.connectionInfo
     console.log(`PostgreSQL started successfully on port: ${connectionInfo.port}`)
@@ -132,7 +131,7 @@ test.serial('Stability: Long-running instance stability test', async (t) => {
 
     // 使用递归的异步函数而不是setInterval来避免并发问题
     let isRunning = true
-    
+
     const performOperation = async () => {
       while (isRunning && Date.now() - startTime < STABILITY_CONFIG.DURATION_MS) {
         try {
@@ -163,26 +162,26 @@ test.serial('Stability: Long-running instance stability test', async (t) => {
           }
 
           operationCount++
-          
+
           // 等待下一次操作
-          await new Promise(resolve => setTimeout(resolve, STABILITY_CONFIG.OPERATION_INTERVAL_MS))
+          await new Promise((resolve) => setTimeout(resolve, STABILITY_CONFIG.OPERATION_INTERVAL_MS))
         } catch (error) {
           errorCount++
           console.error(`Operation ${operationCount} failed:`, error)
-          
+
           // 如果错误太多，提前退出
           if (errorCount > operationCount * 0.5) {
             console.error('Too many errors, stopping stability test')
             isRunning = false
             break
           }
-          
+
           // 在错误后也要等待，避免快速重试
-          await new Promise(resolve => setTimeout(resolve, STABILITY_CONFIG.OPERATION_INTERVAL_MS))
+          await new Promise((resolve) => setTimeout(resolve, STABILITY_CONFIG.OPERATION_INTERVAL_MS))
         }
       }
     }
-    
+
     // 启动操作循环
     const operationPromise = performOperation()
 
@@ -222,7 +221,7 @@ test.serial('Stability: Long-running instance stability test', async (t) => {
     const maxAllowedGrowth = STABILITY_CONFIG.MAX_MEMORY_GROWTH_MB
 
     // 稳定性断言（放宽条件）
-    const errorRate = operationCount > 0 ? (errorCount / operationCount) : 0
+    const errorRate = operationCount > 0 ? errorCount / operationCount : 0
     t.true(errorRate < 0.1, `Error rate (${(errorRate * 100).toFixed(2)}%) should be less than 10%`)
     t.true(operationCount > 0, 'Should have performed some operations')
     t.true(

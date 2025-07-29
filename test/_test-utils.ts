@@ -27,7 +27,8 @@ class PortManager {
 // 安全停止实例的辅助函数
 export async function safeStopInstance(instance: PostgresInstance): Promise<void> {
   try {
-    if (instance.state === 2) { // Running state
+    if (instance.state === 2) {
+      // Running state
       await instance.stopWithTimeout(30)
     }
   } catch (error) {
@@ -47,25 +48,25 @@ export function safeCleanupInstance(instance: PostgresInstance): void {
 // 创建测试实例的辅助函数
 export function createTestInstance(overrides: any = {}): PostgresInstance {
   const port = PortManager.getAvailablePort()
-  
+
   return new PostgresInstance({
     port,
     username: 'testuser',
     password: 'testpass',
     persistent: false,
     setup_timeout: 300, // Windows需要更长的超时时间
-    ...overrides
+    ...overrides,
   })
 }
 
 // 启动实例的辅助函数，带重试机制
 export async function startInstanceWithRetry(
-  instance: PostgresInstance, 
+  instance: PostgresInstance,
   maxRetries: number = 3,
-  timeoutSeconds: number = 180
+  timeoutSeconds: number = 180,
 ): Promise<void> {
   let lastError: Error | null = null
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await instance.startWithTimeout(timeoutSeconds)
@@ -73,11 +74,11 @@ export async function startInstanceWithRetry(
     } catch (error) {
       lastError = error as Error
       console.warn(`启动尝试 ${attempt} 失败:`, error)
-      
+
       if (attempt < maxRetries) {
         // 等待一段时间后重试
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+
         // 清理失败的实例
         try {
           instance.cleanup()
@@ -87,7 +88,7 @@ export async function startInstanceWithRetry(
       }
     }
   }
-  
+
   throw new Error(`所有启动尝试都失败了。最后一个错误: ${lastError?.message}`)
 }
 

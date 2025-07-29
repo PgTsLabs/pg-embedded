@@ -25,32 +25,31 @@ function safeCleanupInstance(instance: PostgresInstance) {
 // 辅助函数：带重试的安全启动实例
 async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, timeoutSeconds = 180) {
   let lastError = null
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`启动实例尝试 ${attempt}/${maxAttempts}...`)
       await instance.startWithTimeout(timeoutSeconds)
-      
+
       // 验证实例状态
       if (instance.state !== InstanceState.Running) {
         throw new Error(`Instance state is ${instance.state}, expected Running`)
       }
-      
+
       if (!instance.isHealthy()) {
         throw new Error('Instance is not healthy after startup')
       }
-      
+
       console.log('实例启动成功')
       return // 成功启动，退出函数
-      
     } catch (startupError) {
       lastError = startupError
       console.error(`启动尝试 ${attempt} 失败:`, startupError)
-      
+
       if (attempt < maxAttempts) {
         console.log('等待5秒后重试...')
-        await new Promise(resolve => setTimeout(resolve, 5000))
-        
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+
         // 清理失败的实例
         try {
           await safeStopInstance(instance)
@@ -61,7 +60,7 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
       }
     }
   }
-  
+
   // 所有尝试都失败了
   console.error('所有启动尝试都失败了')
   throw lastError
@@ -117,7 +116,9 @@ test.serial('Performance: Startup time benchmark', async (t) => {
       t.true(recordedStartupTime! > 0)
       recordedStartupTimes.push(recordedStartupTime! * 1000) // 转换为毫秒
 
-      console.log(`迭代 ${i + 1}: 启动时间 = ${Number(startupTime / 1000000n)}ms (内部记录: ${recordedStartupTime!.toFixed(3)}s)`)
+      console.log(
+        `迭代 ${i + 1}: 启动时间 = ${Number(startupTime / 1000000n)}ms (内部记录: ${recordedStartupTime!.toFixed(3)}s)`,
+      )
 
       // 验证实例健康状态
       const isHealthy = instance.isHealthy()
@@ -138,7 +139,7 @@ test.serial('Performance: Startup time benchmark', async (t) => {
   const avgStartupTime = startupTimes.reduce((a, b) => a + b, 0n) / BigInt(startupTimes.length)
   const minStartupTime = startupTimes.reduce((min, current) => (current < min ? current : min))
   const maxStartupTime = startupTimes.reduce((max, current) => (current > max ? current : max))
-  const stdDev = 0;
+  const stdDev = 0
 
   // 记录的启动时间统计
   const avgRecordedTime = recordedStartupTimes.reduce((a, b) => a + b, 0) / recordedStartupTimes.length
@@ -219,7 +220,7 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
       })
 
       instances.push(instance)
-      
+
       // 使用安全启动函数
       await safeStartInstance(instance)
 
@@ -386,9 +387,11 @@ test.serial('Performance: Concurrent performance test', async (t) => {
 
     console.log(`并发启动总时间: ${Number(totalStartupTime) / 1e6}ms`)
     console.log(
-      `平均单实例启动时间: ${(Number(individualStartupTimes.reduce((a, b) => a + b, 0n)) / individualStartupTimes.length / 1e6).toFixed(
-        2,
-      )}ms`,
+      `平均单实例启动时间: ${(
+        Number(individualStartupTimes.reduce((a, b) => a + b, 0n)) /
+        individualStartupTimes.length /
+        1e6
+      ).toFixed(2)}ms`,
     )
 
     // 验证所有实例都启动成功
@@ -474,9 +477,11 @@ test.serial('Performance: Concurrent performance test', async (t) => {
 
     console.log(`并发停止总时间: ${Number(totalStopTime) / 1e6}ms`)
     console.log(
-      `平均单实例停止时间: ${(Number(individualStopTimes.reduce((a, b) => a + b, 0n)) / individualStopTimes.length / 1e6).toFixed(
-        2,
-      )}ms`,
+      `平均单实例停止时间: ${(
+        Number(individualStopTimes.reduce((a, b) => a + b, 0n)) /
+        individualStopTimes.length /
+        1e6
+      ).toFixed(2)}ms`,
     )
 
     // 验证所有实例都已停止
@@ -518,7 +523,10 @@ test.serial('Performance: Concurrent performance test', async (t) => {
       Number(totalOperationTime) / 1e6 < maxOperationTime,
       `并发操作时间 (${Number(totalOperationTime) / 1e6}ms) 应该小于 ${maxOperationTime}ms`,
     )
-    t.true(Number(totalStopTime) / 1e6 < maxOperationTime, `并发停止时间 (${Number(totalStopTime) / 1e6}ms) 应该小于 ${maxOperationTime}ms`)
+    t.true(
+      Number(totalStopTime) / 1e6 < maxOperationTime,
+      `并发停止时间 (${Number(totalStopTime) / 1e6}ms) 应该小于 ${maxOperationTime}ms`,
+    )
 
     // 验证并发效率（并发执行应该比串行执行更快）
     const serialStartupTime = individualStartupTimes.reduce((a, b) => a + b, 0n)
@@ -1133,9 +1141,7 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     console.log(`\n=== 资源清理效率测试结果 ===`)
     console.log(`正常停止清理时间: ${Number(normalStopTime) / 1e6}ms`)
     console.log(`强制清理时间: ${Number(forceCleanupTime) / 1e6}ms`)
-    console.log(
-      `平均正常停止时间: ${(Number(normalStopTime) / 1e6 / Math.floor(instanceCount / 2)).toFixed(2)}ms/实例`,
-    )
+    console.log(`平均正常停止时间: ${(Number(normalStopTime) / 1e6 / Math.floor(instanceCount / 2)).toFixed(2)}ms/实例`)
     console.log(`平均强制清理时间: ${(Number(forceCleanupTime) / 1e6 / remainingInstances.length).toFixed(2)}ms/实例`)
 
     // 性能断言
@@ -1158,7 +1164,7 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     const multiplier = isCI ? 10 : 3 // CI环境允许10倍差异，本地环境3倍
     console.log(`CI环境检测: ${isCI}, 使用倍数: ${multiplier}`)
     console.log(`强制清理时间: ${avgForceCleanupTime.toFixed(2)}ms, 正常停止时间: ${avgNormalStopTime.toFixed(2)}ms`)
-    
+
     // 如果强制清理时间合理，就通过测试
     if (avgForceCleanupTime <= avgNormalStopTime * multiplier) {
       t.pass(`强制清理时间 (${avgForceCleanupTime.toFixed(2)}ms) 在合理范围内`)
@@ -1167,7 +1173,9 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
       if (isCI && avgForceCleanupTime <= avgNormalStopTime * 20) {
         t.pass(`CI环境中强制清理时间 (${avgForceCleanupTime.toFixed(2)}ms) 可接受`)
       } else {
-        t.fail(`强制清理时间 (${avgForceCleanupTime.toFixed(2)}ms) 比正常停止 (${avgNormalStopTime.toFixed(2)}ms) 慢太多`)
+        t.fail(
+          `强制清理时间 (${avgForceCleanupTime.toFixed(2)}ms) 比正常停止 (${avgNormalStopTime.toFixed(2)}ms) 慢太多`,
+        )
       }
     }
   } finally {
