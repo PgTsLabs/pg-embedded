@@ -1,31 +1,31 @@
 import test from 'ava'
 import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.js'
 
-// 初始化日志记录器
+// Initialize logger
 initLogger(LogLevel.Info)
 
-// 辅助函数：安全地停止实例
+// Helper function: Safely stop instance
 async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30) {
   try {
     if (instance.state === InstanceState.Running) {
       await instance.stopWithTimeout(timeoutSeconds)
     }
   } catch (error) {
-    console.warn(`停止实例时出错: ${error}`)
+    console.warn(`Error stopping instance: ${error}`)
   }
 }
 
-// 辅助函数：安全地清理实例
+// Helper function: Safely cleanup instance
 function safeCleanupInstance(instance: PostgresInstance) {
   try {
     instance.cleanup()
   } catch (error) {
-    console.warn(`清理实例时出错: ${error}`)
+    console.warn(`Error cleaning up instance: ${error}`)
   }
 }
 
 test.serial('Error handling: Invalid configuration', (t) => {
-  // 测试无效端口号
+  // Test invalid port number
   t.throws(() => {
     new PostgresInstance({
       port: -1,
@@ -36,13 +36,13 @@ test.serial('Error handling: Invalid configuration', (t) => {
 
   t.throws(() => {
     new PostgresInstance({
-      port: 70000, // 超出有效端口范围
+      port: 70000, // Port number out of valid range
       username: 'testuser',
       password: 'testpass',
     })
   })
 
-  // 测试空用户名
+  // Test empty username
   t.throws(() => {
     new PostgresInstance({
       port: 5443,
@@ -62,25 +62,25 @@ test.serial('Error handling: Repeated start/stop operations', async (t) => {
   })
 
   try {
-    // 正常启动流程
+    // Normal startup process
     await instance.startWithTimeout(60)
     t.is(instance.state, InstanceState.Running)
 
-    // 重复启动应该失败
+    // Repeated start should fail
     await t.throwsAsync(async () => {
       await instance.startWithTimeout(60)
     })
 
-    // 正常停止
+    // Normal stop
     await safeStopInstance(instance)
     t.is(instance.state, InstanceState.Stopped)
 
-    // 重复停止应该失败
+    // Repeated stop should fail
     await t.throwsAsync(async () => {
       await instance.stopWithTimeout(30)
     })
 
-    // 在停止状态下尝试数据库操作应该失败
+    // Database operations should fail when instance is stopped
     await t.throwsAsync(async () => {
       await instance.createDatabase('should_fail_db')
     })
@@ -99,7 +99,7 @@ test.serial('Error handling: Database operations on stopped instance', async (t)
   })
 
   try {
-    // 在停止状态下尝试数据库操作应该失败
+    // Database operations should fail when instance is stopped
     await t.throwsAsync(async () => {
       await instance.createDatabase('should_fail_db')
     })
@@ -128,15 +128,15 @@ test.serial('Error handling: Duplicate database creation', async (t) => {
   try {
     await instance.startWithTimeout(60)
 
-    // 创建数据库
+    // Create database
     await instance.createDatabase('duplicate_test_db')
 
-    // 尝试创建同名数据库应该失败
+    // Attempt to create database with same name should fail
     await t.throwsAsync(async () => {
       await instance.createDatabase('duplicate_test_db')
     })
 
-    // 清理
+    // Cleanup
     await instance.dropDatabase('duplicate_test_db')
     await safeStopInstance(instance)
   } finally {
@@ -153,7 +153,7 @@ test.serial('Error handling: Connection info access when stopped', (t) => {
   })
 
   try {
-    // 在停止状态下访问连接信息应该失败
+    // Accessing connection info should fail when stopped
     t.throws(() => {
       instance.connectionInfo
     })
@@ -171,7 +171,7 @@ test.serial('Error handling: Health check on stopped instance', (t) => {
   })
 
   try {
-    // 停止状态下应该不健康
+    // Should be unhealthy when stopped
     t.is(instance.isHealthy(), false)
   } finally {
     instance.cleanup()

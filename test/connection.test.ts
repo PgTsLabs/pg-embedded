@@ -13,7 +13,7 @@ test('PostgresInstance can be created with connection settings', (t) => {
 })
 
 test('Connection string format validation', (t) => {
-  // 测试连接字符串格式
+  // Test connection string format
   const host = '127.0.0.1'
   const port = 5432
   const username = 'postgres'
@@ -22,7 +22,7 @@ test('Connection string format validation', (t) => {
 
   const expectedConnectionString = `postgresql://${username}:${password}@${host}:${port}/${database}`
 
-  // 验证连接字符串的格式是否正确
+  // Verify if the connection string format is correct
   t.is(expectedConnectionString, 'postgresql://postgres:postgres@127.0.0.1:5432/postgres')
 })
 

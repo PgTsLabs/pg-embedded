@@ -1,17 +1,17 @@
 import test from 'ava'
 import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.js'
 
-// 初始化日志记录器
+// Initialize logger
 initLogger(LogLevel.Info)
 
-// 辅助函数：安全地停止实例
+// Helper function: safely stop instance
 async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30) {
   try {
     if (instance.state === InstanceState.Running) {
       await instance.stopWithTimeout(timeoutSeconds)
     }
   } catch (error) {
-    console.warn(`停止实例时出错: ${error}`)
+    console.warn(`Error stopping instance: ${error}`)
   }
 }
 
@@ -25,14 +25,14 @@ test.serial('Complete sync workflow: setup -> start -> database operations -> st
   })
 
   try {
-    // 初始状态应该是停止
+    // Initial state should be stopped
     t.is(instance.state, InstanceState.Stopped)
 
-    // 直接启动（会自动进行 setup）
+    // Direct start (will automatically setup)
     instance.startSync()
     t.is(instance.state, InstanceState.Running)
 
-    // 验证连接信息可用
+    // Verify connection info is available
     const connectionInfo = instance.connectionInfo
     t.truthy(connectionInfo)
     t.truthy(connectionInfo.connectionString)
@@ -43,33 +43,33 @@ test.serial('Complete sync workflow: setup -> start -> database operations -> st
     t.is(connectionInfo.username, 'syncuser')
     t.is(connectionInfo.databaseName, 'postgres')
 
-    // 3. 数据库操作
-    // 检查默认数据库是否存在
+    // 3. Database operations
+    // Check if default database exists
     const defaultExists = instance.databaseExistsSync('postgres')
     t.is(defaultExists, true)
 
-    // 创建新数据库
+    // Create new database
     instance.createDatabaseSync('test_sync_db')
     const newDbExists = instance.databaseExistsSync('test_sync_db')
     t.is(newDbExists, true)
 
-    // 删除数据库
+    // Drop database
     instance.dropDatabaseSync('test_sync_db')
     const deletedDbExists = instance.databaseExistsSync('test_sync_db')
     t.is(deletedDbExists, false)
 
-    // 4. Stop 阶段
+    // 4. Stop phase
     instance.stopSync()
     t.is(instance.state, InstanceState.Stopped)
 
-    // 停止后连接信息应该不可用
+    // Connection info should not be available after stopping
     const error = t.throws(() => {
       instance.connectionInfo
     })
     t.truthy(error)
     t.true(error.message.includes('not running'))
   } finally {
-    // 确保清理
+    // Ensure cleanup
     instance.cleanup()
   }
 })
@@ -83,20 +83,20 @@ test.serial('Sync exception throwing behavior', (t) => {
   })
 
   try {
-    // startSync() 方法会自动调用 setupSync()，所以不会失败
+    // startSync() will automatically call setupSync(), so it won't fail
     instance.startSync()
     t.is(instance.state, InstanceState.Running)
 
-    // 尝试创建已存在的数据库应该抛出异常
+    // Attempting to create an existing database should throw an exception
     instance.createDatabaseSync('exception_test_db')
     t.throws(() => {
       instance.createDatabaseSync('exception_test_db')
     })
 
-    // 尝试删除不存在的数据库（PostgreSQL 会跳过，不会抛出错误）
-    instance.dropDatabaseSync('nonexistent_sync_db') // 这不会抛出错误
+    // Attempting to drop a non-existent database (PostgreSQL will skip, won't throw error)
+    instance.dropDatabaseSync('nonexistent_sync_db') // This won't throw an error
 
-    // 清理
+    // Cleanup
     instance.dropDatabaseSync('exception_test_db')
     instance.stopSync()
   } finally {
@@ -120,27 +120,27 @@ test.serial('Sync and async method consistency', async (t) => {
   })
 
   try {
-    // 同步方式设置
+    // Sync setup
     syncInstance.startSync()
 
-    // 异步方式设置
+    // Async setup
     await asyncInstance.start()
 
-    // 验证两个实例都在运行
+    // Verify both instances are running
     t.is(syncInstance.state, InstanceState.Running)
     t.is(asyncInstance.state, InstanceState.Running)
 
-    // 同步创建数据库
+    // Sync database creation
     syncInstance.createDatabaseSync('consistency_sync_db')
     const syncDbExists = syncInstance.databaseExistsSync('consistency_sync_db')
     t.is(syncDbExists, true)
 
-    // 异步创建数据库
+    // Async database creation
     await asyncInstance.createDatabase('consistency_async_db')
     const asyncDbExists = await asyncInstance.databaseExists('consistency_async_db')
     t.is(asyncDbExists, true)
 
-    // 验证连接信息格式一致
+    // Verify connection info format consistency
     const syncConnectionInfo = syncInstance.connectionInfo
     const asyncConnectionInfo = asyncInstance.connectionInfo
 
@@ -151,15 +151,15 @@ test.serial('Sync and async method consistency', async (t) => {
     t.is(typeof syncConnectionInfo.jdbcUrl(), 'string')
     t.is(typeof asyncConnectionInfo.jdbcUrl(), 'string')
 
-    // 清理数据库
+    // Cleanup databases
     syncInstance.dropDatabaseSync('consistency_sync_db')
     await asyncInstance.dropDatabase('consistency_async_db')
 
-    // 停止实例
+    // Stop instances
     syncInstance.stopSync()
     await safeStopInstance(asyncInstance)
 
-    // 验证两个实例都已停止
+    // Verify both instances are stopped
     t.is(syncInstance.state, InstanceState.Stopped)
     t.is(asyncInstance.state, InstanceState.Stopped)
   } finally {
@@ -177,32 +177,32 @@ test.serial('Sync method correctness validation', (t) => {
   })
 
   try {
-    // 验证同步方法的返回值类型
+    // Validate sync method return type
     instance.startSync()
     t.is(instance.state, InstanceState.Running)
 
-    // 验证数据库操作的返回值
+    // Validate database operation returns
     const dbName = 'validation_test_db'
 
-    // createDatabaseSync 应该没有返回值（undefined）
+    // createDatabaseSync should return undefined
     const createResult = instance.createDatabaseSync(dbName)
     t.is(createResult, undefined)
 
-    // databaseExistsSync 应该返回 boolean
+    // databaseExistsSync should return boolean
     const existsResult = instance.databaseExistsSync(dbName)
     t.is(typeof existsResult, 'boolean')
     t.is(existsResult, true)
 
-    // dropDatabaseSync 应该没有返回值（undefined）
+    // dropDatabaseSync should return undefined
     const dropResult = instance.dropDatabaseSync(dbName)
     t.is(dropResult, undefined)
 
-    // 验证数据库已被删除
+    // Verify database has been deleted
     const deletedExistsResult = instance.databaseExistsSync(dbName)
     t.is(typeof deletedExistsResult, 'boolean')
     t.is(deletedExistsResult, false)
 
-    // stopSync 应该没有返回值（undefined）
+    // stopSync should return undefined
     const stopResult = instance.stopSync()
     t.is(stopResult, undefined)
     t.is(instance.state, InstanceState.Stopped)

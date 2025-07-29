@@ -1,8 +1,8 @@
 import test from 'ava'
 import { PostgresInstance, InstanceState } from '../index.js'
 
-// 注意：这些测试需要实际的 PostgreSQL 实例运行才能获取 ConnectionInfo
-// 目前我们只能测试基本的实例创建和状态
+// Note: These tests require an actual PostgreSQL instance running to get ConnectionInfo
+// Currently we can only test basic instance creation and state
 
 test('PostgresInstance connection methods exist', (t) => {
   const instance = new PostgresInstance({
@@ -14,7 +14,7 @@ test('PostgresInstance connection methods exist', (t) => {
   t.truthy(instance)
   t.is(instance.state, InstanceState.Stopped)
 
-  // 验证连接信息在停止状态下会抛出错误
+  // Verify that connection info throws error when stopped
   const error = t.throws(() => {
     instance.connectionInfo
   })
@@ -24,7 +24,7 @@ test('PostgresInstance connection methods exist', (t) => {
 })
 
 test('Connection string format validation', (t) => {
-  // 测试连接字符串格式的正确性
+  // Test connection string format correctness
   const testCases = [
     {
       host: '127.0.0.1',
@@ -51,7 +51,7 @@ test('Connection string format validation', (t) => {
 })
 
 test('Safe connection string format validation', (t) => {
-  // 测试安全连接字符串格式（不包含密码）
+  // Test safe connection string format (without password)
   const testCases = [
     {
       host: '127.0.0.1',
@@ -76,7 +76,7 @@ test('Safe connection string format validation', (t) => {
 })
 
 test('JDBC URL format validation', (t) => {
-  // 测试 JDBC URL 格式
+  // Test JDBC URL format
   const testCases = [
     {
       host: '127.0.0.1',

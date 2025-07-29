@@ -968,6 +968,22 @@ impl PostgresInstance {
   }
 
   /**
+   * Gets the PostgreSQL version used by this instance
+   *
+   * @returns PostgreSQL version string (e.g., "15.4")
+   *
+   * @example
+   * ```typescript
+   * const version = instance.getPostgreSQLVersion();
+   * console.log(`Using PostgreSQL ${version}`);
+   * ```
+   */
+  #[napi]
+  pub fn get_postgre_sql_version(&self) -> String {
+    crate::version::get_postgre_sql_version()
+  }
+
+  /**
    * Manually cleans up all resources associated with this instance
    *
    * This method stops the PostgreSQL instance (if running) and cleans up all resources.

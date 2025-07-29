@@ -1,40 +1,40 @@
 use napi_derive::napi;
 
-/// PostgreSQL 实例状态枚举
+/// PostgreSQL instance state enumeration
 #[napi]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum InstanceState {
-  /// 已停止
+  /// Stopped
   Stopped,
-  /// 启动中
+  /// Starting
   Starting,
-  /// 运行中
+  /// Running
   Running,
-  /// 停止中
+  /// Stopping
   Stopping,
 }
 
-/// 连接信息结构体
+/// Connection information structure
 #[napi]
 #[derive(Clone)]
 pub struct ConnectionInfo {
-  /// 主机地址
+  /// Host address
   pub host: String,
-  /// 端口号
+  /// Port number
   pub port: u16,
-  /// 用户名
+  /// Username
   pub username: String,
-  /// 密码
+  /// Password
   pub password: String,
-  /// 数据库名
+  /// Database name
   pub database_name: String,
-  /// 连接字符串
+  /// Connection string
   pub connection_string: String,
 }
 
 #[napi]
 impl ConnectionInfo {
-  /// 生成不包含密码的安全连接字符串（用于日志记录）
+  /// Generate a safe connection string without password (for logging)
   #[napi]
   pub fn safe_connection_string(&self) -> String {
     format!(
@@ -43,7 +43,7 @@ impl ConnectionInfo {
     )
   }
 
-  /// 生成 JDBC 格式的连接字符串
+  /// Generate JDBC format connection string
   #[napi]
   pub fn jdbc_url(&self) -> String {
     format!(
@@ -54,7 +54,7 @@ impl ConnectionInfo {
 }
 
 impl ConnectionInfo {
-  /// 创建新的连接信息
+  /// Create new connection information
   pub fn new(
     host: String,
     port: u16,
@@ -75,7 +75,7 @@ impl ConnectionInfo {
     }
   }
 
-  /// 生成连接配置对象（用于某些数据库客户端）
+  /// Generate connection configuration object (for some database clients)
   pub fn to_config_object(&self) -> std::collections::HashMap<String, String> {
     let mut config = std::collections::HashMap::new();
     config.insert("host".to_string(), self.host.clone());

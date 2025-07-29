@@ -327,6 +327,18 @@ export declare class PostgresInstance {
    */
   isConnectionCacheValid(): boolean
   /**
+   * Gets the PostgreSQL version used by this instance
+   *
+   * @returns PostgreSQL version string (e.g., "15.4")
+   *
+   * @example
+   * ```typescript
+   * const version = instance.getPostgreSQLVersion();
+   * console.log(`Using PostgreSQL ${version}`);
+   * ```
+   */
+  getPostgreSqlVersion(): string
+  /**
    * Manually cleans up all resources associated with this instance
    *
    * This method stops the PostgreSQL instance (if running) and cleans up all resources.
@@ -343,6 +355,70 @@ export declare class PostgresInstance {
    */
   cleanup(): void
 }
+
+/** Build information */
+export interface BuildInfo {
+  /** Target platform (e.g., "x86_64-apple-darwin") */
+  target: string
+  /** Build profile (debug or release) */
+  profile: string
+  /** Rust compiler version used for build */
+  rustcVersion: string
+  /** Build timestamp */
+  buildTimestamp: string
+}
+
+/**
+ * Gets the package version of pg-embedded
+ *
+ * @returns Package version string (e.g., "1.0.0")
+ *
+ * @example
+ * ```typescript
+ * import { getPackageVersion } from 'pg-embedded';
+ *
+ * const version = getPackageVersion();
+ * console.log(`pg-embedded version: ${version}`);
+ * ```
+ */
+export declare function getPackageVersion(): string
+
+/**
+ * Gets the version of the embedded PostgreSQL binary
+ *
+ * @returns PostgreSQL version string (e.g., "15.4")
+ *
+ * @example
+ * ```typescript
+ * import { getPostgreSQLVersion } from 'pg-embedded';
+ *
+ * const pgVersion = getPostgreSQLVersion();
+ * console.log(`Using PostgreSQL ${pgVersion}`);
+ * ```
+ */
+export declare function getPostgreSqlVersion(): string
+
+/**
+ * Gets comprehensive version information about pg-embedded and PostgreSQL
+ *
+ * This function returns detailed version information including:
+ * - pg-embedded package version
+ * - Embedded PostgreSQL version
+ * - Build information
+ *
+ * @returns Version information object
+ *
+ * @example
+ * ```typescript
+ * import { getVersionInfo } from 'pg-embedded';
+ *
+ * const versionInfo = getVersionInfo();
+ * console.log(`Package version: ${versionInfo.packageVersion}`);
+ * console.log(`PostgreSQL version: ${versionInfo.postgresqlVersion}`);
+ * console.log(`Built for: ${versionInfo.buildInfo.target}`);
+ * ```
+ */
+export declare function getVersionInfo(): VersionInfo
 
 /** 初始化日志记录器 */
 export declare function initLogger(level?: LogLevel | undefined | null): void
@@ -453,4 +529,16 @@ export interface PostgresSettings {
   setupTimeout?: number
   /** Whether to persist data between runs (default: false)  */
   persistent?: boolean
+}
+
+/** Version information for the pg-embedded package and embedded PostgreSQL */
+export interface VersionInfo {
+  /** The version of the pg-embedded npm package */
+  packageVersion: string
+  /** The version of the embedded PostgreSQL binary */
+  postgresqlVersion: string
+  /** The version of the postgresql_embedded Rust crate */
+  postgresqlEmbeddedVersion: string
+  /** Build information */
+  buildInfo: BuildInfo
 }

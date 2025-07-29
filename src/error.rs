@@ -1,37 +1,37 @@
 use napi_derive::napi;
 
-/// PostgreSQL 错误类型枚举
+/// PostgreSQL error type enumeration
 #[napi]
 pub enum PostgresError {
-  /// 设置错误
+  /// Setup error
   SetupError,
-  /// 启动错误
+  /// Start error
   StartError,
-  /// 停止错误
+  /// Stop error
   StopError,
-  /// 数据库操作错误
+  /// Database operation error
   DatabaseError,
-  /// 配置错误
+  /// Configuration error
   ConfigurationError,
-  /// 连接错误
+  /// Connection error
   ConnectionError,
-  /// 超时错误
+  /// Timeout error
   TimeoutError,
 }
 
-/// PostgreSQL 错误信息结构体
+/// PostgreSQL error information structure
 #[napi(object)]
 pub struct PostgresErrorInfo {
-  /// 错误类型
+  /// Error type
   pub error_type: PostgresError,
-  /// 错误消息
+  /// Error message
   pub message: String,
-  /// 错误详情
+  /// Error details
   pub details: Option<String>,
 }
 
 impl PostgresErrorInfo {
-  /// 创建新的错误信息
+  /// Create new error information
   pub fn new(error_type: PostgresError, message: String, details: Option<String>) -> Self {
     Self {
       error_type,
@@ -41,13 +41,13 @@ impl PostgresErrorInfo {
   }
 }
 
-/// 将 postgresql_embedded::Error 转换为 napi::Error
+/// Convert postgresql_embedded::Error to napi::Error
 pub fn convert_postgresql_error(err: postgresql_embedded::Error) -> napi::Error {
   let message = format!("PostgreSQL error: {err}");
   napi::Error::new(napi::Status::GenericFailure, message)
 }
 
-/// 创建设置错误
+/// Create setup error
 pub fn setup_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
@@ -55,7 +55,7 @@ pub fn setup_error(message: &str) -> napi::Error {
   )
 }
 
-/// 创建启动错误
+/// Create start error
 pub fn start_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
@@ -63,7 +63,7 @@ pub fn start_error(message: &str) -> napi::Error {
   )
 }
 
-/// 创建停止错误
+/// Create stop error
 pub fn stop_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
@@ -71,7 +71,7 @@ pub fn stop_error(message: &str) -> napi::Error {
   )
 }
 
-/// 创建数据库操作错误
+/// Create database operation error
 pub fn database_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
@@ -79,7 +79,7 @@ pub fn database_error(message: &str) -> napi::Error {
   )
 }
 
-/// 创建配置错误
+/// Create configuration error
 pub fn configuration_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
@@ -87,7 +87,7 @@ pub fn configuration_error(message: &str) -> napi::Error {
   )
 }
 
-/// 创建连接错误
+/// Create connection error
 pub fn connection_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,
@@ -95,7 +95,7 @@ pub fn connection_error(message: &str) -> napi::Error {
   )
 }
 
-/// 创建超时错误
+/// Create timeout error
 pub fn timeout_error(message: &str) -> napi::Error {
   napi::Error::new(
     napi::Status::GenericFailure,

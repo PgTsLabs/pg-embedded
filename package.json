@@ -1,6 +1,6 @@
 {
   "name": "pg-embeded",
-  "version": "0.1.0",
+  "version": "0.1.0+pg17.5",
   "description": "Embedded PostgreSQL database for Node.js - Easy setup, high performance, TypeScript support",
   "type": "module",
   "module": "index.js",
@@ -129,6 +129,8 @@
     "release:patch": "run-s release:prepare release:publish",
     "release:minor": "run-s release:prepare:minor release:publish",
     "release:major": "run-s release:prepare:major release:publish",
+    "pg:version": "node scripts/extract-pg-version.js",
+    "pg:update": "node scripts/update-pg-version.js",
     "version": "napi version"
   },
   "devDependencies": {

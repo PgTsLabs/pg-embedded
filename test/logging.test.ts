@@ -8,10 +8,10 @@ test('Logger can be initialized', (t) => {
 })
 
 test('Log functions exist and can be called', (t) => {
-  // 初始化日志记录器
+  // Initialize logger
   initLogger(LogLevel.Debug)
 
-  // 测试各种日志级别的函数
+  // Test different log level functions
   t.notThrows(() => {
     logInfo('Test info message')
     logError('Test error message')

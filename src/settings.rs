@@ -54,7 +54,7 @@ impl Default for PostgresSettings {
       data_dir: None,
       installation_dir: None,
       timeout: Some(30),
-      setup_timeout: None, // 使用平台默认值
+      setup_timeout: None,
       persistent: Some(false),
     }
   }

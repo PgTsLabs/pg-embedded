@@ -6,7 +6,7 @@ test('PostgresInstance can be cleaned up manually', (t) => {
 
   t.is(instance.state, InstanceState.Stopped)
 
-  // 手动清理应该不会抛出错误
+  // Manual cleanup should not throw errors
   t.notThrows(() => {
     instance.cleanup()
   })
@@ -17,7 +17,7 @@ test('PostgresInstance can be cleaned up manually', (t) => {
 test('PostgresInstance has timeout methods', (t) => {
   const instance = new PostgresInstance()
 
-  // 验证超时方法存在
+  // Verify timeout methods exist
   t.is(typeof instance.startWithTimeout, 'function')
   t.is(typeof instance.stopWithTimeout, 'function')
 })
@@ -25,7 +25,7 @@ test('PostgresInstance has timeout methods', (t) => {
 test('Multiple instances can be created and cleaned up', (t) => {
   const instances = []
 
-  // 创建多个实例
+  // Create multiple instances
   for (let i = 0; i < 3; i++) {
     const instance = new PostgresInstance({
       port: 5432 + i,
@@ -36,7 +36,7 @@ test('Multiple instances can be created and cleaned up', (t) => {
     t.is(instance.state, InstanceState.Stopped)
   }
 
-  // 清理所有实例
+  // Cleanup all instances
   instances.forEach((instance) => {
     t.notThrows(() => {
       instance.cleanup()
@@ -48,10 +48,10 @@ test('Multiple instances can be created and cleaned up', (t) => {
 test('Instance state is properly managed', (t) => {
   const instance = new PostgresInstance()
 
-  // 初始状态应该是停止
+  // Initial state should be stopped
   t.is(instance.state, InstanceState.Stopped)
 
-  // 清理后状态应该仍然是停止
+  // State should still be stopped after cleanup
   instance.cleanup()
   t.is(instance.state, InstanceState.Stopped)
 })

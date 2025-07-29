@@ -66,6 +66,37 @@ function updateVersionInFiles(version) {
   log('Version updated in all files', 'success')
 }
 
+function extractPostgreSQLVersion(version) {
+  const match = version.match(/\+pg(\d+\.\d+)/)
+  return match ? match[1] : null
+}
+
+function incrementVersionWithPgVersion(currentVersion, releaseType) {
+  // Extract PostgreSQL version if present
+  const pgVersion = extractPostgreSQLVersion(currentVersion)
+  
+  // Extract base version (without +pg suffix)
+  const baseVersion = currentVersion.split('+')[0]
+  const [major, minor, patch] = baseVersion.split('.').map(Number)
+  
+  let newBaseVersion
+  switch (releaseType) {
+    case 'major':
+      newBaseVersion = `${major + 1}.0.0`
+      break
+    case 'minor':
+      newBaseVersion = `${major}.${minor + 1}.0`
+      break
+    case 'patch':
+    default:
+      newBaseVersion = `${major}.${minor}.${patch + 1}`
+      break
+  }
+  
+  // Append PostgreSQL version if it was present
+  return pgVersion ? `${newBaseVersion}+pg${pgVersion}` : newBaseVersion
+}
+
 function validateGitStatus() {
   log('Checking git status...')
 
@@ -186,22 +217,8 @@ async function main() {
   const currentVersion = getCurrentVersion()
   log(`Current version: ${currentVersion}`)
 
-  // Calculate new version
-  const [major, minor, patch] = currentVersion.split('.').map(Number)
-  let newVersion
-
-  switch (releaseType) {
-    case 'major':
-      newVersion = `${major + 1}.0.0`
-      break
-    case 'minor':
-      newVersion = `${major}.${minor + 1}.0`
-      break
-    case 'patch':
-    default:
-      newVersion = `${major}.${minor}.${patch + 1}`
-      break
-  }
+  // Calculate new version (preserving PostgreSQL version suffix)
+  const newVersion = incrementVersionWithPgVersion(currentVersion, releaseType)
 
   log(`New version: ${newVersion}`)
   updateVersionInFiles(newVersion)

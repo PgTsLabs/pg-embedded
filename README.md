@@ -169,9 +169,16 @@ Creates a new PostgreSQL instance with the specified settings.
 - `isHealthy(): boolean` - Check if the instance is healthy
 - `getStartupTime(): number | null` - Get startup time in seconds
 - `getConfigHash(): string` - Get configuration hash
+- `getPostgreSQLVersion(): string` - Get PostgreSQL version
 - `clearConnectionCache(): void` - Clear connection info cache
 - `isConnectionCacheValid(): boolean` - Check if connection cache is valid
 - `cleanup(): void` - Manually clean up resources
+
+### Version Information
+
+- `getVersionInfo(): VersionInfo` - Get comprehensive version information
+- `getPostgreSQLVersion(): string` - Get PostgreSQL version
+- `getPackageVersion(): string` - Get package version
 
 ### ConnectionInfo
 
@@ -402,6 +409,46 @@ await postgres.start() // Will output detailed logs
      console.warn(`Slow startup detected: ${startupTime}s`)
    }
    ```
+
+## Version Management
+
+This project uses a special versioning scheme that includes the PostgreSQL version:
+
+```
+<base-version>+pg<postgresql-version>
+```
+
+For example: `0.1.0+pg17.5` means:
+
+- Base package version: `0.1.0`
+- PostgreSQL version: `17.5`
+
+### Managing PostgreSQL Versions
+
+```bash
+# Check current PostgreSQL version
+pnpm pg:version
+
+# Update PostgreSQL version
+pnpm pg:update 17.6
+
+# The CI automatically uses the PostgreSQL version from package.json
+```
+
+### Release Process
+
+The release process automatically preserves the PostgreSQL version:
+
+```bash
+# Patch release: 0.1.0+pg17.5 -> 0.1.1+pg17.5
+pnpm release:patch
+
+# Minor release: 0.1.0+pg17.5 -> 0.2.0+pg17.5
+pnpm release:minor
+
+# Major release: 0.1.0+pg17.5 -> 1.0.0+pg17.5
+pnpm release:major
+```
 
 ## Contributing
 

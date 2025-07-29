@@ -29,7 +29,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      POSTGRESQL_VERSION: '17.5'
       POSTGRESQL_RELEASES_URL: 'https://github.com/theseus-rs/postgresql-binaries'
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +49,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Extract PostgreSQL version
+        id: pg-version
+        run: |
+          PG_VERSION=$(node scripts/extract-pg-version.js)
+          echo "POSTGRESQL_VERSION=$PG_VERSION" >> $GITHUB_ENV
+          echo "postgresql_version=$PG_VERSION" >> $GITHUB_OUTPUT
+          echo "PostgreSQL version: $PG_VERSION"
 
       - name: Oxlint
         run: pnpm lint
@@ -163,6 +170,13 @@ jobs:
         run: pnpm install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract PostgreSQL version
+        id: pg-version
+        run: |
+          PG_VERSION=$(node scripts/extract-pg-version.js)
+          echo "POSTGRESQL_VERSION=$PG_VERSION" >> $GITHUB_ENV
+          echo "postgresql_version=$PG_VERSION" >> $GITHUB_OUTPUT
+          echo "PostgreSQL version: $PG_VERSION"
       - name: Build
         run: |
           for i in {1..3}; do
@@ -184,7 +198,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          POSTGRESQL_VERSION: '17.5'
+          POSTGRESQL_VERSION: ${{ env.POSTGRESQL_VERSION }}
           POSTGRESQL_RELEASES_URL: 'https://github.com/theseus-rs/postgresql-binaries'
           OPENSSL_STATIC: '1'
           OPENSSL_VENDORED: '1'
