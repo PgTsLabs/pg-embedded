@@ -54,7 +54,12 @@ jobs:
         id: pg-version
         shell: bash
         run: |
-          PG_VERSION=$(node scripts/extract-pg-version.js)
+          # Extract version from package.json using Node.js
+          PG_VERSION=$(node -e "
+            const pkg = require('./package.json');
+            const match = pkg.version.match(/\+pg([\d.]+)/);
+            console.log(match ? match[1] : '17.5');
+          ")
           echo "POSTGRESQL_VERSION=$PG_VERSION" >> $GITHUB_ENV
           echo "postgresql_version=$PG_VERSION" >> $GITHUB_OUTPUT
           echo "PostgreSQL version: $PG_VERSION"
@@ -175,7 +180,12 @@ jobs:
         id: pg-version
         shell: bash
         run: |
-          PG_VERSION=$(node scripts/extract-pg-version.js)
+          # Extract version from package.json using Node.js
+          PG_VERSION=$(node -e "
+            const pkg = require('./package.json');
+            const match = pkg.version.match(/\+pg([\d.]+)/);
+            console.log(match ? match[1] : '17.5');
+          ")
           echo "POSTGRESQL_VERSION=$PG_VERSION" >> $GITHUB_ENV
           echo "postgresql_version=$PG_VERSION" >> $GITHUB_OUTPUT
           echo "PostgreSQL version: $PG_VERSION"
