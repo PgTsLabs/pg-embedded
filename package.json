@@ -1,6 +1,6 @@
 {
   "name": "pg-embeded",
-  "version": "0.1.0+pg17.5",
+  "version": "0.1.1+pg17.5",
   "description": "Embedded PostgreSQL database for Node.js - Easy setup, high performance, TypeScript support",
   "type": "module",
   "module": "index.js",
@@ -40,13 +40,7 @@
   "files": [
     "index.d.ts",
     "index.cjs",
-    "index.js",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md",
-    "API.md",
-    "examples/",
-    "*.node"
+    "index.js"
   ],
   "napi": {
     "binaryName": "pg-embeded",
