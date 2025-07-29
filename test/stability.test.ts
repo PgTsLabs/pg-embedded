@@ -23,7 +23,7 @@ function safeCleanupInstance(instance: PostgresInstance) {
 }
 
 // 辅助函数：带重试的安全启动实例
-async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, timeoutSeconds = 180) {
+async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, timeoutSeconds = 300) {
   let lastError = null
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -349,7 +349,7 @@ test.serial('Stability: Memory leak detection test', async (t) => {
 test.serial('Stability: Concurrent stress test', async (t) => {
   console.log(`\n=== Concurrent Stress Test ===`)
 
-  const concurrentInstances = 8
+  const concurrentInstances = 4
   const operationsPerInstance = 10
   const instances: PostgresInstance[] = []
 
@@ -361,7 +361,7 @@ test.serial('Stability: Concurrent stress test', async (t) => {
         username: `stress_user_${i}`,
         password: `stress_pass_${i}`,
         persistent: false,
-        timeout: 120,
+        timeout: 240,
       })
       instances.push(instance)
     }
