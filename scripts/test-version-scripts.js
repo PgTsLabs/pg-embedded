@@ -2,7 +2,7 @@
 
 /**
  * Test script for version management scripts
- * 
+ *
  * This script tests all version management functionality to ensure
  * cross-platform compatibility and correct behavior.
  */
@@ -65,14 +65,14 @@ function testPackageVersionFormat() {
 function testCargoVersionSync() {
   const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
   const cargoToml = readFileSync('Cargo.toml', 'utf8')
-  
+
   const packageVersion = packageJson.version
   const cargoVersionMatch = cargoToml.match(/version = "([^"]*)"/)
-  
+
   if (!cargoVersionMatch) {
     throw new Error('Could not find version in Cargo.toml')
   }
-  
+
   return packageVersion === cargoVersionMatch[1]
 }
 
@@ -81,9 +81,9 @@ function testScriptFiles() {
     'scripts/extract-pg-version.js',
     'scripts/extract-pg-version.ps1',
     'scripts/extract-pg-version.cmd',
-    'scripts/update-pg-version.js'
+    'scripts/update-pg-version.js',
   ]
-  
+
   for (const file of requiredFiles) {
     try {
       readFileSync(file, 'utf8')
@@ -91,7 +91,7 @@ function testScriptFiles() {
       throw new Error(`Missing required file: ${file}`)
     }
   }
-  
+
   return true
 }
 

@@ -78,36 +78,36 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          # - host: macos-latest
-          #   target: x86_64-apple-darwin
-          #   build: pnpm build --target x86_64-apple-darwin
+          - host: macos-latest
+            target: x86_64-apple-darwin
+            build: pnpm build --target x86_64-apple-darwin
           - host: windows-latest
             build: pnpm build --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             build: pnpm build --target x86_64-unknown-linux-gnu
-          # - host: ubuntu-latest
-          #   target: x86_64-unknown-linux-musl
-          #   build: pnpm build --target x86_64-unknown-linux-musl -x
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            build: pnpm build --target x86_64-unknown-linux-musl -x
           - host: macos-latest
             target: aarch64-apple-darwin
             build: pnpm build --target aarch64-apple-darwin
-          # - host: ubuntu-latest
-          #   target: aarch64-unknown-linux-gnu
-          #   build: pnpm build --target aarch64-unknown-linux-gnu --use-napi-cross
-          # - host: ubuntu-latest
-          #   target: armv7-unknown-linux-gnueabihf
-          #   build: pnpm build --target armv7-unknown-linux-gnueabihf --use-napi-cross
-          # - host: ubuntu-latest
-          #   target: aarch64-linux-android
-          #   build: pnpm build --target aarch64-linux-android
-          # - host: ubuntu-latest
-          #   target: armv7-linux-androideabi
-          #   build: pnpm build --target armv7-linux-androideabi
-          # - host: ubuntu-latest
-          #   target: aarch64-unknown-linux-musl
-          #   build: pnpm build --target aarch64-unknown-linux-musl -x
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            build: pnpm build --target aarch64-unknown-linux-gnu --use-napi-cross
+          - host: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            build: pnpm build --target armv7-unknown-linux-gnueabihf --use-napi-cross
+          - host: ubuntu-latest
+            target: aarch64-linux-android
+            build: pnpm build --target aarch64-linux-android
+          - host: ubuntu-latest
+            target: armv7-linux-androideabi
+            build: pnpm build --target armv7-linux-androideabi
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            build: pnpm build --target aarch64-unknown-linux-musl -x
     name: stable - ${{ matrix.settings.target }} - node@20
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -278,22 +278,88 @@ jobs:
       - name: Test bindings
         # run: pnpm test
         run: pnpm test:basic
-  test-linux-binding:
-    name: Test ${{ matrix.target }} - node@${{ matrix.node }}
+  # test-linux-binding:
+  #   name: Test ${{ matrix.target }} - node@${{ matrix.node }}
+  #   needs:
+  #     - build
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       target:
+  #         - x86_64-unknown-linux-gnu
+  #         - x86_64-unknown-linux-musl
+  #         - aarch64-unknown-linux-gnu
+  #         - aarch64-unknown-linux-musl
+  #         - armv7-unknown-linux-gnueabihf
+  #       node:
+  #         - '20'
+  #   runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: setup pnpm
+  #       uses: pnpm/action-setup@v4
+  #       with:
+  #         version: '10.13.1'
+  #     - name: Setup node
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ matrix.node }}
+  #         cache: pnpm
+  #         cache-dependency-path: 'pnpm-lock.yaml'
+  #     - name: Output docker params
+  #       id: docker
+  #       run: |
+  #         node -e "
+  #           if ('${{ matrix.target }}'.startsWith('aarch64')) {
+  #             console.log('PLATFORM=linux/arm64')
+  #           } else if ('${{ matrix.target }}'.startsWith('armv7')) {
+  #             console.log('PLATFORM=linux/arm/v7')
+  #           } else {
+  #             console.log('PLATFORM=linux/amd64')
+  #           }
+  #         " >> $GITHUB_OUTPUT
+  #         node -e "
+  #           if ('${{ matrix.target }}'.endsWith('-musl')) {
+  #             console.log('IMAGE=node:${{ matrix.node }}-alpine')
+  #           } else {
+  #             console.log('IMAGE=node:${{ matrix.node }}-slim')
+  #           }
+  #         " >> $GITHUB_OUTPUT
+  #         echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+  #     # use --force to download the all platform/arch dependencies
+  #     - name: Install dependencies
+  #       run: pnpm install --force
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: bindings-${{ matrix.target }}
+  #         path: .
+  #     - name: List packages
+  #       run: ls -R .
+  #       shell: bash
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v3
+  #       if: ${{ contains(matrix.target, 'armv7') }}
+  #       with:
+  #         platforms: all
+  #     - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  #       if: ${{ contains(matrix.target, 'armv7') }}
+  #     - name: Test bindings
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: ${{ steps.docker.outputs.IMAGE }}
+  #         options: -v ${{ steps.docker.outputs.PNPM_STORE_PATH }}:${{ steps.docker.outputs.PNPM_STORE_PATH }} -v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }} --platform ${{ steps.docker.outputs.PLATFORM }}
+  #         # run: npm i -g corepack && corepack enable && pnpm test
+  #         run: npm i -g corepack && corepack enable && pnpm test:basic
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
     needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          # - x86_64-unknown-linux-musl
-          # - aarch64-unknown-linux-gnu
-          # - aarch64-unknown-linux-musl
-          # - armv7-unknown-linux-gnueabihf
-        node:
-          - '20'
-    runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+      - lint
+      - test-macOS-windows-binding
+      # - test-linux-binding
     steps:
       - uses: actions/checkout@v4
       - name: setup pnpm
@@ -306,103 +372,37 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
           cache-dependency-path: 'pnpm-lock.yaml'
-      - name: Output docker params
-        id: docker
-        run: |
-          node -e "
-            if ('${{ matrix.target }}'.startsWith('aarch64')) {
-              console.log('PLATFORM=linux/arm64')
-            } else if ('${{ matrix.target }}'.startsWith('armv7')) {
-              console.log('PLATFORM=linux/arm/v7')
-            } else {
-              console.log('PLATFORM=linux/amd64')
-            }
-          " >> $GITHUB_OUTPUT
-          node -e "
-            if ('${{ matrix.target }}'.endsWith('-musl')) {
-              console.log('IMAGE=node:${{ matrix.node }}-alpine')
-            } else {
-              console.log('IMAGE=node:${{ matrix.node }}-slim')
-            }
-          " >> $GITHUB_OUTPUT
-          echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
-      # use --force to download the all platform/arch dependencies
       - name: Install dependencies
-        run: pnpm install --force
+        run: pnpm install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: bindings-${{ matrix.target }}
-          path: .
+          path: artifacts
+      - name: create npm dirs
+        run: pnpm napi create-npm-dirs
+      - name: Move artifacts
+        run: pnpm artifacts
       - name: List packages
-        run: ls -R .
+        run: ls -R ./npm
         shell: bash
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        if: ${{ contains(matrix.target, 'armv7') }}
-        with:
-          platforms: all
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-        if: ${{ contains(matrix.target, 'armv7') }}
-      - name: Test bindings
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ${{ steps.docker.outputs.IMAGE }}
-          options: -v ${{ steps.docker.outputs.PNPM_STORE_PATH }}:${{ steps.docker.outputs.PNPM_STORE_PATH }} -v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }} --platform ${{ steps.docker.outputs.PLATFORM }}
-          # run: npm i -g corepack && corepack enable && pnpm test
-          run: npm i -g corepack && corepack enable && pnpm test:basic
-  # publish:
-  #   name: Publish
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - lint
-  #     - test-macOS-windows-binding
-  #     - test-linux-binding
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: setup pnpm
-  #       uses: pnpm/action-setup@v4
-  #       with:
-  #         version: "10.13.1"
-  #     - name: Setup node
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20
-  #         cache: pnpm
-  #         cache-dependency-path: "pnpm-lock.yaml"
-  #     - name: Install dependencies
-  #       run: pnpm install
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #     - name: Download all artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         path: artifacts
-  #     - name: create npm dirs
-  #       run: pnpm napi create-npm-dirs
-  #     - name: Move artifacts
-  #       run: pnpm artifacts
-  #     - name: List packages
-  #       run: ls -R ./npm
-  #       shell: bash
-  #     - name: Publish
-  #       run: |
-  #         npm config set provenance true
-  #         if git log -1 --pretty=%B | grep "^chore: release v[0-9]\+\.[0-9]\+\.[0-9]\+$";
-  #         then
-  #           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-  #           npm publish --access public
-  #           echo "Published stable release"
-  #         elif git log -1 --pretty=%B | grep "^chore: release v[0-9]\+\.[0-9]\+\.[0-9]\+-";
-  #         then
-  #           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-  #           npm publish --tag next --access public
-  #           echo "Published pre-release"
-  #         else
-  #           echo "Not a release commit, skipping publish"
-  #         fi
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish
+        run: |
+          npm config set provenance true
+          if git log -1 --pretty=%B | grep "^chore: release v[0-9]\+\.[0-9]\+\.[0-9]\++pg[0-9]\+\.[0-9]\+$";
+          then
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+            npm publish --access public
+            echo "Published stable release"
+          elif git log -1 --pretty=%B | grep "^chore: release v[0-9]\+\.[0-9]\+\.[0-9]\+-.*+pg[0-9]\+\.[0-9]\+$";
+          then
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+            npm publish --tag next --access public
+            echo "Published pre-release"
+          else
+            echo "Not a release commit, skipping publish"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
