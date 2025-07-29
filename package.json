@@ -130,7 +130,9 @@
     "release:minor": "run-s release:prepare:minor release:publish",
     "release:major": "run-s release:prepare:major release:publish",
     "pg:version": "node scripts/extract-pg-version.js",
+    "pg:version:win": "powershell -ExecutionPolicy Bypass -File scripts/extract-pg-version.ps1",
     "pg:update": "node scripts/update-pg-version.js",
+    "pg:test": "node scripts/test-version-scripts.js",
     "version": "napi version"
   },
   "devDependencies": {

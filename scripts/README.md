@@ -138,3 +138,68 @@ When a new PostgreSQL version is released:
    ```
 
 The PostgreSQL version suffix will be automatically preserved throughout the release process.
+## Cross-Platform Compatibility
+
+### Available Scripts
+
+| Script | Platform | Purpose | Usage |
+|--------|----------|---------|-------|
+| `extract-pg-version.js` | All | Extract PostgreSQL version (Node.js) | `node scripts/extract-pg-version.js` |
+| `extract-pg-version.ps1` | Windows | Extract PostgreSQL version (PowerShell) | `powershell -File scripts/extract-pg-version.ps1` |
+| `extract-pg-version.cmd` | Windows | Extract PostgreSQL version (Batch) | `scripts\extract-pg-version.cmd` |
+| `update-pg-version.js` | All | Update PostgreSQL version | `node scripts/update-pg-version.js 17.6` |
+
+### Platform-Specific Usage
+
+**Linux/macOS (Bash):**
+```bash
+# Direct script execution
+node scripts/extract-pg-version.js
+
+# Using npm scripts (recommended)
+pnpm pg:version
+pnpm pg:update 17.6
+```
+
+**Windows (PowerShell):**
+```powershell
+# Using PowerShell script
+powershell -ExecutionPolicy Bypass -File scripts/extract-pg-version.ps1
+
+# Using npm scripts (recommended)
+pnpm pg:version:win
+pnpm pg:update 17.6
+
+# Or use the Node.js version (works on all platforms)
+pnpm pg:version
+```
+
+**Windows (Command Prompt):**
+```cmd
+# Using batch script
+scripts\extract-pg-version.cmd
+
+# Using npm scripts (recommended)
+pnpm pg:version
+pnpm pg:update 17.6
+```
+
+### CI/CD Integration
+
+The CI workflow uses bash shell explicitly to ensure cross-platform compatibility:
+
+```yaml
+- name: Extract PostgreSQL version
+  id: pg-version
+  shell: bash  # Ensures bash is used on all platforms
+  run: |
+    PG_VERSION=$(node scripts/extract-pg-version.js)
+    echo "POSTGRESQL_VERSION=$PG_VERSION" >> $GITHUB_ENV
+    echo "postgresql_version=$PG_VERSION" >> $GITHUB_OUTPUT
+    echo "PostgreSQL version: $PG_VERSION"
+```
+
+This approach ensures that:
+- The same script works on Linux, macOS, and Windows runners
+- No platform-specific shell syntax issues
+- Consistent behavior across all CI environments
