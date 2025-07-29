@@ -330,6 +330,7 @@ impl PostgresInstance {
       Ok(_) => {
         pg_log!(info, "PostgreSQL setup completed successfully");
         self.async_instance = Some(instance);
+        self.set_state(InstanceState::Stopped)?; // Setup完成后设置为Stopped状态，等待start
         Ok(())
       }
       Err(e) => {
@@ -605,6 +606,7 @@ impl PostgresInstance {
     match instance.setup() {
       Ok(_) => {
         self.blocking_instance = Some(instance);
+        self.set_state(InstanceState::Stopped)?; // Setup完成后设置为Stopped状态，等待start
         Ok(())
       }
       Err(e) => {

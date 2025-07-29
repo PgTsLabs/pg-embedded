@@ -35,8 +35,10 @@ pub struct PostgresSettings {
   pub data_dir: Option<String>,
   /** Custom installation directory path */
   pub installation_dir: Option<String>,
-  /** Timeout in seconds (default: 30) */
+  /** Timeout in seconds for database operations (default: 30) */
   pub timeout: Option<u32>,
+  /** Setup timeout in seconds for PostgreSQL initialization (default: 300 on Windows, 30 on other platforms) */
+  pub setup_timeout: Option<u32>,
   /** Whether to persist data between runs (default: false) */
   pub persistent: Option<bool>,
 }
@@ -52,6 +54,7 @@ impl Default for PostgresSettings {
       data_dir: None,
       installation_dir: None,
       timeout: Some(30),
+      setup_timeout: None, // 使用平台默认值
       persistent: Some(false),
     }
   }
@@ -96,6 +99,21 @@ impl PostgresSettings {
     self.validate()?;
 
     let mut settings = Settings::default();
+    
+    // 设置setup超时时间
+    if let Some(setup_timeout) = self.setup_timeout {
+      settings.timeout = Some(std::time::Duration::from_secs(setup_timeout as u64));
+    } else {
+      // Windows需要更长的超时时间，因为PostgreSQL初始化较慢
+      #[cfg(target_os = "windows")]
+      {
+        settings.timeout = Some(std::time::Duration::from_secs(300)); // 5分钟
+      }
+      #[cfg(not(target_os = "windows"))]
+      {
+        settings.timeout = Some(std::time::Duration::from_secs(30)); // 30秒
+      }
+    }
 
     // Set version
     if let Some(ref version) = self.version {

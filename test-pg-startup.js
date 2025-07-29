@@ -14,7 +14,7 @@ async function testStartup() {
     username: 'testuser',
     password: 'testpass',
     persistent: false,
-    timeout: 180, // 3分钟超时
+    timeout: 300, // 5分钟超时，Windows可能需要更长时间
   })
 
   try {
@@ -23,7 +23,7 @@ async function testStartup() {
     
     console.log('Starting PostgreSQL with extended timeout...')
     const startTime = Date.now()
-    await instance.startWithTimeout(180) // 3分钟超时
+    await instance.startWithTimeout(300) // 5分钟超时，Windows可能需要更长时间
     const startupTime = Date.now() - startTime
     
     console.log(`PostgreSQL started successfully in ${startupTime}ms!`)

@@ -447,8 +447,10 @@ export interface PostgresSettings {
   dataDir?: string
   /** Custom installation directory path  */
   installationDir?: string
-  /** Timeout in seconds (default: 30)  */
+  /** Timeout in seconds for database operations (default: 30)  */
   timeout?: number
+  /** Setup timeout in seconds for PostgreSQL initialization (default: 300 on Windows, 30 on other platforms)  */
+  setupTimeout?: number
   /** Whether to persist data between runs (default: false)  */
   persistent?: boolean
 }
