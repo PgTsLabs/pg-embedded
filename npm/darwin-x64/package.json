@@ -23,7 +23,7 @@
     "node": ">= 10"
   },
   "repository": {
-    "url": "git+ssh://git@github.com/PgTsLab/pg-embedded.git",
+    "url": "git+ssh://git@github.com/PgTsLabs/pg-embedded.git",
     "type": "git"
   },
   "publishConfig": {

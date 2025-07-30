@@ -1,18 +1,18 @@
 {
   "name": "pg-embeded",
-  "version": "0.1.1+pg17.5",
+  "version": "0.1.2+pg17.5",
   "description": "Embedded PostgreSQL database for Node.js - Easy setup, high performance, TypeScript support",
   "type": "module",
   "module": "index.js",
   "main": "index.cjs",
   "types": "index.d.ts",
   "repository": {
-    "url": "git+ssh://git@github.com/PgTsLab/pg-embedded.git",
+    "url": "git+ssh://git@github.com/PgTsLabs/pg-embedded.git",
     "type": "git"
   },
-  "homepage": "https://github.com/PgTsLab/pg-embedded#readme",
+  "homepage": "https://github.com/PgTsLabs/pg-embedded#readme",
   "bugs": {
-    "url": "https://github.com/PgTsLab/pg-embedded/issues"
+    "url": "https://github.com/PgTsLabs/pg-embedded/issues"
   },
   "license": "Apache-2.0",
   "keywords": [
@@ -59,7 +59,7 @@
     ]
   },
   "exports": {
-    "import": "./index.mjs",
+    "import": "./index.js",
     "require": "./index.cjs",
     "types": "./index.d.ts"
   },

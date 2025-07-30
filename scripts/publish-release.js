@@ -222,7 +222,7 @@ async function main() {
   } else {
     log('\n🎉 Release published successfully!')
     log(`\nPackage published: https://www.npmjs.com/package/pg-embeded`)
-    log(`GitHub release: https://github.com/PgTsLab/pg-embedded/releases/tag/v${version}`)
+    log(`GitHub release: https://github.com/PgTsLabs/pg-embedded/releases/tag/v${version}`)
 
     log('\n📢 Post-release tasks:')
     log('1. Announce the release on social media')

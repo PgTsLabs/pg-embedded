@@ -475,6 +475,6 @@ If you need help or have questions:
 
 1. Check the [API Reference](API.md) for detailed documentation
 2. Look at the [examples](examples/) for common usage patterns
-3. Search existing [issues](https://github.com/PgTsLab/pg-embedded/issues) for similar problems
-4. Create a new [issue](https://github.com/PgTsLab/pg-embedded/issues/new) if you found a bug
-5. Start a [discussion](https://github.com/PgTsLab/pg-embedded/discussions) for questions or ideas
+3. Search existing [issues](https://github.com/PgTsLabs/pg-embedded/issues) for similar problems
+4. Create a new [issue](https://github.com/PgTsLabs/pg-embedded/issues/new) if you found a bug
+5. Start a [discussion](https://github.com/PgTsLabs/pg-embedded/discussions) for questions or ideas

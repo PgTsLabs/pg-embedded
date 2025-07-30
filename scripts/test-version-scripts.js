@@ -41,7 +41,7 @@ function runTest(testName, testFn) {
       return false
     }
   } catch (error) {
-    log(`${testName}: ERROR - ${error.message}`, 'error')
+    log(`${testName}: ERROR - ${error.message}`, error)
     return false
   }
 }
@@ -87,7 +87,7 @@ function testScriptFiles() {
   for (const file of requiredFiles) {
     try {
       readFileSync(file, 'utf8')
-    } catch (error) {
+    } catch {
       throw new Error(`Missing required file: ${file}`)
     }
   }
