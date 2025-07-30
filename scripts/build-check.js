@@ -65,10 +65,10 @@ function checkBuildArtifacts() {
 
   // Check for native binaries
   const nativeFiles = [
-    'pg-embeded.darwin-arm64.node',
-    'pg-embeded.darwin-x64.node',
-    'pg-embeded.linux-x64-gnu.node',
-    'pg-embeded.win32-x64-msvc.node',
+    'pg-embedded.darwin-arm64.node',
+    'pg-embedded.darwin-x64.node',
+    'pg-embedded.linux-x64-gnu.node',
+    'pg-embedded.win32-x64-msvc.node',
   ]
 
   const foundNative = []

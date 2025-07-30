@@ -124,7 +124,7 @@ function validateBuildArtifacts() {
   }
 
   // Check if native binary exists
-  const nativeBinaries = ['pg-embeded.darwin-arm64.node', 'pg-embeded.darwin-x64.node']
+  const nativeBinaries = ['pg-embedded.darwin-arm64.node', 'pg-embedded.darwin-x64.node']
 
   const hasNativeBinary = nativeBinaries.some((binary) => existsSync(binary))
   if (!hasNativeBinary) {

@@ -21,7 +21,7 @@ test/
 
 # Build artifacts (keep only the final outputs)
 *.node
-!pg-embeded.*.node
+!pg-embedded.*.node
 
 # Documentation source (keep final docs)
 docs/

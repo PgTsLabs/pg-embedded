@@ -1,12 +1,12 @@
 {
-  "name": "@pg-ts/pg-embeded-win32-x64-msvc",
+  "name": "@pg-ts/pg-embedded-win32-x64-msvc",
   "version": "0.1.0",
   "cpu": [
     "x64"
   ],
-  "main": "pg-embeded.win32-x64-msvc.node",
+  "main": "pg-embedded.win32-x64-msvc.node",
   "files": [
-    "pg-embeded.win32-x64-msvc.node"
+    "pg-embedded.win32-x64-msvc.node"
   ],
   "description": "Embed PostgreSQL database for Node.js",
   "keywords": [

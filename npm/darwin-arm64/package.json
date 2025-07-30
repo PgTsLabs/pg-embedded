@@ -1,12 +1,12 @@
 {
-  "name": "@pg-ts/pg-embeded-darwin-arm64",
+  "name": "@pg-ts/pg-embedded-darwin-arm64",
   "version": "0.1.0",
   "cpu": [
     "arm64"
   ],
-  "main": "pg-embeded.darwin-arm64.node",
+  "main": "pg-embedded.darwin-arm64.node",
   "files": [
-    "pg-embeded.darwin-arm64.node"
+    "pg-embedded.darwin-arm64.node"
   ],
   "description": "Embed PostgreSQL database for Node.js",
   "keywords": [

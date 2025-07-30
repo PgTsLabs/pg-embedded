@@ -120,7 +120,7 @@ This checklist ensures that all necessary steps are completed before releasing a
 ### Immediate
 
 - [ ] Verify package is available on npm
-- [ ] Test installation: `npm install pg-embeded`
+- [ ] Test installation: `npm install pg-embedded`
 - [ ] Check GitHub release is created
 - [ ] Monitor for any immediate issues
 
@@ -143,7 +143,7 @@ If issues are discovered after release:
 1. **For Critical Issues**
 
    ```bash
-   npm unpublish pg-embeded@1.0.0 --force
+   npm unpublish pg-embedded@1.0.0 --force
    ```
 
    (Only within 72 hours and if no dependents)

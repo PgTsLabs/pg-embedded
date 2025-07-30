@@ -1,12 +1,12 @@
 {
-  "name": "@pg-ts/pg-embeded-android-arm-eabi",
+  "name": "@pg-ts/pg-embedded-android-arm-eabi",
   "version": "0.1.0",
   "cpu": [
     "arm"
   ],
-  "main": "pg-embeded.android-arm-eabi.node",
+  "main": "pg-embedded.android-arm-eabi.node",
   "files": [
-    "pg-embeded.android-arm-eabi.node"
+    "pg-embedded.android-arm-eabi.node"
   ],
   "description": "Embed PostgreSQL database for Node.js",
   "keywords": [

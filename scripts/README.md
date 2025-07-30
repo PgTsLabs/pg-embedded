@@ -1,6 +1,6 @@
 # Scripts Documentation
 
-This directory contains utility scripts for managing the pg-embeded project.
+This directory contains utility scripts for managing the pg-embedded project.
 
 ## Version Management Scripts
 

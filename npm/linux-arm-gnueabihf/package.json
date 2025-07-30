@@ -1,12 +1,12 @@
 {
-  "name": "@pg-ts/pg-embeded-linux-arm-gnueabihf",
+  "name": "@pg-ts/pg-embedded-linux-arm-gnueabihf",
   "version": "0.1.0",
   "cpu": [
     "arm"
   ],
-  "main": "pg-embeded.linux-arm-gnueabihf.node",
+  "main": "pg-embedded.linux-arm-gnueabihf.node",
   "files": [
-    "pg-embeded.linux-arm-gnueabihf.node"
+    "pg-embedded.linux-arm-gnueabihf.node"
   ],
   "description": "Embed PostgreSQL database for Node.js",
   "keywords": [

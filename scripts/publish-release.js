@@ -221,7 +221,7 @@ async function main() {
     log('Run without --dry-run to actually publish')
   } else {
     log('\n🎉 Release published successfully!')
-    log(`\nPackage published: https://www.npmjs.com/package/pg-embeded`)
+    log(`\nPackage published: https://www.npmjs.com/package/pg-embedded`)
     log(`GitHub release: https://github.com/PgTsLabs/pg-embedded/releases/tag/v${version}`)
 
     log('\n📢 Post-release tasks:')

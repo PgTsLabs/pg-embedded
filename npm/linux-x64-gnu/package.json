@@ -1,12 +1,12 @@
 {
-  "name": "@pg-ts/pg-embeded-linux-x64-gnu",
+  "name": "@pg-ts/pg-embedded-linux-x64-gnu",
   "version": "0.1.0",
   "cpu": [
     "x64"
   ],
-  "main": "pg-embeded.linux-x64-gnu.node",
+  "main": "pg-embedded.linux-x64-gnu.node",
   "files": [
-    "pg-embeded.linux-x64-gnu.node"
+    "pg-embedded.linux-x64-gnu.node"
   ],
   "description": "Embed PostgreSQL database for Node.js",
   "keywords": [

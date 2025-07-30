@@ -1,12 +1,12 @@
 {
-  "name": "@pg-ts/pg-embeded-darwin-x64",
+  "name": "@pg-ts/pg-embedded-darwin-x64",
   "version": "0.1.0",
   "cpu": [
     "x64"
   ],
-  "main": "pg-embeded.darwin-x64.node",
+  "main": "pg-embedded.darwin-x64.node",
   "files": [
-    "pg-embeded.darwin-x64.node"
+    "pg-embedded.darwin-x64.node"
   ],
   "description": "Embed PostgreSQL database for Node.js",
   "keywords": [
@@ -23,7 +23,7 @@
     "node": ">= 10"
   },
   "repository": {
-    "url": "git+ssh://git@github.com/PgTsLabs/pg-embedded.git",
+    "url": "git+ssh://git@github.com/PgTsLabs/pg-embeddedd.git",
     "type": "git"
   },
   "publishConfig": {

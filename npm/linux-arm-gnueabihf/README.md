@@ -1,3 +1,3 @@
-# `@pg-ts/pg-embeded-linux-arm-gnueabihf`
+# `@pg-ts/pg-embedded-linux-arm-gnueabihf`
 
-This is the **armv7-unknown-linux-gnueabihf** binary for `@pg-ts/pg-embeded`
+This is the **armv7-unknown-linux-gnueabihf** binary for `@pg-ts/pg-embedded`
