@@ -350,7 +350,7 @@ export declare const enum InstanceState {
   /** Running */
   Running = 2,
   /** Stopping */
-  Stopping = 3
+  Stopping = 3,
 }
 
 /** Log debug message */
@@ -373,7 +373,7 @@ export declare const enum LogLevel {
   /** Debug level */
   Debug = 3,
   /** Trace level */
-  Trace = 4
+  Trace = 4,
 }
 
 /** Log trace message */
@@ -397,7 +397,7 @@ export declare const enum PostgresError {
   /** Connection error */
   ConnectionError = 5,
   /** Timeout error */
-  TimeoutError = 6
+  TimeoutError = 6,
 }
 
 /** PostgreSQL error information structure */
@@ -429,6 +429,8 @@ export interface PostgresErrorInfo {
 export interface PostgresSettings {
   /** PostgreSQL version (e.g., "15.0", ">=14.0")  */
   version?: string
+  /** Host address for database connection (default: "localhost")  */
+  host?: string
   /** Port number (0-65535, default: 5432, 0 for random)  */
   port?: number
   /** Username for database connection (default: "postgres")  */

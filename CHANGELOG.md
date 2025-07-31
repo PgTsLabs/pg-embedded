@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+
 - **BREAKING**: Removed all synchronous API methods - now async-only
 - Updated `PostgresSettings` interface property names to camelCase (`databaseName`, `dataDir`, `installationDir`)
 - Updated `ConnectionInfo` interface property name to `databaseName`
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated all documentation and examples to reflect async-only API
 
 ### Added
+
 - `setup()` method for explicit PostgreSQL instance setup
 - `setupTimeout` configuration option for PostgreSQL initialization timeout
 

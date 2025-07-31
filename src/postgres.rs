@@ -488,7 +488,10 @@ impl PostgresInstance {
         }
       }
     } else {
-      pg_log!(debug, "PostgreSQL instance not initialized, setting to stopped");
+      pg_log!(
+        debug,
+        "PostgreSQL instance not initialized, setting to stopped"
+      );
       self.set_state(InstanceState::Stopped)?;
       if !is_cleanup {
         Err(stop_error("PostgreSQL instance not initialized"))
