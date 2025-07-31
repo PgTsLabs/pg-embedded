@@ -23,6 +23,8 @@ use std::path::PathBuf;
 pub struct PostgresSettings {
   /** PostgreSQL version (e.g., "15.0", ">=14.0") */
   pub version: Option<String>,
+  /** Host address for database connection (default: "localhost") */
+  pub host: Option<String>,
   /** Port number (0-65535, default: 5432, 0 for random) */
   pub port: Option<u32>,
   /** Username for database connection (default: "postgres") */
@@ -47,6 +49,7 @@ impl Default for PostgresSettings {
   fn default() -> Self {
     Self {
       version: None,
+      host: Some("localhost".to_string()),
       port: Some(5432),
       username: Some("postgres".to_string()),
       password: Some("postgres".to_string()),
@@ -122,6 +125,11 @@ impl PostgresSettings {
       let version_req = postgresql_embedded::VersionReq::parse(version)
         .map_err(|e| configuration_error(&format!("Invalid version format: {e}")))?;
       settings.version = version_req;
+    }
+
+    // Set host
+    if let Some(host) = self.host.clone() {
+      settings.host = host;
     }
 
     // Set port
