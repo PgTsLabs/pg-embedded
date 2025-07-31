@@ -402,6 +402,8 @@ impl PostgresInstance {
             *startup_time = Some(startup_duration);
           }
 
+          let db_settings = instance.settings();
+          self.settings.port = db_settings.port;
           pg_log!(
             info,
             "PostgreSQL instance started successfully on port {} in {:?}",
@@ -653,6 +655,8 @@ impl PostgresInstance {
     if let Some(ref mut instance) = self.blocking_instance {
       match instance.start() {
         Ok(_) => {
+          let db_settings = instance.settings();
+          self.settings.port = db_settings.port;
           self.set_state(InstanceState::Running)?;
           Ok(())
         }

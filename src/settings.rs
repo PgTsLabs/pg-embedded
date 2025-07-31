@@ -23,7 +23,7 @@ use std::path::PathBuf;
 pub struct PostgresSettings {
   /** PostgreSQL version (e.g., "15.0", ">=14.0") */
   pub version: Option<String>,
-  /** Port number (1-65535, default: 5432) */
+  /** Port number (0-65535, default: 5432, 0 for random) */
   pub port: Option<u32>,
   /** Username for database connection (default: "postgres") */
   pub username: Option<String>,
@@ -65,8 +65,10 @@ impl PostgresSettings {
   pub fn validate(&self) -> napi::Result<()> {
     // Validate port number
     if let Some(port) = self.port {
-      if port == 0 || port > 65535 {
-        return Err(configuration_error("Port must be between 1 and 65535"));
+      if port > 65535 {
+        return Err(configuration_error(
+          "Port must be between 0 and 65535",
+        ));
       }
     }
 

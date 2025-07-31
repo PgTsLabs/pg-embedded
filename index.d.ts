@@ -511,7 +511,7 @@ export interface PostgresErrorInfo {
 export interface PostgresSettings {
   /** PostgreSQL version (e.g., "15.0", ">=14.0")  */
   version?: string
-  /** Port number (1-65535, default: 5432)  */
+  /** Port number (0-65535, default: 5432, 0 for random)  */
   port?: number
   /** Username for database connection (default: "postgres")  */
   username?: string

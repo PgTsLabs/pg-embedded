@@ -73,23 +73,23 @@ function requireNative() {
   } else if (process.platform === 'android') {
     if (process.arch === 'arm64') {
       try {
-        return require('./pg-embeded.android-arm64.node')
+        return require('./pg-embedded.android-arm64.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-android-arm64')
+        return require('@pg-ts/pg-embedded-android-arm64')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 'arm') {
       try {
-        return require('./pg-embeded.android-arm-eabi.node')
+        return require('./pg-embedded.android-arm-eabi.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-android-arm-eabi')
+        return require('@pg-ts/pg-embedded-android-arm-eabi')
       } catch (e) {
         loadErrors.push(e)
       }
@@ -99,34 +99,34 @@ function requireNative() {
   } else if (process.platform === 'win32') {
     if (process.arch === 'x64') {
       try {
-        return require('./pg-embeded.win32-x64-msvc.node')
+        return require('./pg-embedded.win32-x64-msvc.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-win32-x64-msvc')
+        return require('@pg-ts/pg-embedded-win32-x64-msvc')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 'ia32') {
       try {
-        return require('./pg-embeded.win32-ia32-msvc.node')
+        return require('./pg-embedded.win32-ia32-msvc.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-win32-ia32-msvc')
+        return require('@pg-ts/pg-embedded-win32-ia32-msvc')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 'arm64') {
       try {
-        return require('./pg-embeded.win32-arm64-msvc.node')
+        return require('./pg-embedded.win32-arm64-msvc.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-win32-arm64-msvc')
+        return require('@pg-ts/pg-embedded-win32-arm64-msvc')
       } catch (e) {
         loadErrors.push(e)
       }
@@ -135,34 +135,34 @@ function requireNative() {
     }
   } else if (process.platform === 'darwin') {
     try {
-      return require('./pg-embeded.darwin-universal.node')
+      return require('./pg-embedded.darwin-universal.node')
     } catch (e) {
       loadErrors.push(e)
     }
     try {
-      return require('@pg-ts/pg-embeded-darwin-universal')
+      return require('@pg-ts/pg-embedded-darwin-universal')
     } catch (e) {
       loadErrors.push(e)
     }
     if (process.arch === 'x64') {
       try {
-        return require('./pg-embeded.darwin-x64.node')
+        return require('./pg-embedded.darwin-x64.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-darwin-x64')
+        return require('@pg-ts/pg-embedded-darwin-x64')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 'arm64') {
       try {
-        return require('./pg-embeded.darwin-arm64.node')
+        return require('./pg-embedded.darwin-arm64.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-darwin-arm64')
+        return require('@pg-ts/pg-embedded-darwin-arm64')
       } catch (e) {
         loadErrors.push(e)
       }
@@ -172,23 +172,23 @@ function requireNative() {
   } else if (process.platform === 'freebsd') {
     if (process.arch === 'x64') {
       try {
-        return require('./pg-embeded.freebsd-x64.node')
+        return require('./pg-embedded.freebsd-x64.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-freebsd-x64')
+        return require('@pg-ts/pg-embedded-freebsd-x64')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 'arm64') {
       try {
-        return require('./pg-embeded.freebsd-arm64.node')
+        return require('./pg-embedded.freebsd-arm64.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-freebsd-arm64')
+        return require('@pg-ts/pg-embedded-freebsd-arm64')
       } catch (e) {
         loadErrors.push(e)
       }
@@ -199,23 +199,23 @@ function requireNative() {
     if (process.arch === 'x64') {
       if (isMusl()) {
         try {
-          return require('./pg-embeded.linux-x64-musl.node')
+          return require('./pg-embedded.linux-x64-musl.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-x64-musl')
+          return require('@pg-ts/pg-embedded-linux-x64-musl')
         } catch (e) {
           loadErrors.push(e)
         }
       } else {
         try {
-          return require('./pg-embeded.linux-x64-gnu.node')
+          return require('./pg-embedded.linux-x64-gnu.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-x64-gnu')
+          return require('@pg-ts/pg-embedded-linux-x64-gnu')
         } catch (e) {
           loadErrors.push(e)
         }
@@ -223,23 +223,23 @@ function requireNative() {
     } else if (process.arch === 'arm64') {
       if (isMusl()) {
         try {
-          return require('./pg-embeded.linux-arm64-musl.node')
+          return require('./pg-embedded.linux-arm64-musl.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-arm64-musl')
+          return require('@pg-ts/pg-embedded-linux-arm64-musl')
         } catch (e) {
           loadErrors.push(e)
         }
       } else {
         try {
-          return require('./pg-embeded.linux-arm64-gnu.node')
+          return require('./pg-embedded.linux-arm64-gnu.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-arm64-gnu')
+          return require('@pg-ts/pg-embedded-linux-arm64-gnu')
         } catch (e) {
           loadErrors.push(e)
         }
@@ -247,23 +247,23 @@ function requireNative() {
     } else if (process.arch === 'arm') {
       if (isMusl()) {
         try {
-          return require('./pg-embeded.linux-arm-musleabihf.node')
+          return require('./pg-embedded.linux-arm-musleabihf.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-arm-musleabihf')
+          return require('@pg-ts/pg-embedded-linux-arm-musleabihf')
         } catch (e) {
           loadErrors.push(e)
         }
       } else {
         try {
-          return require('./pg-embeded.linux-arm-gnueabihf.node')
+          return require('./pg-embedded.linux-arm-gnueabihf.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-arm-gnueabihf')
+          return require('@pg-ts/pg-embedded-linux-arm-gnueabihf')
         } catch (e) {
           loadErrors.push(e)
         }
@@ -271,46 +271,46 @@ function requireNative() {
     } else if (process.arch === 'riscv64') {
       if (isMusl()) {
         try {
-          return require('./pg-embeded.linux-riscv64-musl.node')
+          return require('./pg-embedded.linux-riscv64-musl.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-riscv64-musl')
+          return require('@pg-ts/pg-embedded-linux-riscv64-musl')
         } catch (e) {
           loadErrors.push(e)
         }
       } else {
         try {
-          return require('./pg-embeded.linux-riscv64-gnu.node')
+          return require('./pg-embedded.linux-riscv64-gnu.node')
         } catch (e) {
           loadErrors.push(e)
         }
         try {
-          return require('@pg-ts/pg-embeded-linux-riscv64-gnu')
+          return require('@pg-ts/pg-embedded-linux-riscv64-gnu')
         } catch (e) {
           loadErrors.push(e)
         }
       }
     } else if (process.arch === 'ppc64') {
       try {
-        return require('./pg-embeded.linux-ppc64-gnu.node')
+        return require('./pg-embedded.linux-ppc64-gnu.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-linux-ppc64-gnu')
+        return require('@pg-ts/pg-embedded-linux-ppc64-gnu')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 's390x') {
       try {
-        return require('./pg-embeded.linux-s390x-gnu.node')
+        return require('./pg-embedded.linux-s390x-gnu.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-linux-s390x-gnu')
+        return require('@pg-ts/pg-embedded-linux-s390x-gnu')
       } catch (e) {
         loadErrors.push(e)
       }
@@ -320,34 +320,34 @@ function requireNative() {
   } else if (process.platform === 'openharmony') {
     if (process.arch === 'arm64') {
       try {
-        return require('./pg-embeded.linux-arm64-ohos.node')
+        return require('./pg-embedded.linux-arm64-ohos.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-linux-arm64-ohos')
+        return require('@pg-ts/pg-embedded-linux-arm64-ohos')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 'x64') {
       try {
-        return require('./pg-embeded.linux-x64-ohos.node')
+        return require('./pg-embedded.linux-x64-ohos.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-linux-x64-ohos')
+        return require('@pg-ts/pg-embedded-linux-x64-ohos')
       } catch (e) {
         loadErrors.push(e)
       }
     } else if (process.arch === 'arm') {
       try {
-        return require('./pg-embeded.linux-arm-ohos.node')
+        return require('./pg-embedded.linux-arm-ohos.node')
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return require('@pg-ts/pg-embeded-linux-arm-ohos')
+        return require('@pg-ts/pg-embedded-linux-arm-ohos')
       } catch (e) {
         loadErrors.push(e)
       }
@@ -363,7 +363,7 @@ nativeBinding = requireNative()
 
 if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
   try {
-    nativeBinding = require('./pg-embeded.wasi.cjs')
+    nativeBinding = require('./pg-embedded.wasi.cjs')
   } catch (err) {
     if (process.env.NAPI_RS_FORCE_WASI) {
       loadErrors.push(err)
@@ -371,7 +371,7 @@ if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
   }
   if (!nativeBinding) {
     try {
-      nativeBinding = require('@pg-ts/pg-embeded-wasm32-wasi')
+      nativeBinding = require('@pg-ts/pg-embedded-wasm32-wasi')
     } catch (err) {
       if (process.env.NAPI_RS_FORCE_WASI) {
         loadErrors.push(err)
