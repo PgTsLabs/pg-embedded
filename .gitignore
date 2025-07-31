@@ -7,6 +7,9 @@ pnpm-debug.log*
 
 # Build outputs
 target/
+binding.js
+binding.cjs
+binding.d.ts
 index.js
 index.cjs
 index.d.ts
