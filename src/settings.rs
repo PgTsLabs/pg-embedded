@@ -69,9 +69,7 @@ impl PostgresSettings {
     // Validate port number
     if let Some(port) = self.port {
       if port > 65535 {
-        return Err(configuration_error(
-          "Port must be between 0 and 65535",
-        ));
+        return Err(configuration_error("Port must be between 0 and 65535"));
       }
     }
 

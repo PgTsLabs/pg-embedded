@@ -1148,7 +1148,7 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
       await instance.cleanup()
       t.is(instance.state, InstanceState.Stopped, `Instance ${index} should be stopped after force cleanup`)
     })
-    
+
     await Promise.all(cleanupPromises)
 
     const forceCleanupTime = process.hrtime.bigint() - forceCleanupStartTime

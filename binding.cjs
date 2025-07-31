@@ -395,6 +395,8 @@ if (!nativeBinding) {
 module.exports = nativeBinding
 module.exports.ConnectionInfo = nativeBinding.ConnectionInfo
 module.exports.PostgresInstance = nativeBinding.PostgresInstance
+module.exports.SqlResult = nativeBinding.SqlResult
+module.exports.StructuredSqlResult = nativeBinding.StructuredSqlResult
 module.exports.getPackageVersion = nativeBinding.getPackageVersion
 module.exports.getPostgreSqlVersion = nativeBinding.getPostgreSqlVersion
 module.exports.getVersionInfo = nativeBinding.getVersionInfo

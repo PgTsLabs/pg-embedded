@@ -101,6 +101,102 @@ interface PostgresSettings {
 }
 ```
 
+## SQL Execution
+
+The library provides built-in SQL execution capabilities through the `executeSql` and `executeSqlFile` methods:
+
+### Execute SQL Commands
+
+```typescript
+import { PostgresInstance } from 'pg-embedded'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Execute a simple query
+const result = await postgres.executeSql('SELECT version();')
+console.log('PostgreSQL version:', result.stdout)
+
+// Execute on a specific database
+await postgres.createDatabase('myapp')
+const userResult = await postgres.executeSql(
+  `
+  CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL
+  );
+  
+  INSERT INTO users (name, email) VALUES 
+  ('John Doe', 'john@example.com'),
+  ('Jane Smith', 'jane@example.com');
+  
+  SELECT * FROM users;
+`,
+  'myapp',
+)
+
+if (userResult.success) {
+  console.log('Query results:', userResult.stdout)
+} else {
+  console.error('Query failed:', userResult.stderr)
+}
+```
+
+### Execute SQL Files
+
+```typescript
+// Execute a SQL file
+const fileResult = await postgres.executeSqlFile('./schema.sql', 'myapp')
+if (fileResult.success) {
+  console.log('Schema applied successfully')
+}
+```
+
+### Structured SQL Execution (JSON Results)
+
+For better data handling, use the structured SQL methods that return parsed JSON:
+
+```typescript
+// Execute query and get JSON results
+const result = await postgres.executeSqlJson(`
+  SELECT id, name, email, age 
+  FROM users 
+  WHERE age > 25 
+  ORDER BY name
+`)
+
+if (result.success && result.data) {
+  const users = JSON.parse(result.data)
+  users.forEach((user) => {
+    console.log(`${user.name} (${user.age}): ${user.email}`)
+  })
+  console.log(`Total users: ${result.row_count}`)
+}
+
+// TypeScript usage with type safety
+interface User {
+  id: number
+  name: string
+  email: string
+  age: number
+}
+
+const typedUsers: User[] = JSON.parse(result.data)
+```
+
+### SQL Result Object
+
+Both `executeSql` and `executeSqlFile` return a `SqlResult` object:
+
+```typescript
+interface SqlResult {
+  stdout: string // Query results and success messages
+  stderr: string // Error messages and warnings
+  success: boolean // Whether execution was successful
+}
+```
+
 ## API Reference
 
 ### PostgresInstance

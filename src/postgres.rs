@@ -4,9 +4,10 @@ use crate::{
   },
   logger::pg_log,
   settings::PostgresSettings,
-  types::{ConnectionInfo, InstanceState},
+  types::{ConnectionInfo, InstanceState, SqlResult, StructuredSqlResult},
 };
 use napi_derive::napi;
+use postgresql_commands::{psql::PsqlBuilder, CommandBuilder, CommandExecutor};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -488,7 +489,10 @@ impl PostgresInstance {
         }
       }
     } else {
-      pg_log!(debug, "PostgreSQL instance not initialized, setting to stopped");
+      pg_log!(
+        debug,
+        "PostgreSQL instance not initialized, setting to stopped"
+      );
       self.set_state(InstanceState::Stopped)?;
       if !is_cleanup {
         Err(stop_error("PostgreSQL instance not initialized"))
@@ -824,5 +828,401 @@ impl PostgresInstance {
 
     pg_log!(info, "Manual cleanup completed");
     Ok(())
+  }
+
+  /**
+   * Executes a SQL command against the PostgreSQL instance
+   *
+   * This method uses the psql command-line tool to execute SQL statements.
+   * The instance must be running before executing SQL commands.
+   *
+   * @param sql - The SQL command to execute
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to an object containing stdout and stderr
+   * @throws Error if the instance is not running or if SQL execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSql('SELECT version();');
+   * console.log('Query result:', result.stdout);
+   *
+   * // Execute on specific database
+   * const result2 = await instance.executeSql('SELECT * FROM users;', 'myapp');
+   * ```
+   */
+  #[napi]
+  pub async fn execute_sql(
+    &self,
+    sql: String,
+    database: Option<String>,
+  ) -> napi::Result<SqlResult> {
+    let current_state = self.get_state()?;
+    if !matches!(current_state, InstanceState::Running) {
+      return Err(database_error("PostgreSQL instance is not running"));
+    }
+
+    if sql.trim().is_empty() {
+      return Err(database_error("SQL command cannot be empty"));
+    }
+
+    let db_name = database.unwrap_or_else(|| "postgres".to_string());
+
+    pg_log!(
+      debug,
+      "Executing SQL on database '{}': {}",
+      db_name,
+      sql.chars().take(100).collect::<String>()
+    );
+
+    let mut psql = PsqlBuilder::new()
+      .command(&sql)
+      .host(&self.settings.host)
+      .port(self.settings.port)
+      .username(&self.settings.username)
+      .pg_password(&self.settings.password)
+      .dbname(&db_name)
+      .build();
+
+    match psql.execute() {
+      Ok((stdout, stderr)) => {
+        pg_log!(debug, "SQL execution completed successfully");
+        Ok(SqlResult {
+          stdout,
+          stderr,
+          success: true,
+        })
+      }
+      Err(e) => {
+        pg_log!(error, "SQL execution failed: {}", e);
+        Err(database_error(&format!("SQL execution failed: {}", e)))
+      }
+    }
+  }
+
+  /**
+   * Executes a SQL file against the PostgreSQL instance
+   *
+   * This method reads and executes a SQL file using the psql command-line tool.
+   * The instance must be running before executing SQL files.
+   *
+   * @param file_path - Path to the SQL file to execute
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to an object containing stdout and stderr
+   * @throws Error if the instance is not running, file doesn't exist, or execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSqlFile('./schema.sql');
+   * console.log('Schema created:', result.success);
+   *
+   * // Execute on specific database
+   * const result2 = await instance.executeSqlFile('./data.sql', 'myapp');
+   * ```
+   */
+  #[napi]
+  pub async fn execute_sql_file(
+    &self,
+    file_path: String,
+    database: Option<String>,
+  ) -> napi::Result<SqlResult> {
+    let current_state = self.get_state()?;
+    if !matches!(current_state, InstanceState::Running) {
+      return Err(database_error("PostgreSQL instance is not running"));
+    }
+
+    if file_path.trim().is_empty() {
+      return Err(database_error("File path cannot be empty"));
+    }
+
+    let db_name = database.unwrap_or_else(|| "postgres".to_string());
+
+    pg_log!(
+      debug,
+      "Executing SQL file '{}' on database '{}'",
+      file_path,
+      db_name
+    );
+
+    let mut psql = PsqlBuilder::new()
+      .file(&file_path)
+      .host(&self.settings.host)
+      .port(self.settings.port)
+      .username(&self.settings.username)
+      .pg_password(&self.settings.password)
+      .dbname(&db_name)
+      .build();
+
+    match psql.execute() {
+      Ok((stdout, stderr)) => {
+        pg_log!(debug, "SQL file execution completed successfully");
+        Ok(SqlResult {
+          stdout,
+          stderr,
+          success: true,
+        })
+      }
+      Err(e) => {
+        pg_log!(error, "SQL file execution failed: {}", e);
+        Err(database_error(&format!("SQL file execution failed: {}", e)))
+      }
+    }
+  }
+
+  /**
+   * Executes a SQL query and returns structured JSON results
+   *
+   * This method executes a SQL query and attempts to parse the results as JSON.
+   * It's particularly useful for SELECT queries where you want structured data.
+   *
+   * @param sql - The SQL query to execute
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to a StructuredSqlResult with parsed JSON data
+   * @throws Error if the instance is not running or if SQL execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSqlStructured('SELECT * FROM users;');
+   * if (result.success && result.data) {
+   *   const users = JSON.parse(result.data);
+   *   console.log('Users:', users);
+   * }
+   * ```
+   */
+  #[napi]
+  pub async fn execute_sql_structured(
+    &self,
+    sql: String,
+    database: Option<String>,
+  ) -> napi::Result<StructuredSqlResult> {
+    let current_state = self.get_state()?;
+    if !matches!(current_state, InstanceState::Running) {
+      return Err(database_error("PostgreSQL instance is not running"));
+    }
+
+    if sql.trim().is_empty() {
+      return Err(database_error("SQL command cannot be empty"));
+    }
+
+    let db_name = database.unwrap_or_else(|| "postgres".to_string());
+
+    pg_log!(
+      debug,
+      "Executing structured SQL on database '{}': {}",
+      db_name,
+      sql.chars().take(100).collect::<String>()
+    );
+
+    // Execute the SQL query with CSV output format
+    let mut psql = PsqlBuilder::new()
+      .command(&sql)
+      .host(&self.settings.host)
+      .port(self.settings.port)
+      .username(&self.settings.username)
+      .pg_password(&self.settings.password)
+      .dbname(&db_name)
+      .csv() // CSV format output
+      .no_align() // No alignment formatting
+      .build();
+
+    match psql.execute() {
+      Ok((stdout, stderr)) => {
+        pg_log!(debug, "Structured SQL execution completed successfully");
+
+        // Parse CSV output and convert to JSON
+        let (json_data, row_count) = self.parse_csv_to_json(&stdout)?;
+
+        Ok(StructuredSqlResult {
+          data: json_data,
+          stdout: stdout.clone(),
+          stderr,
+          success: true,
+          row_count,
+        })
+      }
+      Err(e) => {
+        pg_log!(error, "Structured SQL execution failed: {}", e);
+        Err(database_error(&format!(
+          "Structured SQL execution failed: {}",
+          e
+        )))
+      }
+    }
+  }
+
+  /**
+   * Executes a SQL query and returns results as JSON array
+   *
+   * This is a convenience method that directly returns JSON-formatted results.
+   * It uses PostgreSQL's built-in JSON functions for better performance.
+   *
+   * @param sql - The SQL query to execute (should be a SELECT statement)
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to a StructuredSqlResult with JSON array data
+   * @throws Error if the instance is not running or if SQL execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSqlJson('SELECT id, name FROM users LIMIT 10;');
+   * if (result.success && result.data) {
+   *   const users = JSON.parse(result.data);
+   *   console.log('Users:', users);
+   * }
+   * ```
+   */
+  #[napi]
+  pub async fn execute_sql_json(
+    &self,
+    sql: String,
+    database: Option<String>,
+  ) -> napi::Result<StructuredSqlResult> {
+    let current_state = self.get_state()?;
+    if !matches!(current_state, InstanceState::Running) {
+      return Err(database_error("PostgreSQL instance is not running"));
+    }
+
+    if sql.trim().is_empty() {
+      return Err(database_error("SQL command cannot be empty"));
+    }
+
+    let db_name = database.unwrap_or_else(|| "postgres".to_string());
+
+    pg_log!(
+      debug,
+      "Executing JSON SQL on database '{}': {}",
+      db_name,
+      sql.chars().take(100).collect::<String>()
+    );
+
+    // Check if this is a SELECT statement or a DML with RETURNING
+    let trimmed_sql = sql.trim().to_uppercase();
+    let json_sql = if trimmed_sql.starts_with("SELECT") {
+      // For SELECT statements, wrap with JSON aggregation
+      format!(
+        "SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) FROM ({}) t;",
+        sql.trim_end_matches(';')
+      )
+    } else if trimmed_sql.contains("RETURNING") {
+      // For INSERT/UPDATE/DELETE with RETURNING, wrap the entire statement
+      format!(
+        "WITH result AS ({}) SELECT COALESCE(json_agg(row_to_json(result)), '[]'::json) FROM result;",
+        sql.trim_end_matches(';')
+      )
+    } else {
+      // For other statements, execute as-is but this might not return JSON
+      sql.to_string()
+    };
+
+    let mut psql = PsqlBuilder::new()
+      .command(&json_sql)
+      .host(&self.settings.host)
+      .port(self.settings.port)
+      .username(&self.settings.username)
+      .pg_password(&self.settings.password)
+      .dbname(&db_name)
+      .tuples_only() // Only output data, no headers
+      .no_align() // No alignment formatting
+      .build();
+
+    match psql.execute() {
+      Ok((stdout, stderr)) => {
+        pg_log!(debug, "JSON SQL execution completed successfully");
+
+        // Clean output - should be just the JSON result
+        let json_result = stdout.trim().to_string();
+
+        let row_count = match serde_json::from_str::<serde_json::Value>(&json_result) {
+          Ok(serde_json::Value::Array(arr)) => arr.len() as u32,
+          Ok(serde_json::Value::Null) => 0,
+          _ => {
+            pg_log!(debug, "Failed to parse JSON for row count: {}", json_result);
+            0
+          }
+        };
+
+        pg_log!(
+          debug,
+          "JSON result: {}, row_count: {:?}",
+          json_result,
+          row_count
+        );
+
+        Ok(StructuredSqlResult {
+          data: Some(json_result),
+          stdout: stdout.clone(),
+          stderr,
+          success: true,
+          row_count,
+        })
+      }
+      Err(e) => {
+        pg_log!(error, "JSON SQL execution failed: {}", e);
+        Err(database_error(&format!("JSON SQL execution failed: {}", e)))
+      }
+    }
+  }
+
+  /// Helper method to parse CSV output to JSON
+  fn parse_csv_to_json(&self, csv_data: &str) -> napi::Result<(Option<String>, u32)> {
+    if csv_data.trim().is_empty() {
+      return Ok((Some("[]".to_string()), 0));
+    }
+
+    let lines: Vec<&str> = csv_data.trim().lines().collect();
+    if lines.is_empty() {
+      return Ok((Some("[]".to_string()), 0));
+    }
+
+    // Parse CSV header
+    let header_line = lines[0];
+    let headers: Vec<&str> = header_line.split(',').map(|h| h.trim()).collect();
+
+    if lines.len() == 1 {
+      // Only header, no data
+      return Ok((Some("[]".to_string()), 0));
+    }
+
+    let mut json_objects = Vec::new();
+
+    // Parse data rows
+    for line in &lines[1..] {
+      let values: Vec<&str> = line.split(',').map(|v| v.trim()).collect();
+
+      if values.len() != headers.len() {
+        continue; // Skip malformed rows
+      }
+
+      let mut obj = serde_json::Map::new();
+      for (i, header) in headers.iter().enumerate() {
+        let value = values.get(i).unwrap_or(&"");
+        // Try to parse as number, otherwise treat as string
+        let json_value = if let Ok(num) = value.parse::<i64>() {
+          serde_json::Value::Number(serde_json::Number::from(num))
+        } else if let Ok(num) = value.parse::<f64>() {
+          serde_json::Number::from_f64(num)
+            .map(serde_json::Value::Number)
+            .unwrap_or_else(|| serde_json::Value::String(value.to_string()))
+        } else if *value == "true" || *value == "false" {
+          serde_json::Value::Bool(*value == "true")
+        } else if value.is_empty() || *value == "NULL" {
+          serde_json::Value::Null
+        } else {
+          serde_json::Value::String(value.to_string())
+        };
+
+        obj.insert(header.to_string(), json_value);
+      }
+      json_objects.push(serde_json::Value::Object(obj));
+    }
+
+    let json_array = serde_json::Value::Array(json_objects);
+    let row_count = (lines.len() - 1) as u32; // Subtract header row
+
+    match serde_json::to_string(&json_array) {
+      Ok(json_string) => Ok((Some(json_string), row_count)),
+      Err(e) => {
+        pg_log!(error, "Failed to serialize JSON: {}", e);
+        Err(database_error(&format!("Failed to serialize JSON: {}", e)))
+      }
+    }
   }
 }

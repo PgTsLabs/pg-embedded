@@ -272,6 +272,114 @@ export declare class PostgresInstance {
    * ```
    */
   cleanup(): Promise<void>
+  /**
+   * Executes a SQL command against the PostgreSQL instance
+   *
+   * This method uses the psql command-line tool to execute SQL statements.
+   * The instance must be running before executing SQL commands.
+   *
+   * @param sql - The SQL command to execute
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to an object containing stdout and stderr
+   * @throws Error if the instance is not running or if SQL execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSql('SELECT version();');
+   * console.log('Query result:', result.stdout);
+   *
+   * // Execute on specific database
+   * const result2 = await instance.executeSql('SELECT * FROM users;', 'myapp');
+   * ```
+   */
+  executeSql(sql: string, database?: string | undefined | null): Promise<SqlResult>
+  /**
+   * Executes a SQL file against the PostgreSQL instance
+   *
+   * This method reads and executes a SQL file using the psql command-line tool.
+   * The instance must be running before executing SQL files.
+   *
+   * @param file_path - Path to the SQL file to execute
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to an object containing stdout and stderr
+   * @throws Error if the instance is not running, file doesn't exist, or execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSqlFile('./schema.sql');
+   * console.log('Schema created:', result.success);
+   *
+   * // Execute on specific database
+   * const result2 = await instance.executeSqlFile('./data.sql', 'myapp');
+   * ```
+   */
+  executeSqlFile(filePath: string, database?: string | undefined | null): Promise<SqlResult>
+  /**
+   * Executes a SQL query and returns structured JSON results
+   *
+   * This method executes a SQL query and attempts to parse the results as JSON.
+   * It's particularly useful for SELECT queries where you want structured data.
+   *
+   * @param sql - The SQL query to execute
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to a StructuredSqlResult with parsed JSON data
+   * @throws Error if the instance is not running or if SQL execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSqlStructured('SELECT * FROM users;');
+   * if (result.success && result.data) {
+   *   const users = JSON.parse(result.data);
+   *   console.log('Users:', users);
+   * }
+   * ```
+   */
+  executeSqlStructured(sql: string, database?: string | undefined | null): Promise<StructuredSqlResult>
+  /**
+   * Executes a SQL query and returns results as JSON array
+   *
+   * This is a convenience method that directly returns JSON-formatted results.
+   * It uses PostgreSQL's built-in JSON functions for better performance.
+   *
+   * @param sql - The SQL query to execute (should be a SELECT statement)
+   * @param database - Optional database name (defaults to "postgres")
+   * @returns Promise that resolves to a StructuredSqlResult with JSON array data
+   * @throws Error if the instance is not running or if SQL execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSqlJson('SELECT id, name FROM users LIMIT 10;');
+   * if (result.success && result.data) {
+   *   const users = JSON.parse(result.data);
+   *   console.log('Users:', users);
+   * }
+   * ```
+   */
+  executeSqlJson(sql: string, database?: string | undefined | null): Promise<StructuredSqlResult>
+}
+
+/** SQL execution result structure */
+export declare class SqlResult {
+  /** Standard output from the SQL command */
+  stdout: string
+  /** Standard error from the SQL command */
+  stderr: string
+  /** Whether the execution was successful */
+  success: boolean
+}
+
+/** Structured SQL execution result with parsed JSON data */
+export declare class StructuredSqlResult {
+  /** Parsed JSON data from the SQL query result */
+  data?: string
+  /** Raw standard output from the SQL command */
+  stdout: string
+  /** Standard error from the SQL command */
+  stderr: string
+  /** Whether the execution was successful */
+  success: boolean
+  /** Number of rows returned (0 if not applicable) */
+  rowCount: number
 }
 
 /** Build information */
@@ -350,7 +458,7 @@ export declare const enum InstanceState {
   /** Running */
   Running = 2,
   /** Stopping */
-  Stopping = 3
+  Stopping = 3,
 }
 
 /** Log debug message */
@@ -373,7 +481,7 @@ export declare const enum LogLevel {
   /** Debug level */
   Debug = 3,
   /** Trace level */
-  Trace = 4
+  Trace = 4,
 }
 
 /** Log trace message */
@@ -397,7 +505,7 @@ export declare const enum PostgresError {
   /** Connection error */
   ConnectionError = 5,
   /** Timeout error */
-  TimeoutError = 6
+  TimeoutError = 6,
 }
 
 /** PostgreSQL error information structure */
@@ -429,6 +537,8 @@ export interface PostgresErrorInfo {
 export interface PostgresSettings {
   /** PostgreSQL version (e.g., "15.0", ">=14.0")  */
   version?: string
+  /** Host address for database connection (default: "localhost")  */
+  host?: string
   /** Port number (0-65535, default: 5432, 0 for random)  */
   port?: number
   /** Username for database connection (default: "postgres")  */

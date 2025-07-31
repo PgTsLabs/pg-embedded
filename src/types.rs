@@ -86,3 +86,31 @@ impl ConnectionInfo {
     config
   }
 }
+
+/// SQL execution result structure
+#[napi]
+#[derive(Clone)]
+pub struct SqlResult {
+  /// Standard output from the SQL command
+  pub stdout: String,
+  /// Standard error from the SQL command
+  pub stderr: String,
+  /// Whether the execution was successful
+  pub success: bool,
+}
+
+/// Structured SQL execution result with parsed JSON data
+#[napi]
+#[derive(Clone)]
+pub struct StructuredSqlResult {
+  /// Parsed JSON data from the SQL query result
+  pub data: Option<String>,
+  /// Raw standard output from the SQL command
+  pub stdout: String,
+  /// Standard error from the SQL command
+  pub stderr: String,
+  /// Whether the execution was successful
+  pub success: bool,
+  /// Number of rows returned (0 if not applicable)
+  pub row_count: u32,
+}
