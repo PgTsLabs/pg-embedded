@@ -402,18 +402,18 @@ test('CRUD: should perform complex transaction-like operations', async (t) => {
 })
 
 // Test with executeSqlStructured for CRUD operations
-test('CRUD: should work with executeSqlStructured for CSV parsing', async (t) => {
+test('CRUD: should work with executeSqlStructured for JSON parsing', async (t) => {
   // Create simple test table using executeSql
   await instance.executeSql(
     `
-    DROP TABLE IF EXISTS products_csv;
-    CREATE TABLE products_csv (
+    DROP TABLE IF EXISTS products_json;
+    CREATE TABLE products_json (
       id SERIAL PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       price DECIMAL(10,2) NOT NULL
     );
     
-    INSERT INTO products_csv (name, price) VALUES 
+    INSERT INTO products_json (name, price) VALUES 
     ('Product A', 19.99),
     ('Product B', 29.99),
     ('Product C', 39.99);
@@ -423,7 +423,7 @@ test('CRUD: should work with executeSqlStructured for CSV parsing', async (t) =>
 
   // Read using executeSqlStructured
   const result = await instance.executeSqlStructured(
-    'SELECT id, name, price FROM products_csv ORDER BY price',
+    'SELECT id, name, price FROM products_json ORDER BY price',
     'crud_test_db',
   )
 
@@ -433,6 +433,7 @@ test('CRUD: should work with executeSqlStructured for CSV parsing', async (t) =>
   const products = JSON.parse(result.data!)
   t.is(products.length, 3)
   t.is(products[0].name, 'Product A')
-  t.is(parseFloat(products[0].price), 19.99) // CSV parsing returns strings, convert to number
+  t.is(products[0].price, 19.99) // JSON parsing returns proper number type
   t.is(products[2].name, 'Product C')
+  t.is(products[2].price, 39.99)
 })

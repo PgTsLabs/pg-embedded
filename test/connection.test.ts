@@ -3,7 +3,7 @@ import { PostgresInstance, InstanceState } from '../index.js'
 
 test('PostgresInstance can be created with connection settings', (t) => {
   const instance = new PostgresInstance({
-    port: 5433,
+    port: 0,
     username: 'testuser',
     password: 'testpass',
   })

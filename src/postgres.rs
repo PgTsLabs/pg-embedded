@@ -1003,70 +1003,34 @@ impl PostgresInstance {
       return Err(database_error("SQL command cannot be empty"));
     }
 
-    let db_name = database.unwrap_or_else(|| "postgres".to_string());
-
-    pg_log!(
-      debug,
-      "Executing structured SQL on database '{}': {}",
-      db_name,
-      sql.chars().take(100).collect::<String>()
-    );
-
-    // Execute the SQL query with CSV output format
-    let mut psql = PsqlBuilder::new()
-      .command(&sql)
-      .host(&self.settings.host)
-      .port(self.settings.port)
-      .username(&self.settings.username)
-      .pg_password(&self.settings.password)
-      .dbname(&db_name)
-      .csv() // CSV format output
-      .no_align() // No alignment formatting
-      .build();
-
-    match psql.execute() {
-      Ok((stdout, stderr)) => {
-        pg_log!(debug, "Structured SQL execution completed successfully");
-
-        // Parse CSV output and convert to JSON
-        let (json_data, row_count) = self.parse_csv_to_json(&stdout)?;
-
-        Ok(StructuredSqlResult {
-          data: json_data,
-          stdout: stdout.clone(),
-          stderr,
-          success: true,
-          row_count,
-        })
-      }
-      Err(e) => {
-        pg_log!(error, "Structured SQL execution failed: {}", e);
-        Err(database_error(&format!(
-          "Structured SQL execution failed: {}",
-          e
-        )))
-      }
-    }
+    // Delegate to execute_sql_json for consistency and better reliability
+    self.execute_sql_json(sql, database).await
   }
 
   /**
    * Executes a SQL query and returns results as JSON array
    *
-   * This is a convenience method that directly returns JSON-formatted results.
-   * It uses PostgreSQL's built-in JSON functions for better performance.
+   * This method handles all types of SQL statements and returns consistent JSON results:
+   * - SELECT: Returns array of row objects
+   * - INSERT/UPDATE/DELETE with RETURNING: Returns array of returned rows
+   * - INSERT/UPDATE/DELETE without RETURNING: Returns metadata (affected rows, etc.)
+   * - DDL statements: Returns execution status
    *
-   * @param sql - The SQL query to execute (should be a SELECT statement)
+   * @param sql - The SQL query to execute
    * @param database - Optional database name (defaults to "postgres")
    * @returns Promise that resolves to a StructuredSqlResult with JSON array data
    * @throws Error if the instance is not running or if SQL execution fails
    *
    * @example
    * ```typescript
-   * const result = await instance.executeSqlJson('SELECT id, name FROM users LIMIT 10;');
-   * if (result.success && result.data) {
-   *   const users = JSON.parse(result.data);
-   *   console.log('Users:', users);
-   * }
+   * // SELECT query
+   * const users = await instance.executeSqlJson('SELECT id, name FROM users LIMIT 10;');
+   * 
+   * // INSERT with RETURNING
+   * const newUser = await instance.executeSqlJson('INSERT INTO users (name) VALUES ($1) RETURNING *;', ['John']);
+   * 
+   * // UPDATE without RETURNING
+   * const updateResult = await instance.executeSqlJson('UPDATE users SET active = true WHERE id = 1;');
    * ```
    */
   #[napi]
@@ -1093,24 +1057,8 @@ impl PostgresInstance {
       sql.chars().take(100).collect::<String>()
     );
 
-    // Check if this is a SELECT statement or a DML with RETURNING
     let trimmed_sql = sql.trim().to_uppercase();
-    let json_sql = if trimmed_sql.starts_with("SELECT") {
-      // For SELECT statements, wrap with JSON aggregation
-      format!(
-        "SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) FROM ({}) t;",
-        sql.trim_end_matches(';')
-      )
-    } else if trimmed_sql.contains("RETURNING") {
-      // For INSERT/UPDATE/DELETE with RETURNING, wrap the entire statement
-      format!(
-        "WITH result AS ({}) SELECT COALESCE(json_agg(row_to_json(result)), '[]'::json) FROM result;",
-        sql.trim_end_matches(';')
-      )
-    } else {
-      // For other statements, execute as-is but this might not return JSON
-      sql.to_string()
-    };
+    let json_sql = self.wrap_sql_for_json(&sql, &trimmed_sql);
 
     let mut psql = PsqlBuilder::new()
       .command(&json_sql)
@@ -1127,17 +1075,8 @@ impl PostgresInstance {
       Ok((stdout, stderr)) => {
         pg_log!(debug, "JSON SQL execution completed successfully");
 
-        // Clean output - should be just the JSON result
         let json_result = stdout.trim().to_string();
-
-        let row_count = match serde_json::from_str::<serde_json::Value>(&json_result) {
-          Ok(serde_json::Value::Array(arr)) => arr.len() as u32,
-          Ok(serde_json::Value::Null) => 0,
-          _ => {
-            pg_log!(debug, "Failed to parse JSON for row count: {}", json_result);
-            0
-          }
-        };
+        let row_count = self.calculate_row_count(&json_result);
 
         pg_log!(
           debug,
@@ -1161,68 +1100,53 @@ impl PostgresInstance {
     }
   }
 
-  /// Helper method to parse CSV output to JSON
-  fn parse_csv_to_json(&self, csv_data: &str) -> napi::Result<(Option<String>, u32)> {
-    if csv_data.trim().is_empty() {
-      return Ok((Some("[]".to_string()), 0));
+  /// Helper method to wrap SQL for JSON output based on statement type
+  fn wrap_sql_for_json(&self, original_sql: &str, trimmed_sql: &str) -> String {
+    // Clean the SQL by removing trailing semicolons and extra whitespace
+    let clean_sql = original_sql.trim().trim_end_matches(';').trim();
+    
+    if trimmed_sql.starts_with("SELECT") || trimmed_sql.starts_with("WITH") {
+      // For SELECT statements, wrap with JSON aggregation
+      format!(
+        "SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) FROM ({}) t",
+        clean_sql
+      )
+    } else if trimmed_sql.contains("RETURNING") {
+      // For INSERT/UPDATE/DELETE with RETURNING, wrap the entire statement
+      format!(
+        "WITH result AS ({}) SELECT COALESCE(json_agg(row_to_json(result)), '[]'::json) FROM result",
+        clean_sql
+      )
+    } else {
+      // For other statements, return metadata
+      let operation = trimmed_sql.split_whitespace().next().unwrap_or("SQL").to_lowercase();
+      format!(
+        "{}; SELECT json_build_object('operation', '{}', 'success', true, 'message', 'Statement executed successfully') as result",
+        clean_sql,
+        operation
+      )
     }
+  }
 
-    let lines: Vec<&str> = csv_data.trim().lines().collect();
-    if lines.is_empty() {
-      return Ok((Some("[]".to_string()), 0));
-    }
-
-    // Parse CSV header
-    let header_line = lines[0];
-    let headers: Vec<&str> = header_line.split(',').map(|h| h.trim()).collect();
-
-    if lines.len() == 1 {
-      // Only header, no data
-      return Ok((Some("[]".to_string()), 0));
-    }
-
-    let mut json_objects = Vec::new();
-
-    // Parse data rows
-    for line in &lines[1..] {
-      let values: Vec<&str> = line.split(',').map(|v| v.trim()).collect();
-
-      if values.len() != headers.len() {
-        continue; // Skip malformed rows
-      }
-
-      let mut obj = serde_json::Map::new();
-      for (i, header) in headers.iter().enumerate() {
-        let value = values.get(i).unwrap_or(&"");
-        // Try to parse as number, otherwise treat as string
-        let json_value = if let Ok(num) = value.parse::<i64>() {
-          serde_json::Value::Number(serde_json::Number::from(num))
-        } else if let Ok(num) = value.parse::<f64>() {
-          serde_json::Number::from_f64(num)
-            .map(serde_json::Value::Number)
-            .unwrap_or_else(|| serde_json::Value::String(value.to_string()))
-        } else if *value == "true" || *value == "false" {
-          serde_json::Value::Bool(*value == "true")
-        } else if value.is_empty() || *value == "NULL" {
-          serde_json::Value::Null
+  /// Helper method to calculate row count from JSON result
+  fn calculate_row_count(&self, json_result: &str) -> u32 {
+    match serde_json::from_str::<serde_json::Value>(json_result) {
+      Ok(serde_json::Value::Array(arr)) => arr.len() as u32,
+      Ok(serde_json::Value::Object(obj)) => {
+        // Check if it's a metadata object with affected_rows
+        if let Some(serde_json::Value::Number(count)) = obj.get("affected_rows") {
+          count.as_u64().unwrap_or(0) as u32
         } else {
-          serde_json::Value::String(value.to_string())
-        };
-
-        obj.insert(header.to_string(), json_value);
+          1 // Single object result
+        }
       }
-      json_objects.push(serde_json::Value::Object(obj));
-    }
-
-    let json_array = serde_json::Value::Array(json_objects);
-    let row_count = (lines.len() - 1) as u32; // Subtract header row
-
-    match serde_json::to_string(&json_array) {
-      Ok(json_string) => Ok((Some(json_string), row_count)),
-      Err(e) => {
-        pg_log!(error, "Failed to serialize JSON: {}", e);
-        Err(database_error(&format!("Failed to serialize JSON: {}", e)))
+      Ok(serde_json::Value::Null) => 0,
+      _ => {
+        pg_log!(debug, "Failed to parse JSON for row count: {}", json_result);
+        0
       }
     }
   }
+
+
 }

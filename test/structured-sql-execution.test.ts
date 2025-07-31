@@ -122,7 +122,7 @@ test('should handle different data types in JSON results', async (t) => {
   t.is(user.active, true)
 })
 
-test('should execute structured SQL with CSV parsing', async (t) => {
+test('should execute structured SQL with JSON parsing', async (t) => {
   const result = await instance.executeSqlStructured(
     'SELECT id, name, age FROM test_users ORDER BY id LIMIT 2',
     'structured_test_db',
@@ -135,6 +135,11 @@ test('should execute structured SQL with CSV parsing', async (t) => {
   const users = JSON.parse(result.data!)
   t.is(Array.isArray(users), true)
   t.is(users.length, 2)
+  
+  // Verify proper JSON types
+  t.is(typeof users[0].id, 'number')
+  t.is(typeof users[0].name, 'string')
+  t.is(typeof users[0].age, 'number')
 })
 
 test('should reject structured SQL execution when instance is not running', async (t) => {

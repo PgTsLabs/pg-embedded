@@ -72,7 +72,7 @@ test.serial('Complete async workflow: setup -> start -> database operations -> s
 
 test.serial('Async Promise behavior validation', async (t) => {
   const instance = new PostgresInstance({
-    port: 5435,
+    port: 0,
     username: 'promiseuser',
     password: 'promisepass',
     persistent: false,
@@ -140,7 +140,7 @@ test.serial('Async error handling', async (t) => {
 
 test.serial('Async concurrent safety', async (t) => {
   const instance = new PostgresInstance({
-    port: 5437,
+    port: 0,
     username: 'concurrentuser',
     password: 'concurrentpass',
     persistent: false,

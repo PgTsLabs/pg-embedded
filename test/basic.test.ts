@@ -16,7 +16,7 @@ test('PostgresInstance can be created with default settings', (t) => {
 
 test('PostgresInstance can be created with custom settings', (t) => {
   const settings: PostgresSettings = {
-    port: 5433,
+    port: 0,
     username: 'testuser',
     password: 'testpass',
     persistent: false,

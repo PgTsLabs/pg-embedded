@@ -318,7 +318,7 @@ test('CRUD: Complex operations with JOINs', async (t) => {
   t.is(deleteJoinResult.rowCount, 3) // All books deleted
 })
 
-test('CRUD: executeSqlStructured for CSV-based operations', async (t) => {
+test('CRUD: executeSqlStructured for JSON-based operations', async (t) => {
   // Create simple table
   await instance.executeSql(
     `
@@ -337,29 +337,30 @@ test('CRUD: executeSqlStructured for CSV-based operations', async (t) => {
     'crud_comprehensive_db',
   )
 
-  // Test CSV-based structured query
-  const csvResult = await instance.executeSqlStructured(
+  // Test JSON-based structured query
+  const jsonResult = await instance.executeSqlStructured(
     'SELECT id, name, value, active FROM items ORDER BY value',
     'crud_comprehensive_db',
   )
 
-  t.is(csvResult.success, true)
-  t.is(csvResult.rowCount, 3)
+  t.is(jsonResult.success, true)
+  t.is(jsonResult.rowCount, 3)
 
-  const items = JSON.parse(csvResult.data!)
+  const items = JSON.parse(jsonResult.data!)
   t.is(items.length, 3)
 
-  // CSV parsing returns strings, so we need to handle type conversion
+  // JSON parsing returns proper types
   t.is(items[0].name, 'Item 1')
-  t.is(parseFloat(items[0].value), 10.5)
-  t.is(items[0].active, 't') // PostgreSQL CSV format for boolean
+  t.is(items[0].value, 10.5) // Proper number type
+  t.is(items[0].active, true) // Proper boolean type
 
   t.is(items[1].name, 'Item 3')
-  t.is(parseFloat(items[1].value), 15.25)
+  t.is(items[1].value, 15.25)
+  t.is(items[1].active, true)
 
   t.is(items[2].name, 'Item 2')
-  t.is(parseFloat(items[2].value), 20.75)
-  t.is(items[2].active, 'f') // PostgreSQL CSV format for boolean
+  t.is(items[2].value, 20.75)
+  t.is(items[2].active, false) // Proper boolean type
 })
 
 test('CRUD: Error handling for invalid operations', async (t) => {

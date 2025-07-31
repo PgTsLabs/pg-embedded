@@ -338,21 +338,27 @@ export declare class PostgresInstance {
   /**
    * Executes a SQL query and returns results as JSON array
    *
-   * This is a convenience method that directly returns JSON-formatted results.
-   * It uses PostgreSQL's built-in JSON functions for better performance.
+   * This method handles all types of SQL statements and returns consistent JSON results:
+   * - SELECT: Returns array of row objects
+   * - INSERT/UPDATE/DELETE with RETURNING: Returns array of returned rows
+   * - INSERT/UPDATE/DELETE without RETURNING: Returns metadata (affected rows, etc.)
+   * - DDL statements: Returns execution status
    *
-   * @param sql - The SQL query to execute (should be a SELECT statement)
+   * @param sql - The SQL query to execute
    * @param database - Optional database name (defaults to "postgres")
    * @returns Promise that resolves to a StructuredSqlResult with JSON array data
    * @throws Error if the instance is not running or if SQL execution fails
    *
    * @example
    * ```typescript
-   * const result = await instance.executeSqlJson('SELECT id, name FROM users LIMIT 10;');
-   * if (result.success && result.data) {
-   *   const users = JSON.parse(result.data);
-   *   console.log('Users:', users);
-   * }
+   * // SELECT query
+   * const users = await instance.executeSqlJson('SELECT id, name FROM users LIMIT 10;');
+   *
+   * // INSERT with RETURNING
+   * const newUser = await instance.executeSqlJson('INSERT INTO users (name) VALUES ($1) RETURNING *;', ['John']);
+   *
+   * // UPDATE without RETURNING
+   * const updateResult = await instance.executeSqlJson('UPDATE users SET active = true WHERE id = 1;');
    * ```
    */
   executeSqlJson(sql: string, database?: string | undefined | null): Promise<StructuredSqlResult>
@@ -458,7 +464,7 @@ export declare const enum InstanceState {
   /** Running */
   Running = 2,
   /** Stopping */
-  Stopping = 3,
+  Stopping = 3
 }
 
 /** Log debug message */
@@ -481,7 +487,7 @@ export declare const enum LogLevel {
   /** Debug level */
   Debug = 3,
   /** Trace level */
-  Trace = 4,
+  Trace = 4
 }
 
 /** Log trace message */
@@ -505,7 +511,7 @@ export declare const enum PostgresError {
   /** Connection error */
   ConnectionError = 5,
   /** Timeout error */
-  TimeoutError = 6,
+  TimeoutError = 6
 }
 
 /** PostgreSQL error information structure */
