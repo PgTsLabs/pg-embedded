@@ -36,16 +36,21 @@ fn set_build_env_vars() {
 }
 
 fn set_postgresql_version() {
-  // The postgresql_embedded crate version 0.19.0 typically bundles PostgreSQL 15.4
-  // We can set this based on known mappings or try to detect it
-
-  let postgresql_version = match env::var("CARGO_PKG_VERSION_MAJOR") {
-    Ok(_) => {
-      // Based on postgresql_embedded 0.19.0, it typically uses PostgreSQL 15.4
-      // This mapping should be updated when the dependency is updated
-      "15.4"
+  // Try to get PostgreSQL version from environment variable (set by CI)
+  let postgresql_version = if let Ok(version) = env::var("POSTGRESQL_VERSION") {
+    version
+  } else {
+    // Try to extract from package version (format: x.y.z+pgA.B.C)
+    if let Ok(pkg_version) = env::var("CARGO_PKG_VERSION") {
+      if let Some(pg_part) = pkg_version.split("+pg").nth(1) {
+        pg_part.to_string()
+      } else {
+        // Fallback: based on postgresql_embedded 0.19.0, it typically uses PostgreSQL 17.x
+        "17.5".to_string()
+      }
+    } else {
+      "17.5".to_string() // Updated fallback to match current version
     }
-    Err(_) => "15.4", // fallback
   };
 
   println!("cargo:rustc-env=POSTGRESQL_VERSION={postgresql_version}");

@@ -43,8 +43,6 @@ struct ConnectionInfoCache {
 pub struct PostgresInstance {
   /// Async instance (lazy initialized)
   async_instance: Option<postgresql_embedded::PostgreSQL>,
-  /// Sync instance (lazy initialized)
-  blocking_instance: Option<postgresql_embedded::blocking::PostgreSQL>,
   /// Configuration settings
   settings: postgresql_embedded::Settings,
   /// Instance state
@@ -57,10 +55,17 @@ pub struct PostgresInstance {
   config_hash: String,
   /// Startup time recording
   startup_time: Arc<Mutex<Option<Duration>>>,
+  /// Flag to track if cleanup has been called explicitly
+  cleaned_up: bool,
 }
 
 impl Drop for PostgresInstance {
   fn drop(&mut self) {
+    // If cleanup was already called, do nothing.
+    if self.cleaned_up {
+      return;
+    }
+
     pg_log!(
       info,
       "Dropping PostgresInstance {} - cleaning up resources",
@@ -76,24 +81,6 @@ impl Drop for PostgresInstance {
       );
       // Note: We can't use async in Drop, so we just log here
       // Actual cleanup will be handled by postgresql_embedded library's Drop implementation
-    }
-
-    // Try to stop sync instance
-    if let Some(instance) = self.blocking_instance.take() {
-      pg_log!(
-        debug,
-        "Cleaning up blocking PostgreSQL instance for {}",
-        self.instance_id
-      );
-      // Try synchronous stop
-      if let Err(e) = instance.stop() {
-        pg_log!(
-          warn,
-          "Failed to stop PostgreSQL instance {} during cleanup: {}",
-          self.instance_id,
-          e
-        );
-      }
     }
 
     // Update state to stopped
@@ -146,13 +133,13 @@ impl PostgresInstance {
 
     Ok(Self {
       async_instance: None,
-      blocking_instance: None,
       settings: embedded_settings,
       state: Arc::new(Mutex::new(InstanceState::Stopped)),
       instance_id,
       connection_cache: Arc::new(Mutex::new(None)),
       config_hash,
       startup_time: Arc::new(Mutex::new(None)),
+      cleaned_up: false,
     })
   }
 
@@ -298,9 +285,8 @@ impl PostgresInstance {
       InstanceState::Running => {
         // Check if instance is actually running
         let has_async = self.async_instance.is_some();
-        let has_blocking = self.blocking_instance.is_some();
 
-        Ok(has_async || has_blocking)
+        Ok(has_async)
       }
       _ => Ok(false),
     }
@@ -443,21 +429,37 @@ impl PostgresInstance {
    */
   #[napi]
   pub async unsafe fn stop(&mut self) -> napi::Result<()> {
+    self.internal_stop(false).await
+  }
+
+  /// Internal stop implementation with cleanup flag
+  async unsafe fn internal_stop(&mut self, is_cleanup: bool) -> napi::Result<()> {
     let current_state = self.get_state()?;
     match current_state {
       InstanceState::Stopped => {
-        pg_log!(
-          warn,
-          "Attempted to stop already stopped PostgreSQL instance"
-        );
-        return Err(stop_error("PostgreSQL instance is already stopped"));
+        if !is_cleanup {
+          pg_log!(
+            warn,
+            "Attempted to stop already stopped PostgreSQL instance"
+          );
+          return Err(stop_error("PostgreSQL instance is already stopped"));
+        } else {
+          // During cleanup, already stopped is OK
+          return Ok(());
+        }
       }
       InstanceState::Stopping => {
-        pg_log!(
-          warn,
-          "Attempted to stop already stopping PostgreSQL instance"
-        );
-        return Err(stop_error("PostgreSQL instance is already stopping"));
+        if !is_cleanup {
+          pg_log!(
+            warn,
+            "Attempted to stop already stopping PostgreSQL instance"
+          );
+          return Err(stop_error("PostgreSQL instance is already stopping"));
+        } else {
+          // During cleanup, wait for stopping to complete
+          pg_log!(debug, "Instance is stopping, waiting during cleanup");
+          return Ok(());
+        }
       }
       _ => {}
     }
@@ -474,14 +476,25 @@ impl PostgresInstance {
         }
         Err(e) => {
           pg_log!(error, "Failed to stop PostgreSQL instance: {}", e);
-          self.set_state(InstanceState::Running)?;
-          Err(convert_postgresql_error(e))
+          if !is_cleanup {
+            self.set_state(InstanceState::Running)?;
+            Err(convert_postgresql_error(e))
+          } else {
+            // During cleanup, force state to stopped even if stop failed
+            self.set_state(InstanceState::Stopped)?;
+            pg_log!(warn, "Forced state to stopped during cleanup despite error");
+            Ok(())
+          }
         }
       }
     } else {
-      pg_log!(error, "PostgreSQL instance not initialized");
+      pg_log!(debug, "PostgreSQL instance not initialized, setting to stopped");
       self.set_state(InstanceState::Stopped)?;
-      Err(stop_error("PostgreSQL instance not initialized"))
+      if !is_cleanup {
+        Err(stop_error("PostgreSQL instance not initialized"))
+      } else {
+        Ok(())
+      }
     }
   }
 
@@ -581,236 +594,6 @@ impl PostgresInstance {
 
     if let Some(ref instance) = self.async_instance {
       match instance.database_exists(&name).await {
-        Ok(exists) => Ok(exists),
-        Err(e) => Err(convert_postgresql_error(e)),
-      }
-    } else {
-      Err(database_error("PostgreSQL instance not initialized"))
-    }
-  }
-
-  // Synchronous methods
-
-  /**
-   * Sets up the PostgreSQL instance synchronously
-   *
-   * This method initializes the PostgreSQL instance but does not start it.
-   * It's automatically called by startSync() if needed.
-   *
-   * @returns void
-   * @throws Error if setup fails
-   */
-  #[napi]
-  pub fn setup_sync(&mut self) -> napi::Result<()> {
-    self.set_state(InstanceState::Starting)?;
-
-    let mut instance = postgresql_embedded::blocking::PostgreSQL::new(self.settings.clone());
-    match instance.setup() {
-      Ok(_) => {
-        self.blocking_instance = Some(instance);
-        self.set_state(InstanceState::Stopped)?; // Setup完成后设置为Stopped状态，等待start
-        Ok(())
-      }
-      Err(e) => {
-        self.set_state(InstanceState::Stopped)?;
-        Err(convert_postgresql_error(e))
-      }
-    }
-  }
-
-  /**
-   * Starts the PostgreSQL instance synchronously
-   *
-   * This method starts the PostgreSQL server and makes it ready to accept connections.
-   * It includes automatic setup if the instance hasn't been set up yet.
-   *
-   * @returns void
-   * @throws Error if the instance is already running or if startup fails
-   *
-   * @example
-   * ```typescript
-   * instance.startSync();
-   * console.log('PostgreSQL is ready!');
-   * ```
-   */
-  #[napi]
-  pub fn start_sync(&mut self) -> napi::Result<()> {
-    let current_state = self.get_state()?;
-    match current_state {
-      InstanceState::Running => {
-        return Err(start_error("PostgreSQL instance is already running"));
-      }
-      InstanceState::Starting => {
-        return Err(start_error("PostgreSQL instance is already starting"));
-      }
-      _ => {}
-    }
-
-    self.set_state(InstanceState::Starting)?;
-
-    if self.blocking_instance.is_none() {
-      self.setup_sync()?;
-    }
-
-    if let Some(ref mut instance) = self.blocking_instance {
-      match instance.start() {
-        Ok(_) => {
-          let db_settings = instance.settings();
-          self.settings.port = db_settings.port;
-          self.set_state(InstanceState::Running)?;
-          Ok(())
-        }
-        Err(e) => {
-          self.set_state(InstanceState::Stopped)?;
-          Err(convert_postgresql_error(e))
-        }
-      }
-    } else {
-      self.set_state(InstanceState::Stopped)?;
-      Err(start_error("PostgreSQL instance not initialized"))
-    }
-  }
-
-  /**
-   * Stops the PostgreSQL instance synchronously
-   *
-   * This method gracefully shuts down the PostgreSQL server.
-   *
-   * @returns void
-   * @throws Error if the instance is already stopped or if stopping fails
-   *
-   * @example
-   * ```typescript
-   * instance.stopSync();
-   * console.log('PostgreSQL stopped');
-   * ```
-   */
-  #[napi]
-  pub fn stop_sync(&mut self) -> napi::Result<()> {
-    let current_state = self.get_state()?;
-    match current_state {
-      InstanceState::Stopped => {
-        return Err(stop_error("PostgreSQL instance is already stopped"));
-      }
-      InstanceState::Stopping => {
-        return Err(stop_error("PostgreSQL instance is already stopping"));
-      }
-      _ => {}
-    }
-
-    self.set_state(InstanceState::Stopping)?;
-
-    if let Some(ref mut instance) = self.blocking_instance {
-      match instance.stop() {
-        Ok(_) => {
-          self.set_state(InstanceState::Stopped)?;
-          Ok(())
-        }
-        Err(e) => {
-          self.set_state(InstanceState::Running)?;
-          Err(convert_postgresql_error(e))
-        }
-      }
-    } else {
-      self.set_state(InstanceState::Stopped)?;
-      Err(stop_error("PostgreSQL instance not initialized"))
-    }
-  }
-
-  /**
-   * Creates a new database synchronously
-   *
-   * @param name - The name of the database to create
-   * @returns void
-   * @throws Error if the instance is not running or if database creation fails
-   *
-   * @example
-   * ```typescript
-   * instance.createDatabaseSync('myapp');
-   * ```
-   */
-  #[napi]
-  pub fn create_database_sync(&mut self, name: String) -> napi::Result<()> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    if name.is_empty() {
-      return Err(database_error("Database name cannot be empty"));
-    }
-
-    if let Some(ref mut instance) = self.blocking_instance {
-      match instance.create_database(&name) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(convert_postgresql_error(e)),
-      }
-    } else {
-      Err(database_error("PostgreSQL instance not initialized"))
-    }
-  }
-
-  /**
-   * Drops (deletes) a database synchronously
-   *
-   * @param name - The name of the database to drop
-   * @returns void
-   * @throws Error if the instance is not running or if database deletion fails
-   *
-   * @example
-   * ```typescript
-   * instance.dropDatabaseSync('myapp');
-   * ```
-   */
-  #[napi]
-  pub fn drop_database_sync(&mut self, name: String) -> napi::Result<()> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    if name.is_empty() {
-      return Err(database_error("Database name cannot be empty"));
-    }
-
-    if let Some(ref mut instance) = self.blocking_instance {
-      match instance.drop_database(&name) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(convert_postgresql_error(e)),
-      }
-    } else {
-      Err(database_error("PostgreSQL instance not initialized"))
-    }
-  }
-
-  /**
-   * Checks if a database exists synchronously
-   *
-   * @param name - The name of the database to check
-   * @returns true if the database exists, false otherwise
-   * @throws Error if the instance is not running or if the check fails
-   *
-   * @example
-   * ```typescript
-   * const exists = instance.databaseExistsSync('myapp');
-   * if (exists) {
-   *   console.log('Database exists');
-   * }
-   * ```
-   */
-  #[napi]
-  pub fn database_exists_sync(&self, name: String) -> napi::Result<bool> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    if name.is_empty() {
-      return Err(database_error("Database name cannot be empty"));
-    }
-
-    if let Some(ref instance) = self.blocking_instance {
-      match instance.database_exists(&name) {
         Ok(exists) => Ok(exists),
         Err(e) => Err(convert_postgresql_error(e)),
       }
@@ -988,6 +771,7 @@ impl PostgresInstance {
   }
 
   /**
+   * # Safety
    * Manually cleans up all resources associated with this instance
    *
    * This method stops the PostgreSQL instance (if running) and cleans up all resources.
@@ -998,36 +782,45 @@ impl PostgresInstance {
    *
    * @example
    * ```typescript
-   * instance.cleanup();
+   * await instance.cleanup();
    * console.log('Resources cleaned up');
    * ```
    */
   #[napi]
-  pub fn cleanup(&mut self) -> napi::Result<()> {
+  pub async unsafe fn cleanup(&mut self) -> napi::Result<()> {
+    // Prevent double cleanup
+    if self.cleaned_up {
+      pg_log!(debug, "Cleanup already performed, skipping");
+      return Ok(());
+    }
+
     pg_log!(info, "Manually cleaning up PostgreSQL instance resources");
 
-    // Clean up async instance
-    if self.async_instance.take().is_some() {
-      pg_log!(debug, "Cleaned up async PostgreSQL instance");
+    // First try to stop gracefully using internal_stop
+    if let Err(e) = self.internal_stop(true).await {
+      pg_log!(warn, "Graceful stop failed during cleanup: {}", e);
     }
 
-    // Clean up sync instance
-    if let Some(instance) = self.blocking_instance.take() {
-      pg_log!(
-        debug,
-        "Stopping and cleaning up blocking PostgreSQL instance"
-      );
-      if let Err(e) = instance.stop() {
-        pg_log!(
-          warn,
-          "Failed to stop PostgreSQL instance during cleanup: {}",
-          e
-        );
-      }
+    // Then take ownership of the instance to ensure it's dropped
+    if let Some(instance) = self.async_instance.take() {
+      pg_log!(debug, "Taking ownership of PostgreSQL instance for cleanup");
+      // The instance will be dropped here, which should handle cleanup
+      drop(instance);
     }
 
-    // Update state
+    // Clear connection cache
+    if let Ok(mut cache) = self.connection_cache.lock() {
+      *cache = None;
+    }
+
+    // Clear startup time
+    if let Ok(mut startup_time) = self.startup_time.lock() {
+      *startup_time = None;
+    }
+
+    // Ensure final state is stopped
     self.set_state(InstanceState::Stopped)?;
+    self.cleaned_up = true;
 
     pg_log!(info, "Manual cleanup completed");
     Ok(())
