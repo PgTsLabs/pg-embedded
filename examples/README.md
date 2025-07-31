@@ -4,7 +4,25 @@ This directory contains practical examples demonstrating how to use pg-embedded 
 
 ## Available Examples
 
-### 1. [async-example.js](async-example.js)
+### 1. [simple-example.js](simple-example.js)
+
+**Quick start example**
+
+This minimal example shows:
+
+- Basic instance creation and configuration
+- Starting and stopping PostgreSQL
+- Creating and managing databases
+- Connection information access
+- Proper cleanup
+
+**Run with:**
+
+```bash
+node examples/simple-example.js
+```
+
+### 2. [async-example.js](async-example.js)
 
 **Comprehensive async/await usage example**
 
@@ -22,25 +40,6 @@ This example demonstrates:
 
 ```bash
 node examples/async-example.js
-```
-
-### 2. [sync-example.js](sync-example.js)
-
-**Synchronous API usage example**
-
-This example shows:
-
-- Synchronous instance management
-- Sync database operations
-- State management and health checks
-- Performance testing patterns
-- Error handling in sync context
-- Resource cleanup
-
-**Run with:**
-
-```bash
-node examples/sync-example.js
 ```
 
 ### 3. [testing-example.js](testing-example.js)
@@ -79,11 +78,11 @@ pnpm run build
 ### Running Individual Examples
 
 ```bash
+# Run simple example
+node examples/simple-example.js
+
 # Run async example
 node examples/async-example.js
-
-# Run sync example
-node examples/sync-example.js
 
 # Run testing example
 node examples/testing-example.js
@@ -118,7 +117,7 @@ try {
   // Use the database...
   await postgres.stop()
 } finally {
-  postgres.cleanup()
+  await postgres.cleanup()
 }
 ```
 
@@ -135,7 +134,7 @@ beforeAll(async () => {
 // Cleanup
 afterAll(async () => {
   await postgres.stop()
-  postgres.cleanup()
+  await postgres.cleanup()
 })
 
 // Test isolation
@@ -188,7 +187,7 @@ Start a local PostgreSQL instance for development:
 const postgres = new PostgresInstance({
   port: 5432,
   persistent: true, // Keep data between runs
-  data_dir: './dev-data',
+  dataDir: './dev-data',
 })
 ```
 

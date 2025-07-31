@@ -1,4 +1,6 @@
 import test from 'ava'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import {
   getVersionInfo,
   getPostgreSqlVersion,
@@ -95,8 +97,20 @@ test('version information is consistent', (t) => {
 test('version information contains expected PostgreSQL version', (t) => {
   const pgVersion = getPostgreSqlVersion()
 
-  // Based on postgresql_embedded 0.19.0, we expect PostgreSQL 15.x
-  t.true(pgVersion.startsWith('15.'), `Expected PostgreSQL 15.x, got ${pgVersion}`)
+  // Dynamically extract expected PostgreSQL version from package.json
+  const packageJsonPath = join(process.cwd(), 'package.json')
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+  const packageVersion = packageJson.version
+
+  // Extract PostgreSQL version from package version (format: x.y.z+pgA.B)
+  const pgVersionMatch = packageVersion.match(/\+pg(\d+\.\d+)/)
+  if (!pgVersionMatch) {
+    t.fail(`Could not extract PostgreSQL version from package version: ${packageVersion}`)
+    return
+  }
+
+  const expectedPgVersion = pgVersionMatch[1]
+  t.true(pgVersion.startsWith(expectedPgVersion), `Expected PostgreSQL ${expectedPgVersion}, got ${pgVersion}`)
 })
 
 test('build information contains valid data', (t) => {

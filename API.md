@@ -81,7 +81,26 @@ Gets the unique identifier for this PostgreSQL instance.
 console.log(`Instance ID: ${instance.instanceId}`)
 ```
 
-### Async Methods
+### Methods
+
+#### `setup(): Promise<void>`
+
+Sets up the PostgreSQL instance asynchronously. This method initializes the PostgreSQL instance but does not start it. It's automatically called by start() if needed.
+
+**Throws:**
+
+- Error if setup fails
+
+**Example:**
+
+```typescript
+try {
+  await instance.setup()
+  console.log('PostgreSQL setup completed')
+} catch (error) {
+  console.error('Failed to setup:', error.message)
+}
+```
 
 #### `start(): Promise<void>`
 
@@ -252,129 +271,6 @@ try {
 }
 ```
 
-### Sync Methods
-
-#### `startSync(): void`
-
-Starts the PostgreSQL instance synchronously.
-
-**Throws:**
-
-- Error if the instance is already running or starting
-- Error if startup fails
-
-**Example:**
-
-```typescript
-try {
-  instance.startSync()
-  console.log('PostgreSQL started successfully')
-} catch (error) {
-  console.error('Failed to start:', error.message)
-}
-```
-
-#### `stopSync(): void`
-
-Stops the PostgreSQL instance synchronously.
-
-**Throws:**
-
-- Error if the instance is already stopped or stopping
-- Error if stopping fails
-
-**Example:**
-
-```typescript
-try {
-  instance.stopSync()
-  console.log('PostgreSQL stopped successfully')
-} catch (error) {
-  console.error('Failed to stop:', error.message)
-}
-```
-
-#### `createDatabaseSync(name: string): void`
-
-Creates a new database synchronously.
-
-**Parameters:**
-
-- `name`: The name of the database to create
-
-**Throws:**
-
-- Error if the instance is not running
-- Error if database creation fails
-- Error if database name is empty
-
-**Example:**
-
-```typescript
-try {
-  instance.createDatabaseSync('myapp')
-  console.log('Database created successfully')
-} catch (error) {
-  console.error('Failed to create database:', error.message)
-}
-```
-
-#### `dropDatabaseSync(name: string): void`
-
-Drops (deletes) a database synchronously.
-
-**Parameters:**
-
-- `name`: The name of the database to drop
-
-**Throws:**
-
-- Error if the instance is not running
-- Error if database deletion fails
-- Error if database name is empty
-
-**Example:**
-
-```typescript
-try {
-  instance.dropDatabaseSync('myapp')
-  console.log('Database dropped successfully')
-} catch (error) {
-  console.error('Failed to drop database:', error.message)
-}
-```
-
-#### `databaseExistsSync(name: string): boolean`
-
-Checks if a database exists synchronously.
-
-**Parameters:**
-
-- `name`: The name of the database to check
-
-**Returns:** `true` if the database exists, `false` otherwise
-
-**Throws:**
-
-- Error if the instance is not running
-- Error if the check fails
-- Error if database name is empty
-
-**Example:**
-
-```typescript
-try {
-  const exists = instance.databaseExistsSync('myapp')
-  if (exists) {
-    console.log('Database exists')
-  } else {
-    console.log('Database does not exist')
-  }
-} catch (error) {
-  console.error('Failed to check database:', error.message)
-}
-```
-
 ### Utility Methods
 
 #### `isHealthy(): boolean`
@@ -450,14 +346,14 @@ if (instance.isConnectionCacheValid()) {
 }
 ```
 
-#### `cleanup(): void`
+#### `cleanup(): Promise<void>`
 
 Manually cleans up all resources associated with this instance. This method stops the PostgreSQL instance (if running) and cleans up all resources. It's automatically called when the instance is garbage collected, but can be called manually for immediate cleanup.
 
 **Example:**
 
 ```typescript
-instance.cleanup()
+await instance.cleanup()
 console.log('Resources cleaned up')
 ```
 
@@ -471,10 +367,11 @@ interface PostgresSettings {
   port?: number
   username?: string
   password?: string
-  database_name?: string
-  data_dir?: string
-  installation_dir?: string
+  databaseName?: string
+  dataDir?: string
+  installationDir?: string
   timeout?: number
+  setupTimeout?: number
   persistent?: boolean
 }
 ```
@@ -537,7 +434,7 @@ const settings: PostgresSettings = {
 }
 ```
 
-#### `database_name?: string`
+#### `databaseName?: string`
 
 Default database name.
 
@@ -547,11 +444,11 @@ Default database name.
 
 ```typescript
 const settings: PostgresSettings = {
-  database_name: 'mydefaultdb',
+  databaseName: 'mydefaultdb',
 }
 ```
 
-#### `data_dir?: string`
+#### `dataDir?: string`
 
 Custom data directory path. If not specified, a temporary directory will be used.
 
@@ -561,11 +458,11 @@ Custom data directory path. If not specified, a temporary directory will be used
 
 ```typescript
 const settings: PostgresSettings = {
-  data_dir: '/path/to/data',
+  dataDir: '/path/to/data',
 }
 ```
 
-#### `installation_dir?: string`
+#### `installationDir?: string`
 
 Custom installation directory path. If not specified, PostgreSQL will be installed in a default location.
 
@@ -575,13 +472,13 @@ Custom installation directory path. If not specified, PostgreSQL will be install
 
 ```typescript
 const settings: PostgresSettings = {
-  installation_dir: '/path/to/postgres',
+  installationDir: '/path/to/postgres',
 }
 ```
 
 #### `timeout?: number`
 
-Timeout in seconds for various operations.
+Timeout in seconds for database operations.
 
 **Default:** 30
 
@@ -590,6 +487,20 @@ Timeout in seconds for various operations.
 ```typescript
 const settings: PostgresSettings = {
   timeout: 60,
+}
+```
+
+#### `setupTimeout?: number`
+
+Setup timeout in seconds for PostgreSQL initialization.
+
+**Default:** 300 on Windows, 30 on other platforms
+
+**Example:**
+
+```typescript
+const settings: PostgresSettings = {
+  setupTimeout: 120,
 }
 ```
 
@@ -617,7 +528,7 @@ interface ConnectionInfo {
   port: number
   username: string
   password: string
-  database: string
+  databaseName: string
   connectionString: string
 }
 ```
@@ -640,7 +551,7 @@ The username for connecting to the database.
 
 The password for connecting to the database.
 
-#### `database: string`
+#### `databaseName: string`
 
 The default database name.
 
@@ -654,6 +565,7 @@ A complete PostgreSQL connection string that can be used with database clients.
 const info = instance.connectionInfo
 console.log(`Host: ${info.host}`)
 console.log(`Port: ${info.port}`)
+console.log(`Database: ${info.databaseName}`)
 console.log(`Connection String: ${info.connectionString}`)
 
 // Use with a PostgreSQL client
@@ -838,7 +750,7 @@ try {
      console.error('Error:', error.message)
    } finally {
      if (instance) {
-       instance.cleanup()
+       await instance.cleanup()
      }
    }
    ```

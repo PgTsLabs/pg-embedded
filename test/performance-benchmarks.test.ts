@@ -14,9 +14,9 @@ async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30)
 }
 
 // Helper function: Safely cleanup instance
-function safeCleanupInstance(instance: PostgresInstance) {
+async function safeCleanupInstance(instance: PostgresInstance) {
   try {
-    instance.cleanup()
+    await instance.cleanup()
   } catch (error) {
     console.warn(`Error cleaning up instance: ${error}`)
   }
@@ -53,7 +53,7 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
         // Cleanup failed instance
         try {
           await safeStopInstance(instance)
-          safeCleanupInstance(instance)
+          await safeCleanupInstance(instance)
         } catch (cleanupError) {
           console.warn('Error cleaning up failed instance:', cleanupError)
         }
@@ -130,7 +130,7 @@ test.serial('Performance: Startup time benchmark', async (t) => {
       // Skip this iteration on failure but don't fail the entire test
       continue
     } finally {
-      safeCleanupInstance(instance)
+      await safeCleanupInstance(instance)
     }
   }
 
@@ -344,7 +344,7 @@ test.serial('Performance: Memory usage monitoring', async (t) => {
         console.warn(`Error stopping instance: ${error}`)
       }
       try {
-        instance.cleanup()
+        await instance.cleanup()
       } catch (cleanupError) {
         console.warn(`Error cleaning up instance: ${cleanupError}`)
       }
@@ -540,9 +540,10 @@ test.serial('Performance: Concurrent performance test', async (t) => {
   } finally {
     // Ensure cleanup of all instances
     console.log('Cleaning up all concurrent instances...')
-    instances.forEach((instance) => {
-      instance.cleanup()
+    const cleanupPromises = instances.map(async (instance) => {
+      await instance.cleanup()
     })
+    await Promise.all(cleanupPromises)
   }
 })
 
@@ -592,7 +593,7 @@ test.serial('Performance: Connection info caching test', async (t) => {
 
     await safeStopInstance(instance)
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
   }
 })
 test.serial('Performance: Long-running stability test', async (t) => {
@@ -817,7 +818,7 @@ test.serial('Performance: Long-running stability test', async (t) => {
     await safeStopInstance(instance)
     t.is(instance.state, InstanceState.Stopped)
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
   }
 })
 test.serial('Performance: Configuration hash consistency test', async (t) => {
@@ -867,9 +868,9 @@ test.serial('Performance: Configuration hash consistency test', async (t) => {
     t.true(hash1.length > 0, 'Hash should not be empty')
     t.true(hash1.length <= 32, 'Hash length should be reasonable')
   } finally {
-    instance1.cleanup()
-    instance2.cleanup()
-    instance3.cleanup()
+    await instance1.cleanup()
+    await instance2.cleanup()
+    await instance3.cleanup()
   }
 })
 
@@ -1078,7 +1079,7 @@ test.serial('Performance: Connection info caching performance test', async (t) =
 
     await safeStopInstance(instance)
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
   }
 })
 
@@ -1142,11 +1143,13 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     const forceCleanupStartTime = process.hrtime.bigint()
 
     const remainingInstances = instances.slice(Math.floor(instanceCount / 2))
-    remainingInstances.forEach((instance, index) => {
+    const cleanupPromises = remainingInstances.map(async (instance, index) => {
       // Call cleanup directly without stopping first
-      instance.cleanup()
+      await instance.cleanup()
       t.is(instance.state, InstanceState.Stopped, `Instance ${index} should be stopped after force cleanup`)
     })
+    
+    await Promise.all(cleanupPromises)
 
     const forceCleanupTime = process.hrtime.bigint() - forceCleanupStartTime
     console.log(`Force cleanup time: ${Number(forceCleanupTime) / 1e6}ms`)
@@ -1199,13 +1202,14 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
     }
   } finally {
     // Ensure all instances are cleaned up
-    instances.forEach((instance) => {
+    const cleanupPromises = instances.map(async (instance) => {
       try {
-        instance.cleanup()
+        await instance.cleanup()
       } catch (error) {
         console.warn(`Error cleaning up instance: ${error}`)
       }
     })
+    await Promise.all(cleanupPromises)
   }
 })
 
@@ -1239,7 +1243,7 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
 
       await safeStopInstance(instance)
     } finally {
-      safeCleanupInstance(instance)
+      await safeCleanupInstance(instance)
     }
   }
 
@@ -1267,7 +1271,7 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
       t.is(warmInstance.state, InstanceState.Stopped)
     }
   } finally {
-    warmInstance.cleanup()
+    await warmInstance.cleanup()
   }
 
   // Analyze results
@@ -1310,6 +1314,6 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
 
     await safeStopInstance(lastColdInstance)
   } finally {
-    safeCleanupInstance(lastColdInstance)
+    await safeCleanupInstance(lastColdInstance)
   }
 })

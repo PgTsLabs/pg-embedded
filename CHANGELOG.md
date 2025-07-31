@@ -7,13 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING**: Removed all synchronous API methods - now async-only
+- Updated `PostgresSettings` interface property names to camelCase (`databaseName`, `dataDir`, `installationDir`)
+- Updated `ConnectionInfo` interface property name to `databaseName`
+- `cleanup()` method is now async and returns `Promise<void>`
+- Updated all documentation and examples to reflect async-only API
+
+### Added
+- `setup()` method for explicit PostgreSQL instance setup
+- `setupTimeout` configuration option for PostgreSQL initialization timeout
+
 ## [0.1.0] - 2025-07-29
 
 ### Added
 
 - Initial release of pg-embedded
 - PostgreSQL embedded instance management
-- Both synchronous and asynchronous API support
+- Asynchronous API with full async/await support
 - Comprehensive TypeScript type definitions
 - Automatic resource cleanup and management
 - Connection information caching for performance
@@ -40,8 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PostgresSettings` interface for configuration
 - `ConnectionInfo` interface for connection details
 - `InstanceState` enum for state tracking
-- Async methods: `start()`, `stop()`, `createDatabase()`, `dropDatabase()`, `databaseExists()`
-- Sync methods: `startSync()`, `stopSync()`, `createDatabaseSync()`, `dropDatabaseSync()`, `databaseExistsSync()`
+- Async methods: `setup()`, `start()`, `stop()`, `createDatabase()`, `dropDatabase()`, `databaseExists()`, `cleanup()`
 - Utility methods: `isHealthy()`, `getStartupTime()`, `cleanup()`
 - Timeout methods: `startWithTimeout()`, `stopWithTimeout()`
 

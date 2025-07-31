@@ -48,7 +48,7 @@ async function asyncExample() {
     console.log(`   Host: ${connectionInfo.host}`)
     console.log(`   Port: ${connectionInfo.port}`)
     console.log(`   Username: ${connectionInfo.username}`)
-    console.log(`   Database: ${connectionInfo.database}`)
+    console.log(`   Database: ${connectionInfo.databaseName}`)
     console.log(`   Connection String: ${connectionInfo.connectionString}`)
 
     // Test connection cache
@@ -128,7 +128,7 @@ async function asyncExample() {
       console.warn('⚠️  Warning during stop:', error.message)
     }
 
-    postgres.cleanup()
+    await postgres.cleanup()
     console.log('✅ Resources cleaned up')
   }
 

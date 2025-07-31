@@ -6,7 +6,7 @@ A Node.js library for running embedded PostgreSQL instances. This library provid
 
 - 🚀 **Easy to use**: Simple API for starting and managing PostgreSQL instances
 - ⚡ **Fast startup**: Optimized for quick instance initialization
-- 🔄 **Both sync and async**: Support for both synchronous and asynchronous operations
+- 🔄 **Async operations**: Full async/await support for non-blocking operations
 - 🛡️ **Type-safe**: Full TypeScript support with comprehensive type definitions
 - 🧹 **Automatic cleanup**: Built-in resource management and cleanup
 - 📊 **Performance monitoring**: Built-in startup time tracking and health checks
@@ -20,8 +20,6 @@ npm install pg-embedded
 ```
 
 ## Quick Start
-
-### Async/Await (Recommended)
 
 ```typescript
 import { PostgresInstance } from 'pg-embedded'
@@ -58,39 +56,11 @@ async function example() {
     await postgres.stop()
   } finally {
     // Clean up resources
-    postgres.cleanup()
+    await postgres.cleanup()
   }
 }
 
 example().catch(console.error)
-```
-
-### Synchronous API
-
-```typescript
-import { PostgresInstance } from 'pg-embedded'
-
-const postgres = new PostgresInstance({
-  port: 5433,
-  username: 'testuser',
-  password: 'testpass',
-})
-
-try {
-  // Start synchronously
-  postgres.startSync()
-  console.log('PostgreSQL started!')
-
-  // Database operations
-  postgres.createDatabaseSync('testdb')
-  const exists = postgres.databaseExistsSync('testdb')
-  console.log(`Database exists: ${exists}`)
-
-  // Stop synchronously
-  postgres.stopSync()
-} finally {
-  postgres.cleanup()
-}
 ```
 
 ## Configuration Options
@@ -102,7 +72,7 @@ interface PostgresSettings {
   /** PostgreSQL version (e.g., "15.0", ">=14.0") */
   version?: string
 
-  /** Port number (1-65535, default: 5432) */
+  /** Port number (0-65535, default: 5432, 0 for random) */
   port?: number
 
   /** Username for database connection (default: "postgres") */
@@ -112,16 +82,19 @@ interface PostgresSettings {
   password?: string
 
   /** Default database name (default: "postgres") */
-  database_name?: string
+  databaseName?: string
 
   /** Custom data directory path */
-  data_dir?: string
+  dataDir?: string
 
   /** Custom installation directory path */
-  installation_dir?: string
+  installationDir?: string
 
-  /** Timeout in seconds (default: 30) */
+  /** Timeout in seconds for database operations (default: 30) */
   timeout?: number
+
+  /** Setup timeout in seconds for PostgreSQL initialization (default: 300 on Windows, 30 on other platforms) */
+  setupTimeout?: number
 
   /** Whether to persist data between runs (default: false) */
   persistent?: boolean
@@ -146,8 +119,9 @@ Creates a new PostgreSQL instance with the specified settings.
 - `connectionInfo: ConnectionInfo` - Connection information (only available when running)
 - `instanceId: string` - Unique identifier for this instance
 
-#### Async Methods
+#### Methods
 
+- `setup(): Promise<void>` - Set up the PostgreSQL instance (called automatically by start)
 - `start(): Promise<void>` - Start the PostgreSQL instance
 - `stop(): Promise<void>` - Stop the PostgreSQL instance
 - `startWithTimeout(seconds: number): Promise<void>` - Start with timeout
@@ -156,23 +130,15 @@ Creates a new PostgreSQL instance with the specified settings.
 - `dropDatabase(name: string): Promise<void>` - Drop a database
 - `databaseExists(name: string): Promise<boolean>` - Check if database exists
 
-#### Sync Methods
-
-- `startSync(): void` - Start the PostgreSQL instance synchronously
-- `stopSync(): void` - Stop the PostgreSQL instance synchronously
-- `createDatabaseSync(name: string): void` - Create a database synchronously
-- `dropDatabaseSync(name: string): void` - Drop a database synchronously
-- `databaseExistsSync(name: string): boolean` - Check if database exists synchronously
-
 #### Utility Methods
 
 - `isHealthy(): boolean` - Check if the instance is healthy
 - `getStartupTime(): number | null` - Get startup time in seconds
 - `getConfigHash(): string` - Get configuration hash
-- `getPostgreSQLVersion(): string` - Get PostgreSQL version
+- `getPostgreSqlVersion(): string` - Get PostgreSQL version
 - `clearConnectionCache(): void` - Clear connection info cache
 - `isConnectionCacheValid(): boolean` - Check if connection cache is valid
-- `cleanup(): void` - Manually clean up resources
+- `cleanup(): Promise<void>` - Manually clean up resources
 
 ### Version Information
 
@@ -188,7 +154,7 @@ interface ConnectionInfo {
   port: number
   username: string
   password: string
-  database: string
+  databaseName: string
   connectionString: string
 }
 ```
@@ -226,7 +192,7 @@ describe('Database Tests', () => {
 
   afterAll(async () => {
     await postgres.stop()
-    postgres.cleanup()
+    await postgres.cleanup()
   })
 
   beforeEach(async () => {
@@ -260,7 +226,7 @@ describe('Database Tests', function () {
 
   after(async function () {
     await postgres.stop()
-    postgres.cleanup()
+    await postgres.cleanup()
   })
 
   it('should handle database operations', async function () {

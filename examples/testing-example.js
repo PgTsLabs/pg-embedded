@@ -65,7 +65,7 @@ class DatabaseTestSuite {
       }
 
       await this.postgres.stop()
-      this.postgres.cleanup()
+      await this.postgres.cleanup()
       console.log('✅ Test database instance stopped')
     }
   }
