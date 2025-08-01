@@ -32,6 +32,8 @@ test.before(async (t) => {
   })
 
   // Create a test table with some data
+  await psql.executeCommand('CREATE SCHEMA IF NOT EXISTS test_schema;')
+  await psql.executeCommand('SET search_path TO test_schema;')
   await psql.executeCommand('CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));')
   await psql.executeCommand("INSERT INTO test_table (name) VALUES ('test1'), ('test2');")
 
@@ -110,4 +112,51 @@ test('should dump only schema', async (t) => {
   t.is(result.exitCode, 0)
   t.true(result.stdout.includes('CREATE TABLE'))
   t.false(result.stdout.includes('COPY'))
+})
+
+test('should return dump as string when calling executeToString', async (t) => {
+  const dumpFile = path.resolve(__dirname, 'assets', 'dump_to_string.sql')
+  const dumpTool = new PgDumpTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    file: dumpFile, // this should be ignored
+    programDir: path.join(t.context.pg.programDir, 'bin'),
+    create: true,
+  })
+  const result = await dumpTool.executeToString()
+  t.is(result.exitCode, 0)
+  t.true(result.stdout.includes('CREATE DATABASE test_db'))
+})
+
+test('should exclude a specific table from the dump', async (t) => {
+  const dumpTool = new PgDumpTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    excludeTable: 'public.test_table', // Table is actually in public schema
+    programDir: path.join(t.context.pg.programDir, 'bin'),
+  })
+  const result = await dumpTool.executeToString()
+  t.is(result.exitCode, 0)
+
+  // Check that the table definition is not included
+  t.false(
+    result.stdout.includes('CREATE TABLE public.test_table'),
+    'The dump should not include the excluded table definition',
+  )
+  // Check that the table data is not included
+  t.false(result.stdout.includes('test1'), 'The dump should not include data from the excluded table')
+  t.false(result.stdout.includes('test2'), 'The dump should not include data from the excluded table')
+
+  // The sequence might still be there, but that's expected behavior for pg_dump
+  // We mainly care that the table structure and data are excluded
 })
