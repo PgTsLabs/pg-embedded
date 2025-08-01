@@ -1,0 +1,113 @@
+import anyTest, { type TestFn } from 'ava'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { PgDumpTool, PostgresInstance } from '../index.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const test = anyTest as TestFn<{ pg: PostgresInstance; pgDump: PgDumpTool }>
+
+test.before(async (t) => {
+  const pg = new PostgresInstance({
+    databaseName: 'test_db',
+    username: 'postgres',
+    password: 'password',
+    port: 54321,
+  })
+  await pg.start()
+
+  // Create the test database that we want to dump
+  await pg.createDatabase('test_db')
+
+  // Create some test data in the database
+  const { PsqlTool } = await import('../index.js')
+  const psql = new PsqlTool({
+    connection: {
+      host: pg.connectionInfo.host,
+      port: pg.connectionInfo.port,
+      username: pg.connectionInfo.username,
+      password: pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    programDir: path.join(pg.programDir, 'bin'),
+  })
+
+  // Create a test table with some data
+  await psql.executeCommand('CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));')
+  await psql.executeCommand("INSERT INTO test_table (name) VALUES ('test1'), ('test2');")
+
+  t.context.pg = pg
+})
+
+test.after.always(async (t) => {
+  await t.context.pg.stop()
+})
+
+test('should dump database to a file', async (t) => {
+  const dumpFile = path.resolve(__dirname, 'assets', 'dump.sql')
+  const dumpTool = new PgDumpTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    file: dumpFile,
+    programDir: path.join(t.context.pg.programDir, 'bin'),
+  })
+  const result = await dumpTool.execute()
+  t.is(result.exitCode, 0)
+  // Further checks could be added to verify the file content
+})
+
+test('should return dump as string', async (t) => {
+  const dumpTool = new PgDumpTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    programDir: path.join(t.context.pg.programDir, 'bin'),
+    create: true,
+  })
+  const result = await dumpTool.execute()
+  t.is(result.exitCode, 0)
+  t.true(result.stdout.includes('CREATE DATABASE test_db'))
+})
+
+test('should dump only data', async (t) => {
+  const dumpTool = new PgDumpTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    dataOnly: true,
+    programDir: path.join(t.context.pg.programDir, 'bin'),
+  })
+  const result = await dumpTool.execute()
+  t.is(result.exitCode, 0)
+  t.false(result.stdout.includes('CREATE TABLE'))
+})
+
+test('should dump only schema', async (t) => {
+  const dumpTool = new PgDumpTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    schemaOnly: true,
+    programDir: path.join(t.context.pg.programDir, 'bin'),
+  })
+  const result = await dumpTool.execute()
+  t.is(result.exitCode, 0)
+  t.true(result.stdout.includes('CREATE TABLE'))
+  t.false(result.stdout.includes('COPY'))
+})
