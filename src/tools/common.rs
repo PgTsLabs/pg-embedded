@@ -1,10 +1,10 @@
 use crate::types::ConnectionInfo;
 use napi_derive::napi;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{fmt::Display, process::Output};
 
 #[napi(object)]
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 /// Configuration for connecting to a PostgreSQL server.
 pub struct ConnectionConfig {
   /// The host of the PostgreSQL server.
@@ -76,6 +76,7 @@ pub struct ToolResult {
   pub stdout: String,
   /// The standard error of the tool.
   pub stderr: String,
+  pub command: Vec<String>,
 }
 
 impl ToolResult {
@@ -88,6 +89,45 @@ impl ToolResult {
       exit_code,
       stdout,
       stderr,
+      command: vec![],
     })
   }
+}
+
+pub fn convert_options(
+  instance_config: &ConnectionConfig,
+  tool_config: Option<ConnectionConfig>,
+) -> Vec<String> {
+  let mut args = Vec::new();
+  let config = tool_config.unwrap_or(instance_config.clone());
+
+  if let Some(host) = &config.host {
+    args.push("--host".to_string());
+    args.push(host.clone());
+  }
+  if let Some(port) = config.port {
+    args.push("--port".to_string());
+    args.push(port.to_string());
+  }
+  if let Some(username) = &config.username {
+    args.push("--username".to_string());
+    args.push(username.clone());
+  }
+  if let Some(database) = &config.database {
+    args.push("--dbname".to_string());
+    args.push(database.clone());
+  }
+
+  args
+}
+
+pub fn format_tool_args<T>(command: &T) -> Vec<String>
+where
+  T: postgresql_commands::traits::CommandBuilder,
+{
+  command
+    .get_args()
+    .iter()
+    .map(|s| s.to_string_lossy().to_string())
+    .collect()
 }

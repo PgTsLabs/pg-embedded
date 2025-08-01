@@ -4,6 +4,7 @@ use crate::{
   },
   logger::pg_log,
   settings::PostgresSettings,
+  tools::common::ConnectionConfig,
   types::{ConnectionInfo, InstanceState},
 };
 use napi_derive::napi;
@@ -789,6 +790,16 @@ impl PostgresInstance {
   #[napi]
   pub fn get_postgre_sql_version(&self) -> String {
     crate::version::get_postgre_sql_version()
+  }
+
+  pub fn connection_config(&self) -> ConnectionConfig {
+    ConnectionConfig {
+      host: Some(self.settings.host.clone()),
+      port: Some(self.settings.port),
+      username: Some(self.settings.username.clone()),
+      password: Some(self.settings.password.clone()),
+      database: Some("postgres".to_string()),
+    }
   }
 
   /**
