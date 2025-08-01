@@ -109,6 +109,30 @@ export declare class PgDumpTool {
    */
   constructor(options: PgDumpOptions)
   /**
+   * Executes the pg_dump command and returns the backup content as a string.
+   *
+   * This method forces the output to stdout, ignoring the `file` option if it was set.
+   * It is a convenient way to get the dump content directly into a variable.
+   *
+   * @returns Promise<ToolResult> containing exit code, stdout (the dump content), and stderr.
+   * @throws Error if the command fails to execute or if there are configuration issues.
+   *
+   * @example
+   * ```typescript
+   * const dumpTool = new PgDumpTool({
+   *   connection: { host: 'localhost', port: 5432, user: 'postgres' },
+   *   programDir: '/path/to/postgres/bin'
+   * });
+   * const result = await dumpTool.executeToString();
+   * if (result.exitCode === 0) {
+   *   console.log('Dump successful. SQL content:', result.stdout);
+   * } else {
+   *   console.error('Dump failed:', result.stderr);
+   * }
+   * ```
+   */
+  executeToString(): Promise<ToolResult>
+  /**
    * Executes the pg_dump command with the configured options.
    *
    * This method runs the pg_dump utility and returns the result. The behavior depends on

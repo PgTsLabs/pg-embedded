@@ -17,6 +17,15 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+--
+-- Name: test_schema; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+CREATE SCHEMA test_schema;
+
+
+ALTER SCHEMA test_schema OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;

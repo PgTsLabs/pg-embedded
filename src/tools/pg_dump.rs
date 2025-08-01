@@ -271,7 +271,7 @@ impl PgDumpTool {
 
   /// Builds a pg_dump command with all configured options.
   /// This internal method translates the TypeScript options into command-line arguments.
-  fn to_command(&self) -> Result<Command> {
+  fn to_command(&self, force_stdout: bool) -> Result<Command> {
     let mut builder = PgDumpBuilder::new();
 
     // Set required program directory
@@ -316,8 +316,10 @@ impl PgDumpTool {
     if let Some(encoding) = &self.options.encoding {
       builder = builder.encoding(encoding);
     }
-    if let Some(file) = &self.options.file {
-      builder = builder.file(file);
+    if !force_stdout {
+      if let Some(file) = &self.options.file {
+        builder = builder.file(file);
+      }
     }
     if let Some(format) = &self.options.format {
       builder = builder.format(format);
@@ -360,7 +362,7 @@ impl PgDumpTool {
         builder = builder.no_privileges();
       }
     }
-    if let Some(compression) = &self.options.compression {
+    if let Some(compression) = self.options.compression {
       builder = builder.compression(compression.to_string());
     }
     if let Some(binary_upgrade) = self.options.binary_upgrade {
@@ -465,7 +467,8 @@ impl PgDumpTool {
       }
     }
 
-    Ok(builder.build())
+    let command = builder.build();
+    Ok(command)
   }
 
   /// Executes the pg_dump command asynchronously and captures output.
@@ -485,6 +488,33 @@ impl PgDumpTool {
         .and_then(|t| t.silent)
         .unwrap_or(false),
     )
+  }
+
+  #[napi(js_name = "executeToString")]
+  /// Executes the pg_dump command and returns the backup content as a string.
+  ///
+  /// This method forces the output to stdout, ignoring the `file` option if it was set.
+  /// It is a convenient way to get the dump content directly into a variable.
+  ///
+  /// @returns Promise<ToolResult> containing exit code, stdout (the dump content), and stderr.
+  /// @throws Error if the command fails to execute or if there are configuration issues.
+  ///
+  /// @example
+  /// ```typescript
+  /// const dumpTool = new PgDumpTool({
+  ///   connection: { host: 'localhost', port: 5432, user: 'postgres' },
+  ///   programDir: '/home/postgresql/17.5.0/bin',
+  /// });
+  /// const result = await dumpTool.executeToString();
+  /// if (result.exitCode === 0) {
+  ///   console.log('Dump successful. SQL content:', result.stdout);
+  /// } else {
+  ///   console.error('Dump failed:', result.stderr);
+  /// }
+  /// ```
+  pub async fn execute_to_string(&self) -> Result<ToolResult> {
+    let command = self.to_command(true)?;
+    self.run_command(command).await
   }
 
   #[napi]
@@ -529,7 +559,7 @@ impl PgDumpTool {
   /// }
   /// ```
   pub async fn execute(&self) -> Result<ToolResult> {
-    let command = self.to_command()?;
+    let command = self.to_command(false)?;
     self.run_command(command).await
   }
 }
