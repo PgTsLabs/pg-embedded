@@ -121,7 +121,7 @@ export declare class PgDumpTool {
    * ```typescript
    * const dumpTool = new PgDumpTool({
    *   connection: { host: 'localhost', port: 5432, user: 'postgres' },
-   *   programDir: '/path/to/postgres/bin'
+   *   programDir: '/home/postgresql/17.5.0/bin',
    * });
    * const result = await dumpTool.executeToString();
    * if (result.exitCode === 0) {
@@ -238,6 +238,11 @@ export declare class PgIsReadyTool {
   /** Performs a quick check to see if the server is running. */
   check(): Promise<boolean>
   /** Executes `pg_isready` and returns the detailed result. */
+  execute(): Promise<ToolResult>
+}
+
+export declare class PgRestoreTool {
+  constructor(options: PgRestoreOptions)
   execute(): Promise<ToolResult>
 }
 
@@ -1002,6 +1007,27 @@ export interface PgIsReadyOptions {
   programDir: string
 }
 
+export interface PgRestoreOptions {
+  connection: ConnectionConfig
+  file: string
+  format?: string
+  clean: boolean
+  create: boolean
+  exitOnError: boolean
+  jobs?: number
+  singleTransaction: boolean
+  verbose: boolean
+  dbName?: string
+  dataOnly: boolean
+  schemaOnly: boolean
+  superuser?: string
+  table: Array<string>
+  trigger: Array<string>
+  noOwner: boolean
+  noPrivileges: boolean
+  programDir?: string
+}
+
 /** PostgreSQL error type enumeration */
 export declare const enum PostgresError {
   /** Setup error */
@@ -1135,6 +1161,7 @@ export interface ToolResult {
   stdout: string
   /** The standard error of the tool. */
   stderr: string
+  command: Array<string>
 }
 
 /** Version information for the pg-embedded package and embedded PostgreSQL */

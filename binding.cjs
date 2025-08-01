@@ -396,6 +396,7 @@ module.exports = nativeBinding
 module.exports.ConnectionInfo = nativeBinding.ConnectionInfo
 module.exports.PgDumpTool = nativeBinding.PgDumpTool
 module.exports.PgIsReadyTool = nativeBinding.PgIsReadyTool
+module.exports.PgRestoreTool = nativeBinding.PgRestoreTool
 module.exports.PostgresInstance = nativeBinding.PostgresInstance
 module.exports.PsqlTool = nativeBinding.PsqlTool
 module.exports.getPackageVersion = nativeBinding.getPackageVersion
