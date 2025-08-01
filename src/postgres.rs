@@ -167,6 +167,36 @@ impl PostgresInstance {
   }
 
   /**
+   * Gets the configuration hash for this instance
+   *
+   * This hash is used internally for caching and can be useful for debugging.
+   *
+   * @returns A string hash of the instance configuration
+   */
+  #[napi]
+  pub fn get_config_hash(&self) -> String {
+    self.config_hash.clone()
+  }
+
+  /// Gets the directory where the PostgreSQL binaries are located.
+  #[napi(getter)]
+  pub fn get_program_dir(&self) -> napi::Result<String> {
+    if let Some(instance) = &self.async_instance {
+      Ok(
+        instance
+          .settings()
+          .installation_dir
+          .to_string_lossy()
+          .to_string(),
+      )
+    } else {
+      Err(setup_error(
+        "PostgreSQL instance has not been initialized yet.",
+      ))
+    }
+  }
+
+  /**
    * Gets the current state of the PostgreSQL instance
    *
    * @returns The current instance state (Stopped, Starting, Running, or Stopping)
@@ -322,7 +352,7 @@ impl PostgresInstance {
       Err(e) => {
         pg_log!(error, "PostgreSQL setup failed: {}", e);
         self.set_state(InstanceState::Stopped)?;
-        Err(convert_postgresql_error(e))
+        Err(convert_postgresql_error(e).into())
       }
     }
   }
@@ -402,7 +432,7 @@ impl PostgresInstance {
         Err(e) => {
           pg_log!(error, "Failed to start PostgreSQL instance: {}", e);
           self.set_state(InstanceState::Stopped)?;
-          Err(convert_postgresql_error(e))
+          Err(convert_postgresql_error(e).into())
         }
       }
     } else {
@@ -478,7 +508,7 @@ impl PostgresInstance {
           pg_log!(error, "Failed to stop PostgreSQL instance: {}", e);
           if !is_cleanup {
             self.set_state(InstanceState::Running)?;
-            Err(convert_postgresql_error(e))
+            Err(convert_postgresql_error(e).into())
           } else {
             // During cleanup, force state to stopped even if stop failed
             self.set_state(InstanceState::Stopped)?;
@@ -528,7 +558,7 @@ impl PostgresInstance {
     if let Some(ref mut instance) = self.async_instance {
       match instance.create_database(&name).await {
         Ok(_) => Ok(()),
-        Err(e) => Err(convert_postgresql_error(e)),
+        Err(e) => Err(convert_postgresql_error(e).into()),
       }
     } else {
       Err(database_error("PostgreSQL instance not initialized"))
@@ -562,7 +592,7 @@ impl PostgresInstance {
     if let Some(ref mut instance) = self.async_instance {
       match instance.drop_database(&name).await {
         Ok(_) => Ok(()),
-        Err(e) => Err(convert_postgresql_error(e)),
+        Err(e) => Err(convert_postgresql_error(e).into()),
       }
     } else {
       Err(database_error("PostgreSQL instance not initialized"))
@@ -598,7 +628,7 @@ impl PostgresInstance {
     if let Some(ref instance) = self.async_instance {
       match instance.database_exists(&name).await {
         Ok(exists) => Ok(exists),
-        Err(e) => Err(convert_postgresql_error(e)),
+        Err(e) => Err(convert_postgresql_error(e).into()),
       }
     } else {
       Err(database_error("PostgreSQL instance not initialized"))
@@ -706,18 +736,6 @@ impl PostgresInstance {
     } else {
       None
     }
-  }
-
-  /**
-   * Gets the configuration hash for this instance
-   *
-   * This hash is used internally for caching and can be useful for debugging.
-   *
-   * @returns A string hash of the instance configuration
-   */
-  #[napi]
-  pub fn get_config_hash(&self) -> String {
-    self.config_hash.clone()
   }
 
   /**
