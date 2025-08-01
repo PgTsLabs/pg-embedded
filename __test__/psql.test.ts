@@ -56,20 +56,20 @@ test('executeFile() executes a SQL file', async (t) => {
 
 test('variables option works', async (t) => {
   const { pg } = t.context as any
-  
+
   // Test that variables are properly set and accessible
   const psql = new PsqlTool({
     connection: { port: pg.connectionInfo.port, database: 'testdb', username: 'postgres', password: 'password' },
-    variables: { 
+    variables: {
       MY_VAR: 'hello',
-      COUNT: '42'
+      COUNT: '42',
     },
     flags: ['--echo-all'], // This will show us the commands being executed
     programDir: path.join(pg.programDir, 'bin'),
   })
-  
+
   // Test that variables are set by using echo command
-  const result = await psql.executeCommand("")
+  const result = await psql.executeCommand('')
   t.is(result.exitCode, 0)
   // The output should contain the \set command, proving variables are being set
   t.assert(result.stdout.includes("set MY_VAR 'hello'"))

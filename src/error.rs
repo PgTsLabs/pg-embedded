@@ -7,36 +7,36 @@ pub type Result<T> = std::result::Result<T, PgEmbedError>;
 #[napi]
 #[derive(Debug, Error)]
 pub enum PgEmbedError {
-    #[error("Database setup failed: {0}")]
-    SetupError(String),
-    #[error("Database start failed: {0}")]
-    StartError(String),
-    #[error("Database stop failed: {0}")]
-    StopError(String),
-    #[error("Database operation failed: {0}")]
-    DatabaseError(String),
-    #[error("Configuration error: {0}")]
-    ConfigurationError(String),
-    #[error("Connection error: {0}")]
-    ConnectionError(String),
-    #[error("Operation timeout: {0}")]
-    TimeoutError(String),
-    #[error("Tool execution failed: {0}")]
-    ToolError(String),
-    #[error("Internal error: {0}")]
-    InternalError(String),
+  #[error("Database setup failed: {0}")]
+  SetupError(String),
+  #[error("Database start failed: {0}")]
+  StartError(String),
+  #[error("Database stop failed: {0}")]
+  StopError(String),
+  #[error("Database operation failed: {0}")]
+  DatabaseError(String),
+  #[error("Configuration error: {0}")]
+  ConfigurationError(String),
+  #[error("Connection error: {0}")]
+  ConnectionError(String),
+  #[error("Operation timeout: {0}")]
+  TimeoutError(String),
+  #[error("Tool execution failed: {0}")]
+  ToolError(String),
+  #[error("Internal error: {0}")]
+  InternalError(String),
 }
 
 impl From<PgEmbedError> for napi::Error {
-    fn from(e: PgEmbedError) -> Self {
-        napi::Error::new(Status::GenericFailure, e.to_string())
-    }
+  fn from(e: PgEmbedError) -> Self {
+    napi::Error::new(Status::GenericFailure, e.to_string())
+  }
 }
 
 impl From<std::io::Error> for PgEmbedError {
-    fn from(e: std::io::Error) -> Self {
-        PgEmbedError::InternalError(e.to_string())
-    }
+  fn from(e: std::io::Error) -> Self {
+    PgEmbedError::InternalError(e.to_string())
+  }
 }
 
 /// PostgreSQL error type enumeration
@@ -84,7 +84,7 @@ impl PostgresErrorInfo {
 
 /// Convert postgresql_embedded::Error to napi::Error
 pub fn convert_postgresql_error(err: postgresql_embedded::Error) -> PgEmbedError {
-    PgEmbedError::InternalError(err.to_string())
+  PgEmbedError::InternalError(err.to_string())
 }
 
 /// Create setup error
@@ -145,10 +145,10 @@ pub fn timeout_error(message: &str) -> napi::Error {
 
 /// Create tool error
 pub fn tool_error(message: &str) -> PgEmbedError {
-    PgEmbedError::ToolError(message.to_string())
+  PgEmbedError::ToolError(message.to_string())
 }
 
 /// Convert postgresql_commands::error::Error to napi::Error
 pub fn convert_command_error(err: postgresql_commands::error::Error) -> PgEmbedError {
-    PgEmbedError::ToolError(err.to_string())
+  PgEmbedError::ToolError(err.to_string())
 }
