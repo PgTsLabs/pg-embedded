@@ -1,3 +1,4 @@
+use crate::types::ConnectionInfo;
 use napi_derive::napi;
 use serde::Deserialize;
 use std::{fmt::Display, process::Output};
@@ -16,6 +17,18 @@ pub struct ConnectionConfig {
   pub password: Option<String>,
   /// The database to connect to.
   pub database: Option<String>,
+}
+
+impl From<ConnectionInfo> for ConnectionConfig {
+  fn from(info: ConnectionInfo) -> Self {
+    Self {
+      host: Some(info.host),
+      port: Some(info.port),
+      username: Some(info.username),
+      password: Some(info.password),
+      database: Some(info.database_name),
+    }
+  }
 }
 
 impl Display for ConnectionConfig {
@@ -43,9 +56,10 @@ impl Display for ConnectionConfig {
 #[napi(object)]
 #[derive(Clone, Debug, Default, Deserialize)]
 /// Generic options for a tool execution.
+///
+/// These are common options that apply to all PostgreSQL tools,
+/// separate from connection-specific settings.
 pub struct ToolOptions {
-  /// Connection settings for the tool.
-  pub connection: Option<ConnectionConfig>,
   /// Timeout for the tool execution in seconds.
   pub timeout: Option<u32>,
   /// If true, suppresses tool output.

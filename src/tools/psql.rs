@@ -4,13 +4,15 @@ use napi_derive::napi;
 use postgresql_commands::psql::PsqlBuilder;
 use postgresql_commands::traits::CommandBuilder;
 use serde::Deserialize;
-use std::collections::HashMap;
+
 use std::process::{Command, Stdio};
 use tokio::process::Command as TokioCommand;
 
 #[napi(object)]
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 /// Options for configuring the `psql` tool, primarily for connection settings.
+///
+/// The `connection` and `programDir` fields are required for proper operation.
 ///
 /// @example
 /// ```typescript
@@ -18,34 +20,69 @@ use tokio::process::Command as TokioCommand;
 ///   connection: {
 ///     host: 'localhost',
 ///     port: 5432,
-///     user: 'postgres',
+///     username: 'postgres',
+///     password: 'password',
 ///     database: 'testdb',
 ///   },
-///   variables: {
-///     'MY_VAR': 'some_value',
-///   },
+///   programDir: '/home/postgresql/17.5.0/bin',
+///   variables: ['MY_VAR=some_value', 'COUNT=42'],
 ///   flags: ['--csv', '--single-transaction', '--tuples-only'],
 /// };
 /// ```
 pub struct PsqlOptions {
-  /// Connection settings for the PostgreSQL server.
+  /// Connection settings for the PostgreSQL server (required).
   #[serde(flatten)]
-  pub connection: Option<ConnectionConfig>,
+  pub connection: ConnectionConfig,
   /// Generic tool options like silent mode.
   #[serde(flatten)]
   pub tool: Option<ToolOptions>,
-  /// Variables to set for the psql session, equivalent to `psql -v NAME=VALUE`.
-  pub variables: Option<HashMap<String, String>>,
+
+  /// Variables to set for the psql session in KEY=VALUE format.
+  /// For example, `['MY_VAR=hello', 'COUNT=42']`.
+  /// Each string should be in the format 'NAME=VALUE'.
+  pub variables: Option<Vec<String>>,
   /// A list of boolean flags to pass to `psql`.
   /// For example, `['--csv', '--tuples-only']`.
   pub flags: Option<Vec<String>>,
-  /// The directory where the `pg_isready` executable is located.
+  /// The directory where the psql executable is located (required).
   #[napi(js_name = "programDir")]
-  pub program_dir: Option<String>,
+  pub program_dir: String,
 }
 
 #[napi]
 /// A tool for executing SQL commands and scripts using the `psql` interactive terminal.
+///
+/// This class provides a TypeScript interface for running SQL commands and scripts using
+/// PostgreSQL's psql utility. Both `connection` and `programDir` parameters are required.
+///
+/// @example Basic SQL command execution
+/// ```typescript
+/// import { PsqlTool } from 'pg-embedded';
+///
+/// const psqlTool = new PsqlTool({
+///   connection: {
+///     host: 'localhost',
+///     port: 5432,
+///     username: 'postgres',
+///     password: 'password',
+///     database: 'mydb'
+///   },
+///   programDir: '/home/postgresql/17.5.0/bin'
+/// });
+///
+/// const result = await psqlTool.executeCommand('SELECT * FROM users;');
+/// if (result.exitCode === 0) {
+///   console.log('Query result:', result.stdout);
+/// }
+/// ```
+///
+/// @example Execute SQL file
+/// ```typescript
+/// const result = await psqlTool.executeFile('./schema.sql');
+/// if (result.exitCode === 0) {
+///   console.log('Script executed successfully');
+/// }
+/// ```
 pub struct PsqlTool {
   options: PsqlOptions,
 }
@@ -54,6 +91,23 @@ pub struct PsqlTool {
 impl PsqlTool {
   #[napi(constructor)]
   /// Creates a new instance of the `PsqlTool`.
+  ///
+  /// @param options - Configuration options for the psql operation (connection and programDir are required)
+  /// @returns A new PsqlTool instance ready to execute SQL commands
+  ///
+  /// @example
+  /// ```typescript
+  /// const psqlTool = new PsqlTool({
+  ///   connection: {
+  ///     host: 'localhost',
+  ///     port: 5432,
+  ///     username: 'postgres',
+  ///     password: 'password',
+  ///     database: 'mydb'
+  ///   },
+  ///   programDir: '/home/postgresql/17.5.0/bin'
+  /// });
+  /// ```
   pub fn new(options: PsqlOptions) -> Self {
     Self { options }
   }
@@ -61,30 +115,34 @@ impl PsqlTool {
   /// Prepares a `psql` command with the configured settings.
   fn to_command(&self, command_str: Option<&str>, file_path: Option<&str>) -> Result<Command> {
     let mut builder = PsqlBuilder::new();
-    if let Some(program_dir) = &self.options.program_dir {
-      builder = builder.program_dir(program_dir);
+
+    // Set required program directory
+    builder = builder.program_dir(&self.options.program_dir);
+
+    // Set required connection parameters
+    let connection = &self.options.connection;
+    if let Some(host) = &connection.host {
+      builder = builder.host(host);
     }
-    if let Some(connection) = &self.options.connection {
-      if let Some(host) = &connection.host {
-        builder = builder.host(host);
-      }
-      if let Some(port) = connection.port {
-        builder = builder.port(port);
-      }
-      if let Some(user) = &connection.username {
-        builder = builder.username(user);
-      }
-      if let Some(password) = &connection.password {
-        builder = builder.pg_password(password);
-      }
-      if let Some(dbname) = &connection.database {
-        builder = builder.dbname(dbname);
-      }
+    if let Some(port) = connection.port {
+      builder = builder.port(port);
+    }
+    if let Some(user) = &connection.username {
+      builder = builder.username(user);
+    }
+    if let Some(password) = &connection.password {
+      builder = builder.pg_password(password);
+    }
+    if let Some(dbname) = &connection.database {
+      builder = builder.dbname(dbname);
     }
 
+    // Handle variables - take the first one due to library limitation
     if let Some(variables) = &self.options.variables {
-      for (key, value) in variables {
-        builder = builder.variable((key.as_str(), value.as_str()));
+      if let Some(var_str) = variables.first() {
+        if let Some((name, value)) = var_str.split_once('=') {
+          builder = builder.variable((name, value));
+        }
       }
     }
 
@@ -99,7 +157,6 @@ impl PsqlTool {
           "--echo-queries" => builder = builder.echo_queries(),
           "--no-align" => builder = builder.no_align(),
           "--quiet" => builder = builder.quiet(),
-          // Add other supported boolean flags here
           _ => (), // Silently ignore unsupported flags
         }
       }
