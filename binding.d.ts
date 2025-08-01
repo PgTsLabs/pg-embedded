@@ -20,6 +20,16 @@ export declare class ConnectionInfo {
   jdbcUrl(): string
 }
 
+/** A tool for checking the connection status of a PostgreSQL server. */
+export declare class PgIsReadyTool {
+  /** Creates a new `PgIsReadyTool` instance. */
+  constructor(options: PgIsReadyOptions)
+  /** Performs a quick check to see if the server is running. */
+  check(): Promise<boolean>
+  /** Executes `pg_isready` and returns the detailed result. */
+  execute(): Promise<ToolResult>
+}
+
 /**
  * PostgreSQL embedded instance manager
  *
@@ -66,6 +76,16 @@ export declare class PostgresInstance {
    * @returns The unique identifier for this PostgreSQL instance
    */
   get instanceId(): string
+  /**
+   * Gets the configuration hash for this instance
+   *
+   * This hash is used internally for caching and can be useful for debugging.
+   *
+   * @returns A string hash of the instance configuration
+   */
+  getConfigHash(): string
+  /** Gets the directory where the PostgreSQL binaries are located. */
+  get programDir(): string
   /**
    * Gets the current state of the PostgreSQL instance
    *
@@ -220,14 +240,6 @@ export declare class PostgresInstance {
    */
   getStartupTime(): number | null
   /**
-   * Gets the configuration hash for this instance
-   *
-   * This hash is used internally for caching and can be useful for debugging.
-   *
-   * @returns A string hash of the instance configuration
-   */
-  getConfigHash(): string
-  /**
    * Clears the connection information cache
    *
    * This forces the next call to connectionInfo to regenerate the connection information.
@@ -274,6 +286,45 @@ export declare class PostgresInstance {
   cleanup(): Promise<void>
 }
 
+/** A tool for executing SQL commands and scripts using the `psql` interactive terminal. */
+export declare class PsqlTool {
+  /** Creates a new instance of the `PsqlTool`. */
+  constructor(options: PsqlOptions)
+  /**
+   * Executes a given SQL command string.
+   *
+   * This method allows reusing a `PsqlTool` instance with the same connection settings
+   * to run multiple different commands.
+   *
+   * @param command_str - The SQL command string to execute.
+   * @returns A promise that resolves to a `ToolResult` object.
+   * @throws An error if the `psql` command fails to execute.
+   *
+   * @example
+   * ```typescript
+   * const result = await psql.executeCommand('SELECT version();');
+   * console.log(result.stdout);
+   * ```
+   */
+  executeCommand(commandStr: string): Promise<ToolResult>
+  /**
+   * Executes SQL commands from a given file.
+   *
+   * This method allows reusing a `PsqlTool` instance to run multiple different SQL script files.
+   *
+   * @param file_path - The path to the file containing SQL commands.
+   * @returns A promise that resolves to a `ToolResult` object.
+   * @throws An error if the `psql` command fails to execute.
+   *
+   * @example
+   * ```typescript
+   * const result = await psql.executeFile('/path/to/my/script.sql');
+   * console.log(result.stdout);
+   * ```
+   */
+  executeFile(filePath: string): Promise<ToolResult>
+}
+
 /** Build information */
 export interface BuildInfo {
   /** Target platform (e.g., "x86_64-apple-darwin") */
@@ -284,6 +335,20 @@ export interface BuildInfo {
   rustcVersion: string
   /** Build timestamp */
   buildTimestamp: string
+}
+
+/** Configuration for connecting to a PostgreSQL server. */
+export interface ConnectionConfig {
+  /** The host of the PostgreSQL server. */
+  host?: string
+  /** The port of the PostgreSQL server. */
+  port?: number
+  /** The username to connect with. */
+  username?: string
+  /** The password to connect with. */
+  password?: string
+  /** The database to connect to. */
+  database?: string
 }
 
 /**
@@ -350,7 +415,7 @@ export declare const enum InstanceState {
   /** Running */
   Running = 2,
   /** Stopping */
-  Stopping = 3,
+  Stopping = 3
 }
 
 /** Log debug message */
@@ -373,7 +438,7 @@ export declare const enum LogLevel {
   /** Debug level */
   Debug = 3,
   /** Trace level */
-  Trace = 4,
+  Trace = 4
 }
 
 /** Log trace message */
@@ -381,6 +446,31 @@ export declare function logTrace(message: string): void
 
 /** Log warning message */
 export declare function logWarn(message: string): void
+
+export type PgEmbedError =
+  | { type: 'SetupError', field0: string }
+  | { type: 'StartError', field0: string }
+  | { type: 'StopError', field0: string }
+  | { type: 'DatabaseError', field0: string }
+  | { type: 'ConfigurationError', field0: string }
+  | { type: 'ConnectionError', field0: string }
+  | { type: 'TimeoutError', field0: string }
+  | { type: 'ToolError', field0: string }
+  | { type: 'InternalError', field0: string }
+
+/** Options for configuring the `pg_isready` tool. */
+export interface PgIsReadyOptions {
+  /** Connection settings for the PostgreSQL server. */
+  connection?: ConnectionConfig
+  /** The number of seconds to wait for a connection. */
+  timeout?: number
+  /** If `true`, suppresses status messages. */
+  silent?: boolean
+  /** The specific database name to check. */
+  dbname?: string
+  /** The directory where the `pg_isready` executable is located. */
+  programDir?: string
+}
 
 /** PostgreSQL error type enumeration */
 export declare const enum PostgresError {
@@ -398,6 +488,8 @@ export declare const enum PostgresError {
   ConnectionError = 5,
   /** Timeout error */
   TimeoutError = 6,
+  /** Tool error */
+  ToolError = 7
 }
 
 /** PostgreSQL error information structure */
@@ -449,6 +541,61 @@ export interface PostgresSettings {
   setupTimeout?: number
   /** Whether to persist data between runs (default: false)  */
   persistent?: boolean
+}
+
+/**
+ * Options for configuring the `psql` tool, primarily for connection settings.
+ *
+ * @example
+ * ```typescript
+ * const options = {
+ *   connection: {
+ *     host: 'localhost',
+ *     port: 5432,
+ *     user: 'postgres',
+ *     database: 'testdb',
+ *   },
+ *   variables: {
+ *     'MY_VAR': 'some_value',
+ *   },
+ *   flags: ['--csv', '--single-transaction', '--tuples-only'],
+ * };
+ * ```
+ */
+export interface PsqlOptions {
+  /** Connection settings for the PostgreSQL server. */
+  connection?: ConnectionConfig
+  /** Generic tool options like silent mode. */
+  tool?: ToolOptions
+  /** Variables to set for the psql session, equivalent to `psql -v NAME=VALUE`. */
+  variables?: Record<string, string>
+  /**
+   * A list of boolean flags to pass to `psql`.
+   * For example, `['--csv', '--tuples-only']`.
+   */
+  flags?: Array<string>
+  /** The directory where the `pg_isready` executable is located. */
+  programDir?: string
+}
+
+/** Generic options for a tool execution. */
+export interface ToolOptions {
+  /** Connection settings for the tool. */
+  connection?: ConnectionConfig
+  /** Timeout for the tool execution in seconds. */
+  timeout?: number
+  /** If true, suppresses tool output. */
+  silent?: boolean
+}
+
+/** The result of a tool execution. */
+export interface ToolResult {
+  /** The exit code of the tool. */
+  exitCode: number
+  /** The standard output of the tool. */
+  stdout: string
+  /** The standard error of the tool. */
+  stderr: string
 }
 
 /** Version information for the pg-embedded package and embedded PostgreSQL */
