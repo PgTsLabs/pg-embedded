@@ -12,6 +12,8 @@ A Node.js library for running embedded PostgreSQL instances. This library provid
 - 📊 **Performance monitoring**: Built-in startup time tracking and health checks
 - 🔧 **Configurable**: Extensive configuration options for different use cases
 - 🏗️ **Cross-platform**: Works on macOS, Linux, and Windows
+- 🛠️ **Complete toolset**: Built-in PostgreSQL tools (pg_dump, pg_restore, pg_rewind, pg_basebackup, psql)
+- 🎯 **Simplified workflows**: One-line operations with automatic configuration
 
 ## Installation
 
@@ -168,6 +170,126 @@ enum InstanceState {
   Running = 'Running',
   Stopping = 'Stopping',
 }
+```
+
+## PostgreSQL Tools
+
+The library includes comprehensive TypeScript wrappers for essential PostgreSQL command-line tools, providing type-safe interfaces and automatic configuration.
+
+### PgRewindTool - Data Directory Synchronization
+
+Synchronize PostgreSQL data directories after timeline divergence, commonly used in failover scenarios.
+
+```typescript
+import { PgRewindTool, PostgresInstance } from 'pg-embedded'
+
+// Simplified usage with automatic configuration
+const rewindTool = new PgRewindTool({
+  connection: targetConnectionInfo,
+  programDir: '/path/to/postgres/bin',
+  targetPgdata: './target_data_dir',
+  
+  // ✨ Pass connection info directly, no manual string construction
+  sourceInstance: sourceConnectionInfo,
+  
+  // ✨ Automatically configure all WAL settings
+  autoConfigureWal: true,
+  
+  progress: true,
+  dryRun: false
+})
+
+const result = await rewindTool.execute()
+if (result.exitCode === 0) {
+  console.log('Rewind completed successfully!')
+} else {
+  console.error('Rewind failed:', result.stderr)
+}
+```
+
+**Key Features:**
+- 🎯 **One-line operation**: Automatic WAL configuration eliminates manual setup
+- 🔗 **Direct connection info**: Pass `PostgresInstance.connectionInfo` directly
+- 🧪 **Dry run support**: Test operations without making changes
+- 📊 **Progress reporting**: Real-time operation feedback
+- 🛡️ **Type-safe**: Full TypeScript support with comprehensive validation
+
+### PgBasebackupTool - Database Backups
+
+Create base backups of running PostgreSQL clusters with full format and streaming support.
+
+```typescript
+import { PgBasebackupTool } from 'pg-embedded'
+
+const backupTool = new PgBasebackupTool({
+  connection: postgres.connectionInfo,
+  programDir: '/path/to/postgres/bin',
+  pgdata: './backup_directory',
+  format: 'p', // plain format
+  walMethod: 'stream', // stream WAL files
+  verbose: true
+})
+
+const result = await backupTool.execute()
+if (result.exitCode === 0) {
+  console.log('Backup completed successfully!')
+}
+```
+
+### PsqlTool - SQL Command Execution
+
+Execute SQL commands and scripts with full TypeScript support.
+
+```typescript
+import { PsqlTool } from 'pg-embedded'
+
+const psqlTool = new PsqlTool({
+  connection: postgres.connectionInfo,
+  programDir: '/path/to/postgres/bin'
+})
+
+// Execute SQL commands
+const result = await psqlTool.executeCommand(
+  "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT);"
+)
+
+// Execute SQL files
+const fileResult = await psqlTool.executeFile('./schema.sql')
+```
+
+### PgDumpTool - Database Export
+
+Create database dumps with comprehensive format and filtering options.
+
+```typescript
+import { PgDumpTool } from 'pg-embedded'
+
+const dumpTool = new PgDumpTool({
+  connection: postgres.connectionInfo,
+  programDir: '/path/to/postgres/bin',
+  file: './backup.sql',
+  format: 'p', // plain SQL format
+  verbose: true
+})
+
+const result = await dumpTool.execute()
+```
+
+### PgRestoreTool - Database Import
+
+Restore databases from various backup formats.
+
+```typescript
+import { PgRestoreTool } from 'pg-embedded'
+
+const restoreTool = new PgRestoreTool({
+  connection: postgres.connectionInfo,
+  programDir: '/path/to/postgres/bin',
+  inputFile: './backup.sql',
+  verbose: true
+})
+
+const result = await restoreTool.execute()
 ```
 
 ## Advanced Usage
