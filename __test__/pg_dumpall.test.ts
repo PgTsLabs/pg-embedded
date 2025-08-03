@@ -53,18 +53,18 @@ test('should return dump as string', async (t) => {
 })
 
 test('should dump only globals', async (t) => {
-    const dumpallTool = new PgDumpallTool({
-      connection: {
-        host: t.context.pg.connectionInfo.host,
-        port: t.context.pg.connectionInfo.port,
-        username: t.context.pg.connectionInfo.username,
-        password: t.context.pg.connectionInfo.password,
-      },
-      globalsOnly: true,
-      programDir: path.join(t.context.pg.programDir, 'bin'),
-    })
-    const result = await dumpallTool.executeToString()
-    t.is(result.exitCode, 0)
-    t.true(result.stdout.includes('CREATE ROLE postgres;'))
-    t.false(result.stdout.includes('CREATE DATABASE'))
+  const dumpallTool = new PgDumpallTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+    },
+    globalsOnly: true,
+    programDir: path.join(t.context.pg.programDir, 'bin'),
   })
+  const result = await dumpallTool.executeToString()
+  t.is(result.exitCode, 0)
+  t.true(result.stdout.includes('CREATE ROLE postgres;'))
+  t.false(result.stdout.includes('CREATE DATABASE'))
+})
