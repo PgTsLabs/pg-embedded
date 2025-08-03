@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1+pg17.5] - 2025-08-04
+
+### Added
+
+- **✨ `ifExists` Option**: Added `ifExists` option to `pg_dump` and `pg_restore` to suppress errors when cleaning non-existent database objects. This improves the reliability of restore operations.
+
+### Fixed
+
+- **🧪 Test Reliability**: Improved test cleanup logic to prevent cascading failures when database instances fail to start, ensuring more accurate test results.
+
 ## [0.2.0+pg17.5] - 2025-08-03
 
 ### Added
