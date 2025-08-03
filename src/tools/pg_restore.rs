@@ -79,6 +79,9 @@ pub struct PgRestoreConfig {
   /// Do not restore privileges (grant/revoke).
   #[napi(js_name = "noPrivileges")]
   pub no_privileges: Option<bool>,
+  /// When used with `clean`, suppresses errors for non-existent objects.
+  /// Equivalent to the pg_restore --if-exists flag.
+  pub if_exists: Option<bool>,
 }
 
 /// Complete options for the `pg_restore` tool.
@@ -188,6 +191,11 @@ impl PgRestoreTool {
     if let Some(clean) = config.clean {
       if clean {
         builder = builder.clean();
+      }
+    }
+    if let Some(if_exists) = config.if_exists {
+      if if_exists {
+        builder = builder.if_exists();
       }
     }
     if let Some(create) = config.create {
