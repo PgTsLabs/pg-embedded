@@ -122,6 +122,10 @@ pub struct PgDumpConfig {
   /// Higher values mean better compression but slower processing.
   /// Equivalent to pg_dump --compress flag.
   pub compression: Option<i32>,
+
+  /// When used with `clean`, suppresses errors for non-existent objects.
+  /// Equivalent to the pg_dump --if-exists flag.
+  pub if_exists: Option<bool>,
 }
 
 #[napi(object)]
@@ -306,6 +310,11 @@ impl PgDumpTool {
     if let Some(clean) = config.clean {
       if clean {
         builder = builder.clean();
+      }
+    }
+    if let Some(if_exists) = config.if_exists {
+      if if_exists {
+        builder = builder.if_exists();
       }
     }
     if let Some(create) = config.create {
