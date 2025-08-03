@@ -43,11 +43,13 @@ test('debug autoConfigureWal feature', async (t) => {
     const rewindTool = new PgRewindTool({
       connection: masterConnectionInfo,
       programDir: path.join(master.programDir, 'bin'),
-      targetPgdata: master.dataDir,
-      sourceInstance: standbyConnectionInfo,
-      autoConfigureWal: true,
-      progress: true,
-      dryRun: true, // Use dry run to avoid actual execution
+      config: {
+        targetPgdata: master.dataDir,
+        sourceInstance: standbyConnectionInfo,
+        autoConfigureWal: true,
+        progress: true,
+        dryRun: true, // Use dry run to avoid actual execution
+      },
     })
 
     console.log('About to execute pg_rewind...')

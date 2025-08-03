@@ -1,7 +1,7 @@
 import test from 'ava'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { PgDumpTool, PostgresInstance, PgRestoreTool, PsqlTool } from '../index.js'
+import { PgDumpTool, PostgresInstance, PgRestoreTool, PsqlTool, PgDumpFormat, PgRestoreFormat } from '../index.js'
 import fs from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -30,7 +30,7 @@ test.before(async () => {
     database: dbName,
   }
 
-  const psql = new PsqlTool({ connection: connectionConfig, programDir })
+  const psql = new PsqlTool({ connection: connectionConfig, programDir, config: {} })
   await psql.executeCommand(`
       CREATE TABLE test_table (id INT, name VARCHAR(255));
       INSERT INTO test_table VALUES (1, 'test1'), (2, 'test2');
@@ -39,8 +39,10 @@ test.before(async () => {
   const pgDump = new PgDumpTool({
     connection: connectionConfig,
     programDir,
-    file: dumpFilePath,
-    format: 'c', // Use custom format for pg_restore compatibility
+    config: {
+      file: dumpFilePath,
+      format: PgDumpFormat.Custom, // Use custom format for pg_restore compatibility
+    },
   })
   const dumpResult = await pgDump.execute()
   if (dumpResult.exitCode !== 0) {
@@ -71,24 +73,27 @@ test('should restore the database from a file', async (t) => {
   const pgRestore = new PgRestoreTool({
     connection: restoreConnectionConfig,
     programDir,
-    file: dumpFilePath,
-    clean: false, // Don't clean since database is empty
-    create: false, // Don't create database, we already created it
-    exitOnError: false, // Allow warnings
-    singleTransaction: true,
-    verbose: false,
-    dataOnly: false,
-    schemaOnly: false,
-    noOwner: true, // Ignore ownership issues
-    noPrivileges: true, // Ignore privilege issues
-    table: [],
-    trigger: [],
+    config: {
+      file: dumpFilePath,
+      format: PgRestoreFormat.Custom,
+      clean: false, // Don't clean since database is empty
+      create: false, // Don't create database, we already created it
+      exitOnError: false, // Allow warnings
+      singleTransaction: true,
+      verbose: false,
+      dataOnly: false,
+      schemaOnly: false,
+      noOwner: true, // Ignore ownership issues
+      noPrivileges: true, // Ignore privilege issues
+      table: [],
+      trigger: [],
+    },
   })
 
   const result = await pgRestore.execute()
   t.is(result.exitCode, 0)
 
-  const psql = new PsqlTool({ connection: restoreConnectionConfig, programDir })
+  const psql = new PsqlTool({ connection: restoreConnectionConfig, programDir, config: {} })
   const { stdout } = await psql.executeCommand('SELECT * FROM test_table;')
 
   t.true(stdout.includes('test1'))
@@ -111,32 +116,37 @@ test('should restore data only', async (t) => {
   }
 
   const programDir = path.join(pg.programDir, 'bin')
-  const psql = new PsqlTool({ connection: restoreConnectionConfig2, programDir })
+  const psql = new PsqlTool({ connection: restoreConnectionConfig2, programDir, config: {} })
   await psql.executeCommand('CREATE TABLE test_table (id INT, name VARCHAR(255));')
 
   const pgRestore = new PgRestoreTool({
     connection: restoreConnectionConfig2,
     programDir,
-    file: dumpFilePath,
-    dataOnly: true,
-    clean: false,
-    create: false,
-    exitOnError: false, // Allow warnings
-    singleTransaction: true,
-    verbose: false,
-    schemaOnly: false,
-    noOwner: true, // Ignore ownership issues
-    noPrivileges: true, // Ignore privilege issues
-    table: [],
-    trigger: [],
+    config: {
+      file: dumpFilePath,
+      format: PgRestoreFormat.Custom,
+      dataOnly: true,
+      clean: false,
+      create: false,
+      exitOnError: false, // Allow warnings
+      singleTransaction: true,
+      verbose: false,
+      schemaOnly: false,
+      noOwner: true, // Ignore ownership issues
+      noPrivileges: true, // Ignore privilege issues
+      table: [],
+      trigger: [],
+    },
   })
 
   const result = await pgRestore.execute()
   t.is(result.exitCode, 0)
 
-  const { stdout } = await new PsqlTool({ connection: restoreConnectionConfig2, programDir }).executeCommand(
-    'SELECT * FROM test_table;',
-  )
+  const { stdout } = await new PsqlTool({
+    connection: restoreConnectionConfig2,
+    programDir,
+    config: {},
+  }).executeCommand('SELECT * FROM test_table;')
 
   t.true(stdout.includes('test1'))
   t.true(stdout.includes('test2'))

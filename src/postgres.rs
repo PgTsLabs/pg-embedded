@@ -597,8 +597,6 @@ impl PostgresInstance {
     }
   }
 
-  
-
   /// # Safety
   /// Drops (deletes) a database asynchronously
   ///

@@ -29,6 +29,7 @@ test.before(async (t) => {
   const psqlTool = new PsqlTool({
     connection: master.connectionInfo,
     programDir: path.join(master.programDir, 'bin'),
+    config: {},
   })
   await psqlTool.executeCommand(
     "CREATE TABLE test_table (id SERIAL PRIMARY KEY, data TEXT); INSERT INTO test_table (data) VALUES ('initial data');",
@@ -38,10 +39,12 @@ test.before(async (t) => {
   const basebackupTool = new PgBasebackupTool({
     connection: master.connectionInfo,
     programDir: path.join(master.programDir, 'bin'),
-    pgdata: backupDir,
-    format: 'p', // plain format
-    walMethod: 'stream',
-    verbose: true,
+    config: {
+      pgdata: backupDir,
+      format: 0, // PgBasebackupFormat.Plain
+      walMethod: 2, // PgBasebackupWalMethod.Stream
+      verbose: true,
+    },
   })
   await basebackupTool.execute()
 
@@ -61,6 +64,7 @@ test.before(async (t) => {
   const standbyPsqlTool = new PsqlTool({
     connection: standby.connectionInfo,
     programDir: path.join(master.programDir, 'bin'),
+    config: {},
   })
   await standbyPsqlTool.executeCommand("INSERT INTO test_table (data) VALUES ('standby data');")
 
@@ -85,20 +89,22 @@ test('should demonstrate simplified API usage', async (t) => {
   const rewindTool = new PgRewindTool({
     connection: masterConnectionInfo, // Target server connection info
     programDir: path.join(pgMaster.programDir, 'bin'),
-    targetPgdata: pgMaster.dataDir,
+    config: {
+      targetPgdata: pgMaster.dataDir,
 
-    // ✨ New feature 1: Pass PostgresInstance connectionInfo directly, no manual string concatenation needed
-    sourceInstance: standbyConnectionInfo,
+      // ✨ New feature 1: Pass PostgresInstance connectionInfo directly, no manual string concatenation needed
+      sourceInstance: standbyConnectionInfo,
 
-    // ✨ New feature 2: Auto-configure all WAL-related settings, no manual postgresql.conf editing needed
-    autoConfigureWal: true,
+      // ✨ New feature 2: Auto-configure all WAL-related settings, no manual postgresql.conf editing needed
+      autoConfigureWal: true,
 
-    // Optional: Specify WAL archive directory, auto-created if not specified
-    walArchiveDir: path.resolve(__dirname, 'assets', 'auto_wal_archive'),
+      // Optional: Specify WAL archive directory, auto-created if not specified
+      walArchiveDir: path.resolve(__dirname, 'assets', 'auto_wal_archive'),
 
-    progress: true,
-    restoreTargetWal: true,
-    dryRun: true, // Use dry run mode to demonstrate API usage
+      progress: true,
+      restoreTargetWal: true,
+      dryRun: true, // Use dry run mode to demonstrate API usage
+    },
   })
 
   const result = await rewindTool.execute()

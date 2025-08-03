@@ -8,10 +8,52 @@ use std::process::{Command, Stdio};
 use tokio::process::Command as TokioCommand;
 
 #[napi(object)]
+#[derive(Clone, Debug, Default, Deserialize)]
+/// Configuration for pg_dumpall-specific options, separate from connection settings.
+///
+/// This contains only the pg_dumpall tool-specific configuration options,
+/// allowing for clean separation when used with PostgresInstance.
+pub struct PgDumpallConfig {
+  /// Generic tool options like silent mode and timeout.
+  #[serde(flatten)]
+  pub tool: Option<ToolOptions>,
+  /// Specifies the output file for the dump. If not provided, the output is sent to standard output.
+  /// Corresponds to the `--file` command-line argument.
+  pub file: Option<String>,
+  /// Dump only global objects (roles and tablespaces), not databases.
+  /// Corresponds to the `--globals-only` command-line argument.
+  #[napi(js_name = "globalsOnly")]
+  pub globals_only: Option<bool>,
+  /// Dump only roles.
+  /// Corresponds to the `--roles-only` command-line argument.
+  #[napi(js_name = "rolesOnly")]
+  pub roles_only: Option<bool>,
+  /// Dump only tablespaces.
+  /// Corresponds to the `--tablespaces-only` command-line argument.
+  #[napi(js_name = "tablespacesOnly")]
+  pub tablespaces_only: Option<bool>,
+  /// Enable verbose mode.
+  /// Corresponds to the `--verbose` command-line argument.
+  pub verbose: Option<bool>,
+  /// Output commands to `DROP` objects before recreating them.
+  /// Corresponds to the `--clean` command-line argument.
+  pub clean: Option<bool>,
+  /// Do not output commands to set object ownership.
+  /// Corresponds to the `--no-owner` command-line argument.
+  #[napi(js_name = "noOwner")]
+  pub no_owner: Option<bool>,
+  /// Do not dump privileges (GRANT/REVOKE commands).
+  /// Corresponds to the `--no-privileges` command-line argument.
+  #[napi(js_name = "noPrivileges")]
+  pub no_privileges: Option<bool>,
+}
+
+#[napi(object)]
 #[derive(Clone, Debug, Deserialize)]
-/// Options for configuring the `pg_dumpall` command.
+/// Complete options for configuring the `pg_dumpall` command.
 ///
 /// This interface corresponds to the command-line arguments of the `pg_dumpall` utility.
+/// For use with PostgresInstance, consider using PgDumpallConfig instead.
 ///
 /// @example
 /// ```typescript
@@ -23,44 +65,20 @@ use tokio::process::Command as TokioCommand;
 ///     password: 'password',
 ///   },
 ///   programDir: '/path/to/postgres/bin',
-///   file: 'dump.sql',
-///   globalsOnly: true,
+///   config: {
+///     file: 'dump.sql',
+///     globalsOnly: true,
+///   }
 /// };
 /// ```
 pub struct PgDumpallOptions {
   /// Database connection parameters.
-  #[serde(flatten)]
   pub connection: ConnectionConfig,
-  /// General tool options.
-  #[serde(flatten)]
-  pub tool: Option<ToolOptions>,
   /// The directory containing the `pg_dumpall` executable.
   #[napi(js_name = "programDir")]
   pub program_dir: String,
-  /// Specifies the output file for the dump. If not provided, the output is sent to standard output.
-  /// Corresponds to the `--file` command-line argument.
-  pub file: Option<String>,
-  /// Dump only global objects (roles and tablespaces), not databases.
-  /// Corresponds to the `--globals-only` command-line argument.
-  pub globals_only: Option<bool>,
-  /// Dump only roles.
-  /// Corresponds to the `--roles-only` command-line argument.
-  pub roles_only: Option<bool>,
-  /// Dump only tablespaces.
-  /// Corresponds to the `--tablespaces-only` command-line argument.
-  pub tablespaces_only: Option<bool>,
-  /// Enable verbose mode.
-  /// Corresponds to the `--verbose` command-line argument.
-  pub verbose: Option<bool>,
-  /// Output commands to `DROP` objects before recreating them.
-  /// Corresponds to the `--clean` command-line argument.
-  pub clean: Option<bool>,
-  /// Do not output commands to set object ownership.
-  /// Corresponds to the `--no-owner` command-line argument.
-  pub no_owner: Option<bool>,
-  /// Do not dump privileges (GRANT/REVOKE commands).
-  /// Corresponds to the `--no-privileges` command-line argument.
-  pub no_privileges: Option<bool>,
+  /// Pg_dumpall-specific configuration options.
+  pub config: PgDumpallConfig,
 }
 
 #[napi]
@@ -80,7 +98,9 @@ pub struct PgDumpallOptions {
 ///     password: 'password',
 ///   },
 ///   programDir: '/path/to/postgres/bin',
-///   file: 'fulldump.sql',
+///   config: {
+///     file: 'fulldump.sql',
+///   }
 /// });
 ///
 /// const result = await dumpall.execute();
@@ -96,10 +116,46 @@ pub struct PgDumpallTool {
 
 #[napi]
 impl PgDumpallTool {
-  /// Creates a new `PgDumpallTool` instance.
+  /// Creates a new `PgDumpallTool` instance with complete options.
   /// @param options - The configuration options for `pg_dumpall`.
   #[napi(constructor)]
   pub fn new(options: PgDumpallOptions) -> Self {
+    Self { options }
+  }
+
+  #[napi(factory)]
+  /// Creates a PgDumpallTool from connection info and dumpall-specific config.
+  ///
+  /// This is the preferred method when using with PostgresInstance,
+  /// as it separates connection concerns from tool-specific configuration.
+  ///
+  /// @param connection - Database connection configuration
+  /// @param program_dir - Directory containing the pg_dumpall executable
+  /// @param config - Pg_dumpall-specific configuration options
+  /// @returns A new PgDumpallTool instance
+  ///
+  /// @example
+  /// ```typescript
+  /// const dumpallTool = PgDumpallTool.fromConnection(
+  ///   instance.connectionInfo,
+  ///   instance.programDir + '/bin',
+  ///   {
+  ///     globalsOnly: true,
+  ///     clean: true,
+  ///     file: './globals.sql'
+  ///   }
+  /// );
+  /// ```
+  pub fn from_connection(
+    connection: ConnectionConfig,
+    program_dir: String,
+    config: PgDumpallConfig,
+  ) -> Self {
+    let options = PgDumpallOptions {
+      connection,
+      program_dir,
+      config,
+    };
     Self { options }
   }
 
@@ -131,6 +187,7 @@ impl PgDumpallTool {
 
 fn to_command(options: &PgDumpallOptions, force_stdout: bool) -> Result<Command> {
   let mut builder = PgDumpAllBuilder::new();
+  let config = &options.config;
 
   builder = builder.program_dir(&options.program_dir);
 
@@ -149,41 +206,41 @@ fn to_command(options: &PgDumpallOptions, force_stdout: bool) -> Result<Command>
   }
 
   if !force_stdout {
-    if let Some(file) = &options.file {
+    if let Some(file) = &config.file {
       builder = builder.file(file);
     }
   }
-  if let Some(globals_only) = options.globals_only {
+  if let Some(globals_only) = config.globals_only {
     if globals_only {
       builder = builder.globals_only();
     }
   }
-  if let Some(roles_only) = options.roles_only {
+  if let Some(roles_only) = config.roles_only {
     if roles_only {
       builder = builder.roles_only();
     }
   }
-  if let Some(tablespaces_only) = options.tablespaces_only {
+  if let Some(tablespaces_only) = config.tablespaces_only {
     if tablespaces_only {
       builder = builder.tablespaces_only();
     }
   }
-  if let Some(verbose) = options.verbose {
+  if let Some(verbose) = config.verbose {
     if verbose {
       builder = builder.verbose();
     }
   }
-  if let Some(clean) = options.clean {
+  if let Some(clean) = config.clean {
     if clean {
       builder = builder.clean();
     }
   }
-  if let Some(no_owner) = options.no_owner {
+  if let Some(no_owner) = config.no_owner {
     if no_owner {
       builder = builder.no_owner();
     }
   }
-  if let Some(no_privileges) = options.no_privileges {
+  if let Some(no_privileges) = config.no_privileges {
     if no_privileges {
       builder = builder.no_privileges();
     }
@@ -202,6 +259,7 @@ async fn run_command(command: Command, options: &PgDumpallOptions) -> Result<Too
   ToolResult::from_output(
     output,
     options
+      .config
       .tool
       .as_ref()
       .and_then(|t| t.silent)

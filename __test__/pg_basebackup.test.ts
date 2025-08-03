@@ -32,9 +32,11 @@ test('should take a base backup', async (t) => {
       username: t.context.pg.connectionInfo.username,
       password: t.context.pg.connectionInfo.password,
     },
-    pgdata: backupDir,
     programDir: path.join(t.context.pg.programDir, 'bin'),
-    walMethod: 'fetch',
+    config: {
+      pgdata: backupDir,
+      walMethod: 1, // PgBasebackupWalMethod.Fetch
+    },
   })
   const result = await basebackupTool.execute()
   t.is(result.exitCode, 0)
