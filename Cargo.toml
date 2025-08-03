@@ -2,7 +2,7 @@
 authors = ["Kingsword <kingsword09@gmail.com>"]
 edition = "2021"
 name = "pg-embedded"
-version = "0.1.1+pg17.5"
+version = "0.1.2+pg17.5"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
