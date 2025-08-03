@@ -51,7 +51,9 @@ test.before(async () => {
 })
 
 test.after.always(async () => {
-  await pg.stop()
+  if (pg) {
+    await pg.stop()
+  }
   if (fs.existsSync(dumpFilePath)) {
     fs.unlinkSync(dumpFilePath)
   }
@@ -98,6 +100,48 @@ test('should restore the database from a file', async (t) => {
 
   t.true(stdout.includes('test1'))
   t.true(stdout.includes('test2'))
+
+  // Clean up
+  await pg.dropDatabase(restoreDbName)
+})
+
+test('should restore with clean and ifExists options', async (t) => {
+  const restoreDbName = `${dbName}_restore3`
+  await pg.createDatabase(restoreDbName)
+
+  const restoreConnectionConfig = {
+    host: pg.connectionInfo.host || 'localhost',
+    port: pg.connectionInfo.port || 5433,
+    username: pg.connectionInfo.username || 'postgres',
+    password: pg.connectionInfo.password || '',
+    database: restoreDbName,
+  }
+
+  const programDir = path.join(pg.programDir, 'bin')
+
+  // Pre-create a table with the same name to test the clean and ifExists functionality
+  const psql = new PsqlTool({ connection: restoreConnectionConfig, programDir, config: {} })
+  await psql.executeCommand('CREATE TABLE test_table (id INT, name VARCHAR(255));')
+
+  const pgRestore = new PgRestoreTool({
+    connection: restoreConnectionConfig,
+    programDir,
+    config: {
+      file: dumpFilePath,
+      format: PgRestoreFormat.Custom,
+      clean: true,
+      ifExists: true, // This should prevent errors from DROP TABLE on a non-existent table if it were the case
+      noOwner: true,
+      noPrivileges: true,
+    },
+  })
+
+  const result = await pgRestore.execute()
+  t.is(result.exitCode, 0, `pg_restore failed: ${result.stderr}`)
+
+  // Verify that the data was restored correctly
+  const { stdout } = await psql.executeCommand('SELECT COUNT(*) FROM test_table;')
+  t.true(stdout.includes('2'), 'Expected the table to be dropped, recreated, and repopulated with 2 rows.')
 
   // Clean up
   await pg.dropDatabase(restoreDbName)

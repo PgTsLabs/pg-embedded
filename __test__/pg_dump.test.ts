@@ -42,7 +42,9 @@ test.before(async (t) => {
 })
 
 test.after.always(async (t) => {
-  await t.context.pg.stop()
+  if (t.context.pg) {
+    await t.context.pg.stop()
+  }
 })
 
 test('should dump database to a file', async (t) => {
@@ -173,4 +175,31 @@ test('should exclude a specific table from the dump', async (t) => {
 
   // The sequence might still be there, but that's expected behavior for pg_dump
   // We mainly care that the table structure and data are excluded
+})
+
+test('should use if_exists with clean option to avoid errors on non-existent objects', async (t) => {
+  const dumpTool = new PgDumpTool({
+    connection: {
+      host: t.context.pg.connectionInfo.host,
+      port: t.context.pg.connectionInfo.port,
+      username: t.context.pg.connectionInfo.username,
+      password: t.context.pg.connectionInfo.password,
+      database: 'test_db',
+    },
+    programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {
+      clean: true,
+      ifExists: true,
+    },
+  })
+
+  // The dump should contain DROP commands, but they should not cause errors
+  // if the objects don't exist in the target database.
+  // We can't directly test the restore part here, but we can verify the dump contains 'DROP'
+  const result = await dumpTool.executeToString()
+  t.is(result.exitCode, 0, `pg_dump failed with exit code ${result.exitCode}: ${result.stderr}`)
+
+  // A clean dump should contain 'DROP' statements
+  t.true(result.stdout.includes('DROP TABLE'), "Expected 'DROP TABLE' statement in the dump")
+  t.true(result.stdout.includes('DROP SCHEMA'), "Expected 'DROP SCHEMA' statement for test_schema in the dump")
 })

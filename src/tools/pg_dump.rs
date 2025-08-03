@@ -125,6 +125,7 @@ pub struct PgDumpConfig {
 
   /// When used with `clean`, suppresses errors for non-existent objects.
   /// Equivalent to the pg_dump --if-exists flag.
+  #[napi(js_name = "ifExists")]
   pub if_exists: Option<bool>,
 }
 

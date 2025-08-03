@@ -1585,6 +1585,11 @@ export interface PgDumpConfig {
    * Equivalent to pg_dump --compress flag.
    */
   compression?: number
+  /**
+   * When used with `clean`, suppresses errors for non-existent objects.
+   * Equivalent to the pg_dump --if-exists flag.
+   */
+  ifExists?: boolean
 }
 
 /**
@@ -1769,6 +1774,11 @@ export interface PgRestoreConfig {
   noOwner?: boolean
   /** Do not restore privileges (grant/revoke). */
   noPrivileges?: boolean
+  /**
+   * When used with `clean`, suppresses errors for non-existent objects.
+   * Equivalent to the pg_restore --if-exists flag.
+   */
+  ifExists?: boolean
 }
 
 /**
