@@ -21,6 +21,50 @@ export declare class ConnectionInfo {
 }
 
 /**
+ * A tool for taking base backups of a running PostgreSQL cluster.
+ * This class provides an interface to the `pg_basebackup` command-line utility.
+ *
+ * @example
+ * ```typescript
+ * import { PgBasebackupTool } from 'pg-embedded';
+ *
+ * const backup = new PgBasebackupTool({
+ *   connection: {
+ *     host: 'localhost',
+ *     port: 5432,
+ *     username: 'postgres',
+ *     password: 'password',
+ *   },
+ *   programDir: '/path/to/postgres/bin',
+ *   pgdata: './backup_dir',
+ *   walMethod: 'fetch',
+ * });
+ *
+ * const result = await backup.execute();
+ * if (result.exitCode === 0) {
+ *   console.log('Base backup completed successfully.');
+ * } else {
+ *   console.error(`Backup failed with error: ${result.stderr}`);
+ * }
+ * ```
+ */
+export declare class PgBasebackupTool {
+  /**
+   * Creates a new `PgBasebackupTool` instance.
+   * @param options - The configuration options for `pg_basebackup`.
+   */
+  constructor(options: PgBasebackupOptions)
+  /**
+   * Executes the `pg_basebackup` command.
+   *
+   * The backup will be written to the directory specified in the `pgdata` option.
+   *
+   * @returns A promise that resolves with the result of the command execution.
+   */
+  execute(): Promise<ToolResult>
+}
+
+/**
  * A tool for creating a dump of all databases in a PostgreSQL cluster.
  *
  * This class provides an interface to the `pg_dumpall` command-line utility.
@@ -810,6 +854,71 @@ export declare function logTrace(message: string): void
 
 /** Log warning message */
 export declare function logWarn(message: string): void
+
+/**
+ * Options for configuring the `pg_basebackup` command.
+ *
+ * This interface corresponds to the command-line arguments of the `pg_basebackup` utility.
+ *
+ * @example
+ * ```typescript
+ * const basebackupOptions: PgBasebackupOptions = {
+ *   connection: {
+ *     host: 'localhost',
+ *     port: 5432,
+ *     username: 'postgres',
+ *     password: 'password',
+ *   },
+ *   programDir: '/path/to/postgres/bin',
+ *   pgdata: './backup_dir',
+ *   format: 'p', // plain format
+ *   walMethod: 'fetch',
+ * };
+ * ```
+ */
+export interface PgBasebackupOptions {
+  /** Database connection parameters. */
+  connection: ConnectionConfig
+  /** General tool options. */
+  tool?: ToolOptions
+  /**
+   * The directory containing the `pg_basebackup` executable.
+   * Corresponds to the `--pgdata` command-line argument.
+   */
+  programDir: string
+  /** Specifies the output directory for the backup. */
+  pgdata: string
+  /**
+   * The output format. Can be `p` (plain) or `t` (tar).
+   * Corresponds to the `--format` command-line argument.
+   */
+  format?: string
+  /**
+   * Enable verbose mode.
+   * Corresponds to the `--verbose` command-line argument.
+   */
+  verbose?: boolean
+  /**
+   * Set checkpoint mode to `fast` or `spread`.
+   * Corresponds to the `--checkpoint` command-line argument.
+   */
+  checkpoint?: string
+  /**
+   * Create a temporary replication slot.
+   * Corresponds to the `--create-slot` command-line argument.
+   */
+  createSlot?: boolean
+  /**
+   * Maximum transfer rate of the data directory.
+   * Corresponds to the `--max-rate` command-line argument.
+   */
+  maxRate?: string
+  /**
+   * Method for including WAL files. Can be `none`, `fetch`, or `stream`.
+   * Corresponds to the `--wal-method` command-line argument.
+   */
+  walMethod?: string
+}
 
 /**
  * Options for configuring the `pg_dumpall` command.
