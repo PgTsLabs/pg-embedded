@@ -782,6 +782,162 @@ export declare class PostgresInstance {
   createDatabase(name: string): Promise<void>
   /**
    * # Safety
+   * Creates a database dump using pg_dump
+   *
+   * This method executes pg_dump to create a backup of a PostgreSQL database.
+   * The instance must be running before calling this method.
+   *
+   * @param options - Configuration options for pg_dump
+   * @param database_name - Optional name of the database to dump (defaults to 'postgres')
+   * @returns Promise that resolves with the execution result when the dump is complete
+   * @throws Error if the instance is not running or if the dump fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.createDump({
+   *   file: '/path/to/backup.sql',
+   *   format: PgDumpFormat.Plain,
+   *   create: true
+   * }, 'mydb');
+   * console.log(result.stdout);
+   * ```
+   */
+  createDump(options: PgDumpConfig, databaseName?: string | undefined | null): Promise<ToolResult>
+  /**
+   * # Safety
+   * Creates a base backup using pg_basebackup
+   *
+   * This method executes pg_basebackup to create a binary backup of a PostgreSQL
+   * database cluster. The backup can be used for point-in-time recovery or to
+   * set up streaming replication. The instance must be running before calling this method.
+   *
+   * @param options - Configuration options for pg_basebackup
+   * @param database_name - Optional name of the database to connect to (defaults to 'postgres')
+   * @returns Promise that resolves with the execution result when the backup is complete
+   * @throws Error if the instance is not running or if the backup fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.createBaseBackup({
+   *   pgdata: '/path/to/backup',
+   *   format: PgBasebackupFormat.Tar,
+   *   walMethod: PgBasebackupWalMethod.Stream
+   * });
+   * console.log(result.stdout);
+   * ```
+   */
+  createBaseBackup(options: PgBasebackupConfig, databaseName?: string | undefined | null): Promise<ToolResult>
+  /**
+   * # Safety
+   * Restores a database from a backup using pg_restore
+   *
+   * This method executes pg_restore to restore a PostgreSQL database from a backup
+   * file created by pg_dump. The instance must be running before calling this method.
+   *
+   * @param options - Configuration options for pg_restore
+   * @param database_name - Optional name of the database to restore to (defaults to 'postgres')
+   * @returns Promise that resolves with the execution result when the restore is complete
+   * @throws Error if the instance is not running or if the restore fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.createRestore({
+   *   file: '/path/to/backup.dump',
+   *   format: PgRestoreFormat.Custom,
+   *   clean: true
+   * }, 'mydb');
+   * console.log(result.stdout);
+   * ```
+   */
+  createRestore(options: PgRestoreConfig, databaseName?: string | undefined | null): Promise<ToolResult>
+  /**
+   * # Safety
+   * Rewinds a PostgreSQL cluster using pg_rewind
+   *
+   * This method executes pg_rewind to synchronize a PostgreSQL cluster with another
+   * copy of the same cluster, after the clusters' timelines have diverged.
+   * The instance must be running before calling this method.
+   *
+   * @param options - Configuration options for pg_rewind
+   * @param database_name - Optional name of the database to connect to (defaults to 'postgres')
+   * @returns Promise that resolves with the execution result when the rewind is complete
+   * @throws Error if the instance is not running or if the rewind fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.createRewind({
+   *   targetPgdata: '/path/to/target/data',
+   *   sourceServer: 'host=source_host port=5432'
+   * });
+   * console.log(result.stdout);
+   * ```
+   */
+  createRewind(options: PgRewindConfig, databaseName?: string | undefined | null): Promise<ToolResult>
+  /**
+   * # Safety
+   * Creates a dump of all databases using pg_dumpall
+   *
+   * This method executes pg_dumpall to create a backup of all databases in the
+   * PostgreSQL cluster, including global objects like roles and tablespaces.
+   * The instance must be running before calling this method.
+   *
+   * @param options - Configuration options for pg_dumpall
+   * @returns Promise that resolves with the execution result when the dump is complete
+   * @throws Error if the instance is not running or if the dump fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.createDumpall({
+   *   file: '/path/to/cluster_backup.sql',
+   *   rolesOnly: false,
+   *   clean: true
+   * });
+   * console.log(result.stdout);
+   * ```
+   */
+  createDumpall(options: PgDumpallConfig): Promise<ToolResult>
+  /**
+   * # Safety
+   * Executes SQL commands using psql
+   *
+   * This method executes SQL commands directly using the psql command-line tool.
+   * The instance must be running before calling this method.
+   *
+   * @param sql - The SQL command(s) to execute
+   * @param options - Configuration options for psql
+   * @param database_name - Optional database name to connect to (defaults to 'postgres')
+   * @returns Promise that resolves with the execution result
+   * @throws Error if the instance is not running or if the execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeSql('SELECT version();', {});
+   * console.log(result.stdout);
+   * ```
+   */
+  executeSql(sql: string, options: PsqlConfig, databaseName?: string | undefined | null): Promise<ToolResult>
+  /**
+   * # Safety
+   * Executes SQL commands from a file using psql
+   *
+   * This method executes SQL commands from a file using the psql command-line tool.
+   * The instance must be running before calling this method.
+   *
+   * @param file_path - Path to the SQL file to execute
+   * @param options - Configuration options for psql
+   * @param database_name - Optional database name to connect to (defaults to 'postgres')
+   * @returns Promise that resolves with the execution result
+   * @throws Error if the instance is not running, if the file doesn't exist, or if the execution fails
+   *
+   * @example
+   * ```typescript
+   * const result = await instance.executeFile('/path/to/script.sql', {}, 'mydb');
+   * console.log(result.stdout);
+   * ```
+   */
+  executeFile(filePath: string, options: PsqlConfig, databaseName?: string | undefined | null): Promise<ToolResult>
+  /**
+   * # Safety
    * Drops (deletes) a database asynchronously
    *
    * @param name - The name of the database to drop
