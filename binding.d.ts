@@ -21,6 +21,61 @@ export declare class ConnectionInfo {
 }
 
 /**
+ * A tool for creating a dump of all databases in a PostgreSQL cluster.
+ *
+ * This class provides an interface to the `pg_dumpall` command-line utility.
+ *
+ * @example
+ * ```typescript
+ * import { PgDumpallTool } from 'pg-embedded';
+ *
+ * const dumpall = new PgDumpallTool({
+ *   connection: {
+ *     host: 'localhost',
+ *     port: 5432,
+ *     username: 'postgres',
+ *     password: 'password',
+ *   },
+ *   programDir: '/path/to/postgres/bin',
+ *   file: 'fulldump.sql',
+ * });
+ *
+ * const result = await dumpall.execute();
+ * if (result.exitCode === 0) {
+ *   console.log('Dump completed successfully.');
+ * } else {
+ *   console.error(`Dump failed with error: ${result.stderr}`);
+ * }
+ * ```
+ */
+export declare class PgDumpallTool {
+  /**
+   * Creates a new `PgDumpallTool` instance.
+   * @param options - The configuration options for `pg_dumpall`.
+   */
+  constructor(options: PgDumpallOptions)
+  /**
+   * Executes the `pg_dumpall` command and returns the output as a string.
+   *
+   * This method is useful for capturing the dump output directly, for example,
+   * to process it in memory or send it over a network stream.
+   *
+   * @returns A promise that resolves with the result of the command execution.
+   * The dump content will be available in the `stdout` property of the result.
+   */
+  executeToString(): Promise<ToolResult>
+  /**
+   * Executes the `pg_dumpall` command.
+   *
+   * If the `file` option is specified in the constructor, the dump will be written to that file.
+   * Otherwise, the dump output will be available in the `stdout` property of the returned result.
+   *
+   * @returns A promise that resolves with the result of the command execution.
+   */
+  execute(): Promise<ToolResult>
+}
+
+/**
  * PostgreSQL database backup tool using pg_dump.
  *
  * This class provides a TypeScript interface for creating database backups using PostgreSQL's
@@ -241,8 +296,48 @@ export declare class PgIsReadyTool {
   execute(): Promise<ToolResult>
 }
 
+/**
+ * A tool for restoring a PostgreSQL database from an archive created by `pg_dump`.
+ */
 export declare class PgRestoreTool {
+  /**
+   * Creates a new `PgRestoreTool` instance.
+   * @param {PgRestoreOptions} options - The options for the `pg_restore` tool.
+   * @returns {PgRestoreTool} A new `PgRestoreTool` instance.
+   */
   constructor(options: PgRestoreOptions)
+  /**
+   * Executes the pg_restore command with the configured options.
+   *
+   * This method runs the pg_restore utility and restores a database from an archive.
+   *
+   * @returns {Promise<ToolResult>} A promise that resolves with the result of the command,
+   * including exit code, stdout, and stderr.
+   * @throws {Error} If the command fails to execute or if there are configuration issues.
+   *
+   * @example
+   * ```typescript
+   * const restoreTool = new PgRestoreTool({
+   *   connection: {
+   *     host: 'localhost',
+   *     port: 5432,
+   *     username: 'postgres',
+   *     database: 'restored_db'
+   *   },
+   *   programDir: '/home/postgresql/17.5.0/bin',
+   *   file: './backup.sql',
+   *   clean: true,
+   *   create: true
+   * });
+   *
+   * const result = await restoreTool.execute();
+   * if (result.exitCode === 0) {
+   *   console.log('Database restored successfully.');
+   * } else {
+   *   console.error('Restore failed:', result.stderr);
+   * }
+   * ```
+   */
   execute(): Promise<ToolResult>
 }
 
@@ -717,6 +812,75 @@ export declare function logTrace(message: string): void
 export declare function logWarn(message: string): void
 
 /**
+ * Options for configuring the `pg_dumpall` command.
+ *
+ * This interface corresponds to the command-line arguments of the `pg_dumpall` utility.
+ *
+ * @example
+ * ```typescript
+ * const dumpallOptions: PgDumpallOptions = {
+ *   connection: {
+ *     host: 'localhost',
+ *     port: 5432,
+ *     username: 'postgres',
+ *     password: 'password',
+ *   },
+ *   programDir: '/path/to/postgres/bin',
+ *   file: 'dump.sql',
+ *   globalsOnly: true,
+ * };
+ * ```
+ */
+export interface PgDumpallOptions {
+  /** Database connection parameters. */
+  connection: ConnectionConfig
+  /** General tool options. */
+  tool?: ToolOptions
+  /** The directory containing the `pg_dumpall` executable. */
+  programDir: string
+  /**
+   * Specifies the output file for the dump. If not provided, the output is sent to standard output.
+   * Corresponds to the `--file` command-line argument.
+   */
+  file?: string
+  /**
+   * Dump only global objects (roles and tablespaces), not databases.
+   * Corresponds to the `--globals-only` command-line argument.
+   */
+  globalsOnly?: boolean
+  /**
+   * Dump only roles.
+   * Corresponds to the `--roles-only` command-line argument.
+   */
+  rolesOnly?: boolean
+  /**
+   * Dump only tablespaces.
+   * Corresponds to the `--tablespaces-only` command-line argument.
+   */
+  tablespacesOnly?: boolean
+  /**
+   * Enable verbose mode.
+   * Corresponds to the `--verbose` command-line argument.
+   */
+  verbose?: boolean
+  /**
+   * Output commands to `DROP` objects before recreating them.
+   * Corresponds to the `--clean` command-line argument.
+   */
+  clean?: boolean
+  /**
+   * Do not output commands to set object ownership.
+   * Corresponds to the `--no-owner` command-line argument.
+   */
+  noOwner?: boolean
+  /**
+   * Do not dump privileges (GRANT/REVOKE commands).
+   * Corresponds to the `--no-privileges` command-line argument.
+   */
+  noPrivileges?: boolean
+}
+
+/**
  * Configuration options for the PostgreSQL pg_dump tool.
  *
  * This interface defines all available options for creating database backups using pg_dump.
@@ -1007,24 +1171,100 @@ export interface PgIsReadyOptions {
   programDir: string
 }
 
+/**
+ * Options for the `pg_restore` tool.
+ * @see https://www.postgresql.org/docs/current/app-pgrestore.html
+ */
 export interface PgRestoreOptions {
+  /**
+   * Connection configuration for the PostgreSQL server.
+   * @type {ConnectionConfig}
+   */
   connection: ConnectionConfig
+  /**
+   * The path to the dump file.
+   * @type {string}
+   */
   file: string
+  /**
+   * The format of the archive.
+   * @type {string | undefined}
+   */
   format?: string
+  /**
+   * Clean (drop) database objects before recreating them.
+   * @type {boolean}
+   */
   clean: boolean
+  /**
+   * Create the database before restoring into it.
+   * @type {boolean}
+   */
   create: boolean
+  /**
+   * Exit on error.
+   * @type {boolean}
+   */
   exitOnError: boolean
+  /**
+   * Number of concurrent jobs.
+   * @type {number | undefined}
+   */
   jobs?: number
+  /**
+   * Execute as a single transaction.
+   * @type {boolean}
+   */
   singleTransaction: boolean
+  /**
+   * Verbose mode.
+   * @type {boolean}
+   */
   verbose: boolean
+  /**
+   * The name of the database to restore into.
+   * @type {string | undefined}
+   */
   dbName?: string
+  /**
+   * Restore only the data, not the schema.
+   * @type {boolean}
+   */
   dataOnly: boolean
+  /**
+   * Restore only the schema, not the data.
+   * @type {boolean}
+   */
   schemaOnly: boolean
+  /**
+   * Superuser name to use for disabling triggers.
+   * @type {string | undefined}
+   */
   superuser?: string
+  /**
+   * Restore only the specified table(s).
+   * @type {string[]}
+   */
   table: Array<string>
+  /**
+   * Restore only the specified trigger(s).
+   * @type {string[]}
+   */
   trigger: Array<string>
+  /**
+   * Do not restore ownership of objects.
+   * @type {boolean}
+   */
   noOwner: boolean
+  /**
+   * Do not restore privileges (grant/revoke).
+   * @type {boolean}
+   */
   noPrivileges: boolean
+  /**
+   * The directory where the `pg_restore` program is located.
+   * @type {string | undefined}
+   */
   programDir?: string
 }
 
