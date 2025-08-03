@@ -18,28 +18,26 @@ struct ConnectionInfoCache {
   created_at: Instant,
 }
 
-/**
- * PostgreSQL embedded instance manager
- *
- * This class provides a high-level interface for managing embedded PostgreSQL instances.
- * It supports both synchronous and asynchronous operations, automatic resource management,
- * and connection caching for optimal performance.
- *
- * @example
- * ```typescript
- * import { PostgresInstance } from 'pg-embedded';
- *
- * const instance = new PostgresInstance({
- *   port: 5432,
- *   username: 'postgres',
- *   password: 'password'
- * });
- *
- * await instance.start();
- * await instance.createDatabase('mydb');
- * await instance.stop();
- * ```
- */
+/// PostgreSQL embedded instance manager
+///
+/// This class provides a high-level interface for managing embedded PostgreSQL instances.
+/// It supports both synchronous and asynchronous operations, automatic resource management,
+/// and connection caching for optimal performance.
+///
+/// @example
+/// ```typescript
+/// import { PostgresInstance } from 'pg-embedded';
+///
+/// const instance = new PostgresInstance({
+///   port: 5432,
+///   username: 'postgres',
+///   password: 'password'
+/// });
+///
+/// await instance.start();
+/// await instance.createDatabase('mydb');
+/// await instance.stop();
+/// ```
 #[napi]
 pub struct PostgresInstance {
   /// Async instance (lazy initialized)
@@ -99,22 +97,20 @@ impl Drop for PostgresInstance {
 
 #[napi]
 impl PostgresInstance {
-  /**
-   * Creates a new PostgreSQL instance with the specified settings
-   *
-   * @param settings - Configuration settings for the PostgreSQL instance
-   * @returns A new PostgresInstance
-   *
-   * @example
-   * ```typescript
-   * const instance = new PostgresInstance({
-   *   port: 5432,
-   *   username: 'postgres',
-   *   password: 'password',
-   *   persistent: false
-   * });
-   * ```
-   */
+  /// Creates a new PostgreSQL instance with the specified settings
+  ///
+  /// @param settings - Configuration settings for the PostgreSQL instance
+  /// @returns A new PostgresInstance
+  ///
+  /// @example
+  /// ```typescript
+  /// const instance = new PostgresInstance({
+  ///   port: 5432,
+  ///   username: 'postgres',
+  ///   password: 'password',
+  ///   persistent: false
+  /// });
+  /// ```
   #[napi(constructor)]
   pub fn new(settings: Option<PostgresSettings>) -> napi::Result<Self> {
     let postgres_settings = settings.unwrap_or_default();
@@ -157,23 +153,19 @@ impl PostgresInstance {
     format!("{:x}", hasher.finish())
   }
 
-  /**
-   * Gets the unique instance ID
-   *
-   * @returns The unique identifier for this PostgreSQL instance
-   */
+  /// Gets the unique instance ID
+  ///
+  /// @returns The unique identifier for this PostgreSQL instance
   #[napi(getter)]
   pub fn get_instance_id(&self) -> String {
     self.instance_id.clone()
   }
 
-  /**
-   * Gets the configuration hash for this instance
-   *
-   * This hash is used internally for caching and can be useful for debugging.
-   *
-   * @returns A string hash of the instance configuration
-   */
+  /// Gets the configuration hash for this instance
+  ///
+  /// This hash is used internally for caching and can be useful for debugging.
+  ///
+  /// @returns A string hash of the instance configuration
   #[napi]
   pub fn get_config_hash(&self) -> String {
     self.config_hash.clone()
@@ -209,13 +201,11 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Promotes a standby server to a primary server.
-   *
-   * @returns Promise that resolves when the server is promoted.
-   * @throws Error if promotion fails.
-   */
+  /// # Safety
+  /// Promotes a standby server to a primary server.
+  ///
+  /// @returns Promise that resolves when the server is promoted.
+  /// @throws Error if promotion fails.
   #[napi]
   pub async unsafe fn promote(&self) -> napi::Result<()> {
     if let Some(instance) = &self.async_instance {
@@ -245,11 +235,9 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * Gets the current state of the PostgreSQL instance
-   *
-   * @returns The current instance state (Stopped, Starting, Running, or Stopping)
-   */
+  /// Gets the current state of the PostgreSQL instance
+  ///
+  /// @returns The current instance state (Stopped, Starting, Running, or Stopping)
   #[napi(getter)]
   pub fn get_state(&self) -> napi::Result<InstanceState> {
     let state = self
@@ -264,15 +252,13 @@ impl PostgresInstance {
     })
   }
 
-  /**
-   * Gets the connection information for the PostgreSQL instance
-   *
-   * This method returns cached connection information when available for better performance.
-   * The cache is automatically invalidated after 5 minutes.
-   *
-   * @returns Connection information including host, port, username, and connection string
-   * @throws Error if the instance is not running
-   */
+  /// Gets the connection information for the PostgreSQL instance
+  ///
+  /// This method returns cached connection information when available for better performance.
+  /// The cache is automatically invalidated after 5 minutes.
+  ///
+  /// @returns Connection information including host, port, username, and connection string
+  /// @throws Error if the instance is not running
   #[napi(getter)]
   pub fn get_connection_info(&self) -> napi::Result<ConnectionInfo> {
     let state = self
@@ -351,11 +337,9 @@ impl PostgresInstance {
     Ok(())
   }
 
-  /**
-   * Checks if the PostgreSQL instance is healthy and running
-   *
-   * @returns true if the instance is running and healthy, false otherwise
-   */
+  /// Checks if the PostgreSQL instance is healthy and running
+  ///
+  /// @returns true if the instance is running and healthy, false otherwise
   #[napi]
   pub fn is_healthy(&self) -> napi::Result<bool> {
     let state = self.get_state()?;
@@ -371,16 +355,14 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Sets up the PostgreSQL instance asynchronously
-   *
-   * This method initializes the PostgreSQL instance but does not start it.
-   * It's automatically called by start() if needed.
-   *
-   * @returns Promise that resolves when setup is complete
-   * @throws Error if setup fails
-   */
+  /// # Safety
+  /// Sets up the PostgreSQL instance asynchronously
+  ///
+  /// This method initializes the PostgreSQL instance but does not start it.
+  /// It's automatically called by start() if needed.
+  ///
+  /// @returns Promise that resolves when setup is complete
+  /// @throws Error if setup fails
   #[napi]
   pub async unsafe fn setup(&mut self) -> napi::Result<()> {
     pg_log!(
@@ -406,22 +388,20 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Starts the PostgreSQL instance asynchronously
-   *
-   * This method starts the PostgreSQL server and makes it ready to accept connections.
-   * It includes automatic setup if the instance hasn't been set up yet.
-   *
-   * @returns Promise that resolves when the instance is started and ready
-   * @throws Error if the instance is already running or if startup fails
-   *
-   * @example
-   * ```typescript
-   * await instance.start();
-   * console.log('PostgreSQL is ready!');
-   * ```
-   */
+  /// # Safety
+  /// Starts the PostgreSQL instance asynchronously
+  ///
+  /// This method starts the PostgreSQL server and makes it ready to accept connections.
+  /// It includes automatic setup if the instance hasn't been set up yet.
+  ///
+  /// @returns Promise that resolves when the instance is started and ready
+  /// @throws Error if the instance is already running or if startup fails
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.start();
+  /// console.log('PostgreSQL is ready!');
+  /// ```
   #[napi]
   pub async unsafe fn start(&mut self, initialize: Option<bool>) -> napi::Result<()> {
     let start_time = Instant::now();
@@ -498,21 +478,19 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Stops the PostgreSQL instance asynchronously
-   *
-   * This method gracefully shuts down the PostgreSQL server.
-   *
-   * @returns Promise that resolves when the instance is stopped
-   * @throws Error if the instance is already stopped or if stopping fails
-   *
-   * @example
-   * ```typescript
-   * await instance.stop();
-   * console.log('PostgreSQL stopped');
-   * ```
-   */
+  /// # Safety
+  /// Stops the PostgreSQL instance asynchronously
+  ///
+  /// This method gracefully shuts down the PostgreSQL server.
+  ///
+  /// @returns Promise that resolves when the instance is stopped
+  /// @throws Error if the instance is already stopped or if stopping fails
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.stop();
+  /// console.log('PostgreSQL stopped');
+  /// ```
   #[napi]
   pub async unsafe fn stop(&mut self) -> napi::Result<()> {
     self.internal_stop(false).await
@@ -587,19 +565,17 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Creates a new database asynchronously
-   *
-   * @param name - The name of the database to create
-   * @returns Promise that resolves when the database is created
-   * @throws Error if the instance is not running or if database creation fails
-   *
-   * @example
-   * ```typescript
-   * await instance.createDatabase('myapp');
-   * ```
-   */
+  /// # Safety
+  /// Creates a new database asynchronously
+  ///
+  /// @param name - The name of the database to create
+  /// @returns Promise that resolves when the database is created
+  /// @throws Error if the instance is not running or if database creation fails
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.createDatabase('myapp');
+  /// ```
   #[napi]
   pub async unsafe fn create_database(&mut self, name: String) -> napi::Result<()> {
     let current_state = self.get_state()?;
@@ -621,19 +597,19 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Drops (deletes) a database asynchronously
-   *
-   * @param name - The name of the database to drop
-   * @returns Promise that resolves when the database is dropped
-   * @throws Error if the instance is not running or if database deletion fails
-   *
-   * @example
-   * ```typescript
-   * await instance.dropDatabase('myapp');
-   * ```
-   */
+  
+
+  /// # Safety
+  /// Drops (deletes) a database asynchronously
+  ///
+  /// @param name - The name of the database to drop
+  /// @returns Promise that resolves when the database is dropped
+  /// @throws Error if the instance is not running or if database deletion fails
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.dropDatabase('myapp');
+  /// ```
   #[napi]
   pub async unsafe fn drop_database(&mut self, name: String) -> napi::Result<()> {
     let current_state = self.get_state()?;
@@ -655,21 +631,19 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * Checks if a database exists asynchronously
-   *
-   * @param name - The name of the database to check
-   * @returns Promise that resolves to true if the database exists, false otherwise
-   * @throws Error if the instance is not running or if the check fails
-   *
-   * @example
-   * ```typescript
-   * const exists = await instance.databaseExists('myapp');
-   * if (exists) {
-   *   console.log('Database exists');
-   * }
-   * ```
-   */
+  /// Checks if a database exists asynchronously
+  ///
+  /// @param name - The name of the database to check
+  /// @returns Promise that resolves to true if the database exists, false otherwise
+  /// @throws Error if the instance is not running or if the check fails
+  ///
+  /// @example
+  /// ```typescript
+  /// const exists = await instance.databaseExists('myapp');
+  /// if (exists) {
+  ///   console.log('Database exists');
+  /// }
+  /// ```
   #[napi]
   pub async fn database_exists(&self, name: String) -> napi::Result<bool> {
     let current_state = self.get_state()?;
@@ -691,19 +665,17 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Starts the PostgreSQL instance asynchronously with a timeout
-   *
-   * @param timeout_seconds - Maximum time to wait for startup in seconds
-   * @returns Promise that resolves when the instance is started and ready
-   * @throws Error if the instance is already running, if startup fails, or if timeout is exceeded
-   *
-   * @example
-   * ```typescript
-   * await instance.startWithTimeout(30); // 30 second timeout
-   * ```
-   */
+  /// # Safety
+  /// Starts the PostgreSQL instance asynchronously with a timeout
+  ///
+  /// @param timeout_seconds - Maximum time to wait for startup in seconds
+  /// @returns Promise that resolves when the instance is started and ready
+  /// @throws Error if the instance is already running, if startup fails, or if timeout is exceeded
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.startWithTimeout(30); // 30 second timeout
+  /// ```
   #[napi]
   pub async unsafe fn start_with_timeout(&mut self, timeout_seconds: u32) -> napi::Result<()> {
     let timeout_duration = Duration::from_secs(timeout_seconds as u64);
@@ -731,19 +703,17 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Stops the PostgreSQL instance asynchronously with a timeout
-   *
-   * @param timeout_seconds - Maximum time to wait for shutdown in seconds
-   * @returns Promise that resolves when the instance is stopped
-   * @throws Error if the instance is already stopped, if stopping fails, or if timeout is exceeded
-   *
-   * @example
-   * ```typescript
-   * await instance.stopWithTimeout(10); // 10 second timeout
-   * ```
-   */
+  /// # Safety
+  /// Stops the PostgreSQL instance asynchronously with a timeout
+  ///
+  /// @param timeout_seconds - Maximum time to wait for shutdown in seconds
+  /// @returns Promise that resolves when the instance is stopped
+  /// @throws Error if the instance is already stopped, if stopping fails, or if timeout is exceeded
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.stopWithTimeout(10); // 10 second timeout
+  /// ```
   #[napi]
   pub async unsafe fn stop_with_timeout(&mut self, timeout_seconds: u32) -> napi::Result<()> {
     let timeout_duration = Duration::from_secs(timeout_seconds as u64);
@@ -771,20 +741,18 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * Gets the startup time of the PostgreSQL instance in seconds
-   *
-   * This method returns the time it took for the last successful start operation.
-   *
-   * @returns The startup time in seconds, or null if the instance hasn't been started yet
-   *
-   * @example
-   * ```typescript
-   * await instance.start();
-   * const startupTime = instance.getStartupTime();
-   * console.log(`Started in ${startupTime} seconds`);
-   * ```
-   */
+  /// Gets the startup time of the PostgreSQL instance in seconds
+  ///
+  /// This method returns the time it took for the last successful start operation.
+  ///
+  /// @returns The startup time in seconds, or null if the instance hasn't been started yet
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.start();
+  /// const startupTime = instance.getStartupTime();
+  /// console.log(`Started in ${startupTime} seconds`);
+  /// ```
   #[napi]
   pub fn get_startup_time(&self) -> Option<f64> {
     if let Ok(startup_time) = self.startup_time.lock() {
@@ -794,13 +762,11 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * Clears the connection information cache
-   *
-   * This forces the next call to connectionInfo to regenerate the connection information.
-   *
-   * @returns void
-   */
+  /// Clears the connection information cache
+  ///
+  /// This forces the next call to connectionInfo to regenerate the connection information.
+  ///
+  /// @returns void
   #[napi]
   pub fn clear_connection_cache(&self) -> napi::Result<()> {
     if let Ok(mut cache) = self.connection_cache.lock() {
@@ -814,13 +780,11 @@ impl PostgresInstance {
     Ok(())
   }
 
-  /**
-   * Checks if the connection information cache is valid
-   *
-   * The cache is considered valid if it exists and is less than 5 minutes old.
-   *
-   * @returns true if the cache is valid, false otherwise
-   */
+  /// Checks if the connection information cache is valid
+  ///
+  /// The cache is considered valid if it exists and is less than 5 minutes old.
+  ///
+  /// @returns true if the cache is valid, false otherwise
   #[napi]
   pub fn is_connection_cache_valid(&self) -> bool {
     if let Ok(cache) = self.connection_cache.lock() {
@@ -831,17 +795,15 @@ impl PostgresInstance {
     false
   }
 
-  /**
-   * Gets the PostgreSQL version used by this instance
-   *
-   * @returns PostgreSQL version string (e.g., "15.4")
-   *
-   * @example
-   * ```typescript
-   * const version = instance.getPostgreSQLVersion();
-   * console.log(`Using PostgreSQL ${version}`);
-   * ```
-   */
+  /// Gets the PostgreSQL version used by this instance
+  ///
+  /// @returns PostgreSQL version string (e.g., "15.4")
+  ///
+  /// @example
+  /// ```typescript
+  /// const version = instance.getPostgreSQLVersion();
+  /// console.log(`Using PostgreSQL ${version}`);
+  /// ```
   #[napi]
   pub fn get_postgre_sql_version(&self) -> String {
     crate::version::get_postgre_sql_version()
@@ -857,22 +819,20 @@ impl PostgresInstance {
     }
   }
 
-  /**
-   * # Safety
-   * Manually cleans up all resources associated with this instance
-   *
-   * This method stops the PostgreSQL instance (if running) and cleans up all resources.
-   * It's automatically called when the instance is dropped, but can be called manually
-   * for immediate cleanup.
-   *
-   * @returns void
-   *
-   * @example
-   * ```typescript
-   * await instance.cleanup();
-   * console.log('Resources cleaned up');
-   * ```
-   */
+  /// # Safety
+  /// Manually cleans up all resources associated with this instance
+  ///
+  /// This method stops the PostgreSQL instance (if running) and cleans up all resources.
+  /// It's automatically called when the instance is dropped, but can be called manually
+  /// for immediate cleanup.
+  ///
+  /// @returns void
+  ///
+  /// @example
+  /// ```typescript
+  /// await instance.cleanup();
+  /// console.log('Resources cleaned up');
+  /// ```
   #[napi]
   pub async unsafe fn cleanup(&mut self) -> napi::Result<()> {
     // Prevent double cleanup

@@ -8,111 +8,71 @@ use serde::Deserialize;
 use std::process::Command;
 use tokio::process::Command as TokioCommand;
 
-/**
- * Options for the `pg_restore` tool.
- * @see https://www.postgresql.org/docs/current/app-pgrestore.html
- */
+/// Options for the `pg_restore` tool.
+/// @see https://www.postgresql.org/docs/current/app-pgrestore.html
 #[napi(object)]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PgRestoreOptions {
-  /**
-   * Connection configuration for the PostgreSQL server.
-   * @type {ConnectionConfig}
-   */
+  /// Connection configuration for the PostgreSQL server.
+  /// @type {ConnectionConfig}
   #[serde(flatten)]
   pub connection: ConnectionConfig,
-  /**
-   * The path to the dump file.
-   * @type {string}
-   */
+  /// The path to the dump file.
+  /// @type {string}
   pub file: String,
-  /**
-   * The format of the archive.
-   * @type {string | undefined}
-   */
+  /// The format of the archive.
+  /// @type {string | undefined}
   pub format: Option<String>,
-  /**
-   * Clean (drop) database objects before recreating them.
-   * @type {boolean}
-   */
+  /// Clean (drop) database objects before recreating them.
+  /// @type {boolean}
   pub clean: bool,
-  /**
-   * Create the database before restoring into it.
-   * @type {boolean}
-   */
+  /// Create the database before restoring into it.
+  /// @type {boolean}
   pub create: bool,
-  /**
-   * Exit on error.
-   * @type {boolean}
-   */
+  /// Exit on error.
+  /// @type {boolean}
   pub exit_on_error: bool,
-  /**
-   * Number of concurrent jobs.
-   * @type {number | undefined}
-   */
+  /// Number of concurrent jobs.
+  /// @type {number | undefined}
   pub jobs: Option<u32>,
-  /**
-   * Execute as a single transaction.
-   * @type {boolean}
-   */
+  /// Execute as a single transaction.
+  /// @type {boolean}
   pub single_transaction: bool,
-  /**
-   * Verbose mode.
-   * @type {boolean}
-   */
+  /// Verbose mode.
+  /// @type {boolean}
   pub verbose: bool,
-  /**
-   * The name of the database to restore into.
-   * @type {string | undefined}
-   */
+  /// The name of the database to restore into.
+  /// @type {string | undefined}
   #[serde(rename = "dbname")]
   pub db_name: Option<String>,
-  /**
-   * Restore only the data, not the schema.
-   * @type {boolean}
-   */
+  /// Restore only the data, not the schema.
+  /// @type {boolean}
   pub data_only: bool,
-  /**
-   * Restore only the schema, not the data.
-   * @type {boolean}
-   */
+  /// Restore only the schema, not the data.
+  /// @type {boolean}
   pub schema_only: bool,
-  /**
-   * Superuser name to use for disabling triggers.
-   * @type {string | undefined}
-   */
+  /// Superuser name to use for disabling triggers.
+  /// @type {string | undefined}
   pub superuser: Option<String>,
-  /**
-   * Restore only the specified table(s).
-   * @type {string[]}
-   */
+  /// Restore only the specified table(s).
+  /// @type {string[]}
   pub table: Vec<String>,
-  /**
-   * Restore only the specified trigger(s).
-   * @type {string[]}
-   */
+  /// Restore only the specified trigger(s).
+  /// @type {string[]}
   pub trigger: Vec<String>,
-  /**
-   * Do not restore ownership of objects.
-   * @type {boolean}
-   */
+  /// Do not restore ownership of objects.
+  /// @type {boolean}
   pub no_owner: bool,
-  /**
-   * Do not restore privileges (grant/revoke).
-   * @type {boolean}
-   */
+  /// Do not restore privileges (grant/revoke).
+  /// @type {boolean}
   pub no_privileges: bool,
-  /**
-   * The directory where the `pg_restore` program is located.
-   * @type {string | undefined}
-   */
+  /// The directory where the `pg_restore` program is located.
+  /// @type {string | undefined}
   pub program_dir: Option<String>,
 }
 
-/**
- * A tool for restoring a PostgreSQL database from an archive created by `pg_dump`.
- */
+/// A tool for restoring a PostgreSQL database from an archive created by `pg_dump`.
 #[napi]
 pub struct PgRestoreTool {
   options: PgRestoreOptions,
@@ -120,11 +80,9 @@ pub struct PgRestoreTool {
 
 #[napi]
 impl PgRestoreTool {
-  /**
-   * Creates a new `PgRestoreTool` instance.
-   * @param {PgRestoreOptions} options - The options for the `pg_restore` tool.
-   * @returns {PgRestoreTool} A new `PgRestoreTool` instance.
-   */
+  /// Creates a new `PgRestoreTool` instance.
+  /// @param {PgRestoreOptions} options - The options for the `pg_restore` tool.
+  /// @returns {PgRestoreTool} A new `PgRestoreTool` instance.
   #[napi(constructor)]
   pub fn new(options: PgRestoreOptions) -> Self {
     Self { options }
@@ -215,38 +173,36 @@ impl PgRestoreTool {
     ToolResult::from_output(output, false)
   }
 
-  /**
-   * Executes the pg_restore command with the configured options.
-   *
-   * This method runs the pg_restore utility and restores a database from an archive.
-   *
-   * @returns {Promise<ToolResult>} A promise that resolves with the result of the command,
-   * including exit code, stdout, and stderr.
-   * @throws {Error} If the command fails to execute or if there are configuration issues.
-   *
-   * @example
-   * ```typescript
-   * const restoreTool = new PgRestoreTool({
-   *   connection: {
-   *     host: 'localhost',
-   *     port: 5432,
-   *     username: 'postgres',
-   *     database: 'restored_db'
-   *   },
-   *   programDir: '/home/postgresql/17.5.0/bin',
-   *   file: './backup.sql',
-   *   clean: true,
-   *   create: true
-   * });
-   *
-   * const result = await restoreTool.execute();
-   * if (result.exitCode === 0) {
-   *   console.log('Database restored successfully.');
-   * } else {
-   *   console.error('Restore failed:', result.stderr);
-   * }
-   * ```
-   */
+  /// Executes the pg_restore command with the configured options.
+  ///
+  /// This method runs the pg_restore utility and restores a database from an archive.
+  ///
+  /// @returns {Promise<ToolResult>} A promise that resolves with the result of the command,
+  /// including exit code, stdout, and stderr.
+  /// @throws {Error} If the command fails to execute or if there are configuration issues.
+  ///
+  /// @example
+  /// ```typescript
+  /// const restoreTool = new PgRestoreTool({
+  ///   connection: {
+  ///     host: 'localhost',
+  ///     port: 5432,
+  ///     username: 'postgres',
+  ///     database: 'restored_db'
+  ///   },
+  ///   programDir: '/home/postgresql/17.5.0/bin',
+  ///   file: './backup.sql',
+  ///   clean: true,
+  ///   create: true
+  /// });
+  ///
+  /// const result = await restoreTool.execute();
+  /// if (result.exitCode === 0) {
+  ///   console.log('Database restored successfully.');
+  /// } else {
+  ///   console.error('Restore failed:', result.stderr);
+  /// }
+  /// ```
   #[napi]
   pub async fn execute(&self) -> Result<ToolResult> {
     let command = self.to_command()?;

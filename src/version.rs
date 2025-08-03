@@ -26,26 +26,24 @@ pub struct BuildInfo {
   pub build_timestamp: String,
 }
 
-/**
- * Gets comprehensive version information about pg-embedded and PostgreSQL
- *
- * This function returns detailed version information including:
- * - pg-embedded package version
- * - Embedded PostgreSQL version
- * - Build information
- *
- * @returns Version information object
- *
- * @example
- * ```typescript
- * import { getVersionInfo } from 'pg-embedded';
- *
- * const versionInfo = getVersionInfo();
- * console.log(`Package version: ${versionInfo.packageVersion}`);
- * console.log(`PostgreSQL version: ${versionInfo.postgresqlVersion}`);
- * console.log(`Built for: ${versionInfo.buildInfo.target}`);
- * ```
- */
+/// Gets comprehensive version information about pg-embedded and PostgreSQL
+///
+/// This function returns detailed version information including:
+/// - pg-embedded package version
+/// - Embedded PostgreSQL version
+/// - Build information
+///
+/// @returns Version information object
+///
+/// @example
+/// ```typescript
+/// import { getVersionInfo } from 'pg-embedded';
+///
+/// const versionInfo = getVersionInfo();
+/// console.log(`Package version: ${versionInfo.packageVersion}`);
+/// console.log(`PostgreSQL version: ${versionInfo.postgresqlVersion}`);
+/// console.log(`Built for: ${versionInfo.buildInfo.target}`);
+/// ```
 #[napi]
 pub fn get_version_info() -> VersionInfo {
   VersionInfo {
@@ -65,37 +63,33 @@ pub fn get_version_info() -> VersionInfo {
   }
 }
 
-/**
- * Gets the version of the embedded PostgreSQL binary
- *
- * @returns PostgreSQL version string (e.g., "15.4")
- *
- * @example
- * ```typescript
- * import { getPostgreSQLVersion } from 'pg-embedded';
- *
- * const pgVersion = getPostgreSQLVersion();
- * console.log(`Using PostgreSQL ${pgVersion}`);
- * ```
- */
+/// Gets the version of the embedded PostgreSQL binary
+///
+/// @returns PostgreSQL version string (e.g., "15.4")
+///
+/// @example
+/// ```typescript
+/// import { getPostgreSQLVersion } from 'pg-embedded';
+///
+/// const pgVersion = getPostgreSQLVersion();
+/// console.log(`Using PostgreSQL ${pgVersion}`);
+/// ```
 #[napi]
 pub fn get_postgre_sql_version() -> String {
   get_postgresql_version()
 }
 
-/**
- * Gets the package version of pg-embedded
- *
- * @returns Package version string (e.g., "1.0.0")
- *
- * @example
- * ```typescript
- * import { getPackageVersion } from 'pg-embedded';
- *
- * const version = getPackageVersion();
- * console.log(`pg-embedded version: ${version}`);
- * ```
- */
+/// Gets the package version of pg-embedded
+///
+/// @returns Package version string (e.g., "1.0.0")
+///
+/// @example
+/// ```typescript
+/// import { getPackageVersion } from 'pg-embedded';
+///
+/// const version = getPackageVersion();
+/// console.log(`pg-embedded version: ${version}`);
+/// ```
 #[napi]
 pub fn get_package_version() -> String {
   env!("CARGO_PKG_VERSION").to_string()

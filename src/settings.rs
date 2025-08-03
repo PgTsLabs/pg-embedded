@@ -3,45 +3,43 @@ use napi_derive::napi;
 use postgresql_embedded::Settings;
 use std::path::PathBuf;
 
-/**
- * PostgreSQL configuration settings
- *
- * This object defines all the configuration options for a PostgreSQL embedded instance.
- * All fields are optional and will use sensible defaults if not provided.
- *
- * @example
- * ```typescript
- * const settings: PostgresSettings = {
- *   port: 5432,
- *   username: 'postgres',
- *   password: 'mypassword',
- *   persistent: false
- * };
- * ```
- */
+/// PostgreSQL configuration settings
+///
+/// This object defines all the configuration options for a PostgreSQL embedded instance.
+/// All fields are optional and will use sensible defaults if not provided.
+///
+/// @example
+/// ```typescript
+/// const settings: PostgresSettings = {
+///   port: 5432,
+///   username: 'postgres',
+///   password: 'mypassword',
+///   persistent: false
+/// };
+/// ```
 #[napi(object)]
 pub struct PostgresSettings {
-  /** PostgreSQL version (e.g., "15.0", ">=14.0") */
+  /// PostgreSQL version (e.g., "15.0", ">=14.0")
   pub version: Option<String>,
-  /** Host address for database connection (default: "localhost") */
+  /// Host address for database connection (default: "localhost")
   pub host: Option<String>,
-  /** Port number (0-65535, default: 5432, 0 for random) */
+  /// Port number (0-65535, default: 5432, 0 for random)
   pub port: Option<u32>,
-  /** Username for database connection (default: "postgres") */
+  /// Username for database connection (default: "postgres")
   pub username: Option<String>,
-  /** Password for database connection (default: "postgres") */
+  /// Password for database connection (default: "postgres")
   pub password: Option<String>,
-  /** Default database name (default: "postgres") */
+  /// Default database name (default: "postgres")
   pub database_name: Option<String>,
-  /** Custom data directory path */
+  /// Custom data directory path
   pub data_dir: Option<String>,
-  /** Custom installation directory path */
+  /// Custom installation directory path
   pub installation_dir: Option<String>,
-  /** Timeout in seconds for database operations (default: 30) */
+  /// Timeout in seconds for database operations (default: 30)
   pub timeout: Option<u32>,
-  /** Setup timeout in seconds for PostgreSQL initialization (default: 300 on Windows, 30 on other platforms) */
+  /// Setup timeout in seconds for PostgreSQL initialization (default: 300 on Windows, 30 on other platforms)
   pub setup_timeout: Option<u32>,
-  /** Whether to persist data between runs (default: false) */
+  /// Whether to persist data between runs (default: false)
   pub persistent: Option<bool>,
 }
 
