@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0+pg17.5] - 2025-08-03
+
+### Added
+
+- **🔧 PostgresInstance Tool Integration**: Direct tool execution methods added to PostgresInstance
+  - `createDump()` - Execute pg_dump to backup individual databases
+  - `createDumpall()` - Execute pg_dumpall to backup all databases and global objects
+  - `createRestore()` - Execute pg_restore to restore databases from backups
+  - `createBaseBackup()` - Execute pg_basebackup for binary cluster backups
+  - `createRewind()` - Execute pg_rewind for cluster synchronization
+  - `executeSql()` - Execute SQL commands directly using psql
+  - `executeFile()` - Execute SQL files using psql
+  - All methods include automatic connection configuration and error handling
+
+- **📦 New Tool Classes**: Standalone tool classes for advanced PostgreSQL operations
+  - `PgDumpallTool` - Complete pg_dumpall wrapper with TypeScript support
+  - Enhanced tool architecture with consistent API patterns
+
+### Changed
+
+- **⚠️ BREAKING CHANGE**: PostgreSQL tools options structure refactored
+  - Tool constructors now use a unified options object structure
+  - Connection configuration separated from tool-specific options
+  - Improved type safety and parameter validation
+  - Better alignment with PostgreSQL command-line tool patterns
+
+### Improved
+
+- **🚀 Enhanced API Usability**
+  - Simplified tool instantiation with cleaner constructor patterns
+  - Consistent error handling across all tools
+  - Better TypeScript intellisense and documentation
+  - Automatic connection info passing from PostgresInstance
+
+- **🧪 Test Infrastructure**
+  - All tests updated to use automatic port assignment (`port: 0`)
+  - Comprehensive test coverage for new pg_dumpall functionality
+  - Enhanced test reliability with proper cleanup procedures
+
+### Technical Details
+
+- **API Changes**:
+  - Tool constructors now accept `{ connection, programDir, config }` structure
+  - Connection configuration standardized across all tools
+  - Enhanced type definitions for better development experience
+
+- **New Methods in PostgresInstance**:
+  - `createDump(options: PgDumpConfig, database?: string): Promise<ToolResult>`
+  - `createDumpall(options: PgDumpallConfig): Promise<ToolResult>`
+  - `createRestore(options: PgRestoreConfig, database?: string): Promise<ToolResult>`
+  - `createBaseBackup(options: PgBasebackupConfig, database?: string): Promise<ToolResult>`
+  - `createRewind(options: PgRewindConfig, database?: string): Promise<ToolResult>`
+  - `executeSql(sql: string, options: PsqlConfig, database?: string): Promise<ToolResult>`
+  - `executeFile(filePath: string, options: PsqlConfig, database?: string): Promise<ToolResult>`
+
 ## [0.1.2+pg17.5] - 2025-08-03
 
 ### Added
