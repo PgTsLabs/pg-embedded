@@ -65,6 +65,317 @@ async function example() {
 example().catch(console.error)
 ```
 
+## PostgreSQL Tools Usage
+
+The library provides integrated access to PostgreSQL tools through the `PostgresInstance` class, making database operations simple and efficient.
+
+### SQL Execution with psql
+
+#### Execute SQL Commands Directly
+
+```typescript
+import { PostgresInstance } from 'pg-embedded'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Execute a simple SQL command
+const result = await postgres.executeSql(
+  'SELECT version();',
+  { output: true }, // Enable output capture
+  'postgres', // Optional: specify database
+)
+console.log('PostgreSQL version:', result.stdout)
+
+// Execute multiple commands
+const createResult = await postgres.executeSql(
+  `
+  CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE
+  );
+  INSERT INTO users (name, email) VALUES 
+    ('Alice', 'alice@example.com'),
+    ('Bob', 'bob@example.com');
+`,
+  { output: true },
+  'myapp',
+)
+
+// Query data
+const queryResult = await postgres.executeSql(
+  'SELECT * FROM users ORDER BY id;',
+  { output: true, tuples_only: true }, // Clean output format
+  'myapp',
+)
+console.log('Users:', queryResult.stdout)
+```
+
+#### Execute SQL from Files
+
+```typescript
+import { PostgresInstance } from 'pg-embedded'
+import { writeFileSync } from 'fs'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Create a SQL script file
+const sqlScript = `
+-- Create database schema
+CREATE SCHEMA IF NOT EXISTS app;
+
+-- Create tables
+CREATE TABLE app.products (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL(10,2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert sample data
+INSERT INTO app.products (name, price) VALUES 
+  ('Laptop', 999.99),
+  ('Mouse', 29.99),
+  ('Keyboard', 79.99);
+
+-- Create indexes
+CREATE INDEX idx_products_name ON app.products(name);
+`
+
+writeFileSync('./setup.sql', sqlScript)
+
+// Execute the SQL file
+const result = await postgres.executeFile(
+  './setup.sql',
+  {
+    output: true,
+    echo_queries: true, // Show executed queries
+    stop_on_error: true, // Stop if any command fails
+  },
+  'myapp',
+)
+
+if (result.exit_code === 0) {
+  console.log('Database setup completed successfully!')
+  console.log('Output:', result.stdout)
+} else {
+  console.error('Setup failed:', result.stderr)
+}
+```
+
+#### Advanced SQL Execution Options
+
+```typescript
+// Execute with transaction control
+const transactionResult = await postgres.executeSql(
+  `
+  BEGIN;
+  UPDATE products SET price = price * 1.1 WHERE category = 'electronics';
+  INSERT INTO price_history (product_id, old_price, new_price, updated_at) 
+    SELECT id, price / 1.1, price, NOW() FROM products WHERE category = 'electronics';
+  COMMIT;
+`,
+  {
+    output: true,
+    single_transaction: true, // Wrap in single transaction
+    variables: { category: 'electronics' }, // Variable substitution
+  },
+  'inventory',
+)
+
+// Execute with custom formatting
+const reportResult = await postgres.executeSql(
+  'SELECT name, price, created_at FROM products ORDER BY price DESC LIMIT 10;',
+  {
+    output: true,
+    format: 'csv', // Output as CSV
+    header: true, // Include column headers
+    field_separator: ',', // Custom separator
+  },
+  'myapp',
+)
+
+// Save report to file
+writeFileSync('./top_products.csv', reportResult.stdout)
+```
+
+### Database Dumps with pg_dump
+
+```typescript
+import { PostgresInstance, PgDumpFormat } from 'pg-embedded'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Create a database dump
+await postgres.createDump(
+  {
+    file: './backup.sql',
+    format: PgDumpFormat.Plain,
+    create: true, // Include CREATE DATABASE statement
+    clean: true, // Include DROP statements
+  },
+  'myapp',
+) // Optional: specify database name
+
+// Dump with custom format (better for large databases)
+await postgres.createDump(
+  {
+    file: './backup.dump',
+    format: PgDumpFormat.Custom,
+    compress: 9,
+    verbose: true,
+  },
+  'myapp',
+)
+```
+
+### Base Backups with pg_basebackup
+
+```typescript
+import { PostgresInstance, PgBasebackupFormat, PgBasebackupWalMethod } from 'pg-embedded'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Create a base backup for point-in-time recovery
+await postgres.createBaseBackup({
+  pgdata: './backup-cluster',
+  format: PgBasebackupFormat.Plain,
+  walMethod: PgBasebackupWalMethod.Fetch,
+  verbose: true,
+})
+
+// Create compressed tar backup
+await postgres.createBaseBackup({
+  pgdata: './backup-cluster.tar.gz',
+  format: PgBasebackupFormat.Tar,
+  walMethod: PgBasebackupWalMethod.Stream,
+  compress: 9,
+})
+```
+
+### Database Restore with pg_restore
+
+```typescript
+import { PostgresInstance, PgRestoreFormat } from 'pg-embedded'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Restore from custom format dump
+await postgres.createRestore(
+  {
+    file: './backup.dump',
+    format: PgRestoreFormat.Custom,
+    clean: true, // Drop existing objects
+    create: true, // Create database
+    jobs: 4, // Parallel restore jobs
+  },
+  'restored_db',
+)
+
+// Restore specific tables only
+await postgres.createRestore(
+  {
+    file: './backup.dump',
+    format: PgRestoreFormat.Custom,
+    table: ['users', 'products'],
+    dataOnly: true, // Data only, no schema
+  },
+  'myapp',
+)
+```
+
+### Cluster-wide Dumps with pg_dumpall
+
+```typescript
+import { PostgresInstance } from 'pg-embedded'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Dump entire cluster including roles and tablespaces
+await postgres.createDumpall({
+  file: './cluster-backup.sql',
+  clean: true,
+  verbose: true,
+})
+
+// Dump only global objects (roles, tablespaces)
+await postgres.createDumpall({
+  file: './globals-only.sql',
+  globalsOnly: true,
+})
+```
+
+### Database Rewind with pg_rewind
+
+```typescript
+import { PostgresInstance } from 'pg-embedded'
+
+const postgres = new PostgresInstance()
+await postgres.start()
+
+// Rewind database to synchronize with another cluster
+// Note: Requires proper WAL configuration
+await postgres.createRewind({
+  targetPgdata: './target-data',
+  sourceServer: 'host=source-host port=5432 user=postgres',
+  restoreTargetWal: true,
+  autoConfigureWal: true, // Automatically configure WAL settings
+})
+```
+
+### Complete Backup and Restore Workflow
+
+```typescript
+import { PostgresInstance, PgDumpFormat, PgRestoreFormat } from 'pg-embedded'
+
+async function backupRestoreWorkflow() {
+  const postgres = new PostgresInstance()
+  await postgres.start()
+
+  try {
+    // Create and populate a database
+    await postgres.createDatabase('source_db')
+
+    // ... populate with data ...
+
+    // Create a backup
+    await postgres.createDump(
+      {
+        file: './source_backup.dump',
+        format: PgDumpFormat.Custom,
+        compress: 9,
+      },
+      'source_db',
+    )
+
+    // Create a new database for restore
+    await postgres.createDatabase('target_db')
+
+    // Restore the backup
+    await postgres.createRestore(
+      {
+        file: './source_backup.dump',
+        format: PgRestoreFormat.Custom,
+        clean: true,
+      },
+      'target_db',
+    )
+
+    // Verify the restore
+    const exists = await postgres.databaseExists('target_db')
+    console.log(`Restore successful: ${exists}`)
+  } finally {
+    await postgres.stop()
+  }
+}
+```
+
 ## Configuration Options
 
 The `PostgresSettings` object supports the following options:
@@ -131,6 +442,16 @@ Creates a new PostgreSQL instance with the specified settings.
 - `createDatabase(name: string): Promise<void>` - Create a new database
 - `dropDatabase(name: string): Promise<void>` - Drop a database
 - `databaseExists(name: string): Promise<boolean>` - Check if database exists
+
+#### PostgreSQL Tools Integration
+
+- `executeSql(sql: string, options: PsqlConfig, databaseName?: string): Promise<ToolResult>` - Execute SQL commands using psql
+- `executeFile(filePath: string, options: PsqlConfig, databaseName?: string): Promise<ToolResult>` - Execute SQL commands from file using psql
+- `createDump(options: PgDumpConfig, databaseName?: string): Promise<ToolResult>` - Create database dump using pg_dump
+- `createBaseBackup(options: PgBasebackupConfig, databaseName?: string): Promise<ToolResult>` - Create base backup using pg_basebackup
+- `createRestore(options: PgRestoreConfig, databaseName?: string): Promise<ToolResult>` - Restore database using pg_restore
+- `createRewind(options: PgRewindConfig, databaseName?: string): Promise<ToolResult>` - Rewind database using pg_rewind
+- `createDumpall(options: PgDumpallConfig): Promise<ToolResult>` - Create cluster-wide dump using pg_dumpall
 
 #### Utility Methods
 

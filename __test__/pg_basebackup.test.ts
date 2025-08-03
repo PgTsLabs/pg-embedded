@@ -2,7 +2,7 @@ import anyTest, { type TestFn } from 'ava'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { PgBasebackupTool, PostgresInstance } from '../index.js'
+import { PgBasebackupTool, PgBasebackupWalMethod, PostgresInstance } from '../index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const test = anyTest as TestFn<{ pg: PostgresInstance; pgBasebackup: PgBasebackupTool }>
@@ -24,7 +24,10 @@ test.after.always(async (t) => {
 
 test('should take a base backup', async (t) => {
   const backupDir = path.resolve(__dirname, 'assets', 'backup')
-  await fs.mkdir(backupDir, { recursive: true })
+
+  // Clean up any existing backup directory
+  await fs.rm(backupDir, { recursive: true, force: true })
+
   const basebackupTool = new PgBasebackupTool({
     connection: {
       host: t.context.pg.connectionInfo.host,
@@ -35,10 +38,19 @@ test('should take a base backup', async (t) => {
     programDir: path.join(t.context.pg.programDir, 'bin'),
     config: {
       pgdata: backupDir,
-      walMethod: 1, // PgBasebackupWalMethod.Fetch
+      walMethod: PgBasebackupWalMethod.Fetch, // PgBasebackupWalMethod.Fetch
     },
   })
   const result = await basebackupTool.execute()
+
+  // Log the result for debugging
+  if (result.exitCode !== 0) {
+    console.log('pg_basebackup failed:')
+    console.log('Exit code:', result.exitCode)
+    console.log('Stdout:', result.stdout)
+    console.log('Stderr:', result.stderr)
+  }
+
   t.is(result.exitCode, 0)
   const files = await fs.readdir(backupDir)
   t.true(files.includes('PG_VERSION'))

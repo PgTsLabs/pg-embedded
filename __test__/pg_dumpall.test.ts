@@ -65,7 +65,7 @@ test('should dump only globals', async (t) => {
     },
     programDir: path.join(t.context.pg.programDir, 'bin'),
     config: {
-      globals_only: true,
+      globalsOnly: true,
     },
   })
   const result = await dumpallTool.executeToString()

@@ -114,5 +114,7 @@ target/
 artifacts/
 
 # Wal
-__test__/assets/wal_archive/
-__test__/assets/auto_wal_archive/
+__test__/assets/
+!__test__/assets/*.sql
+
+data
