@@ -197,6 +197,54 @@ impl PostgresInstance {
     }
   }
 
+  /// Gets the directory where the PostgreSQL data is stored.
+  #[napi(getter)]
+  pub fn get_data_dir(&self) -> napi::Result<String> {
+    if let Some(instance) = &self.async_instance {
+      Ok(instance.settings().data_dir.to_string_lossy().to_string())
+    } else {
+      Err(setup_error(
+        "PostgreSQL instance has not been initialized yet.",
+      ))
+    }
+  }
+
+  /**
+   * # Safety
+   * Promotes a standby server to a primary server.
+   *
+   * @returns Promise that resolves when the server is promoted.
+   * @throws Error if promotion fails.
+   */
+  #[napi]
+  pub async unsafe fn promote(&self) -> napi::Result<()> {
+    if let Some(instance) = &self.async_instance {
+      let pg_ctl_path = instance
+        .settings()
+        .installation_dir
+        .join("bin")
+        .join("pg_ctl");
+      let data_dir = &instance.settings().data_dir;
+      let mut command = tokio::process::Command::new(pg_ctl_path);
+      command.arg("-D").arg(data_dir).arg("promote");
+
+      let output = command
+        .output()
+        .await
+        .map_err(|e| stop_error(&e.to_string()))?;
+
+      if output.status.success() {
+        Ok(())
+      } else {
+        Err(stop_error(String::from_utf8_lossy(&output.stderr).as_ref()))
+      }
+    } else {
+      Err(setup_error(
+        "PostgreSQL instance has not been initialized yet.",
+      ))
+    }
+  }
+
   /**
    * Gets the current state of the PostgreSQL instance
    *
@@ -375,8 +423,9 @@ impl PostgresInstance {
    * ```
    */
   #[napi]
-  pub async unsafe fn start(&mut self) -> napi::Result<()> {
+  pub async unsafe fn start(&mut self, initialize: Option<bool>) -> napi::Result<()> {
     let start_time = Instant::now();
+    let should_initialize = initialize.unwrap_or(true);
 
     let current_state = self.get_state()?;
     match current_state {
@@ -405,8 +454,14 @@ impl PostgresInstance {
     self.set_state(InstanceState::Starting)?;
 
     // Lazy initialization: create instance only when needed
-    if self.async_instance.is_none() {
+    if self.async_instance.is_none() && should_initialize {
       self.setup().await?;
+    }
+
+    if self.async_instance.is_none() {
+      // If not initializing, we need to create the instance object without setting it up
+      let instance = postgresql_embedded::PostgreSQL::new(self.settings.clone());
+      self.async_instance = Some(instance);
     }
 
     if let Some(ref mut instance) = self.async_instance {
@@ -660,7 +715,7 @@ impl PostgresInstance {
     );
 
     // Use tokio::time::timeout to wrap the start operation
-    match tokio::time::timeout(timeout_duration, self.start()).await {
+    match tokio::time::timeout(timeout_duration, self.start(Some(true))).await {
       Ok(result) => result,
       Err(_) => {
         pg_log!(

@@ -11,7 +11,7 @@ test.before(async (t) => {
     databaseName: 'test_db',
     username: 'postgres',
     password: 'password',
-    port: 54321,
+    port: 0, // Auto-assign available port to avoid conflicts
   })
   await pg.start()
 
