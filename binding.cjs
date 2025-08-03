@@ -399,6 +399,7 @@ module.exports.PgDumpallTool = nativeBinding.PgDumpallTool
 module.exports.PgDumpTool = nativeBinding.PgDumpTool
 module.exports.PgIsReadyTool = nativeBinding.PgIsReadyTool
 module.exports.PgRestoreTool = nativeBinding.PgRestoreTool
+module.exports.PgRewindTool = nativeBinding.PgRewindTool
 module.exports.PostgresInstance = nativeBinding.PostgresInstance
 module.exports.PsqlTool = nativeBinding.PsqlTool
 module.exports.getPackageVersion = nativeBinding.getPackageVersion

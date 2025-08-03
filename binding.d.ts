@@ -386,6 +386,126 @@ export declare class PgRestoreTool {
 }
 
 /**
+ * PostgreSQL data directory synchronization tool using pg_rewind.
+ *
+ * This class provides a TypeScript interface for synchronizing PostgreSQL data directories
+ * using PostgreSQL's pg_rewind utility. It's commonly used in failover scenarios to rewind
+ * a former primary server so it can become a standby server again.
+ *
+ * pg_rewind works by finding the point where the target and source servers' timelines
+ * diverged, then replaying changes from the source to bring the target back in sync.
+ * This requires that the target server has WAL logging enabled and either data checksums
+ * or wal_log_hints enabled.
+ *
+ * @example Basic rewind operation
+ * ```typescript
+ * import { PgRewindTool } from 'pg-embedded';
+ *
+ * const rewindTool = new PgRewindTool({
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   targetPgdata: './former_primary_data',
+ *   sourceServer: 'host=localhost port=5432 user=postgres password=secret',
+ *   progress: true,
+ *   dryRun: false
+ * });
+ *
+ * const result = await rewindTool.execute();
+ * if (result.exitCode === 0) {
+ *   console.log('Rewind completed successfully');
+ * } else {
+ *   console.error('Rewind failed:', result.stderr);
+ * }
+ * ```
+ *
+ * @example Simplified usage with auto-configuration
+ * ```typescript
+ * const rewindTool = new PgRewindTool({
+ *   connection: targetConnectionInfo,
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   targetPgdata: './target_data_dir',
+ *   sourceInstance: sourceConnectionInfo,
+ *   autoConfigureWal: true,
+ *   progress: true
+ * });
+ *
+ * const result = await rewindTool.execute();
+ * ```
+ *
+ * @example Dry run for validation
+ * ```typescript
+ * const rewindTool = new PgRewindTool({
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   targetPgdata: './target_data_dir',
+ *   sourceServer: 'host=source-server port=5432 user=postgres',
+ *   dryRun: true,
+ *   debug: true
+ * });
+ *
+ * const result = await rewindTool.execute();
+ * console.log('Dry run output:', result.stdout);
+ * ```
+ */
+export declare class PgRewindTool {
+  /**
+   * Creates a new PgRewindTool instance with the specified configuration.
+   *
+   * @param options - Configuration options for the pg_rewind operation (programDir and targetPgdata are required)
+   * @returns A new PgRewindTool instance ready to execute rewind operations
+   *
+   * @example
+   * ```typescript
+   * const rewindTool = new PgRewindTool({
+   *   programDir: '/home/postgresql/17.5.0/bin',
+   *   targetPgdata: './target_data_dir',
+   *   sourceServer: 'host=localhost port=5432 user=postgres',
+   *   progress: true
+   * });
+   * ```
+   */
+  constructor(options: PgRewindOptions)
+  /**
+   * Executes the pg_rewind command with the configured options.
+   *
+   * This method runs the pg_rewind utility to synchronize the target data directory
+   * with the source. If autoConfigureWal is enabled, it will first configure all
+   * necessary WAL settings automatically.
+   *
+   * The target PostgreSQL server must be stopped before running this command.
+   * The source server should be running and accessible.
+   *
+   * @returns Promise<ToolResult> containing exit code, stdout, and stderr
+   * @throws Error if the command fails to execute or if there are configuration issues
+   *
+   * @example Basic execution
+   * ```typescript
+   * const result = await rewindTool.execute();
+   * if (result.exitCode === 0) {
+   *   console.log('Rewind completed successfully');
+   *   console.log('Output:', result.stdout);
+   * } else {
+   *   console.error('Rewind failed:', result.stderr);
+   * }
+   * ```
+   *
+   * @example With error handling
+   * ```typescript
+   * try {
+   *   const result = await rewindTool.execute();
+   *   if (result.exitCode === 0) {
+   *     console.log('Target server successfully rewound');
+   *   } else {
+   *     console.error('pg_rewind failed with exit code:', result.exitCode);
+   *     console.error('Error details:', result.stderr);
+   *   }
+   * } catch (error) {
+   *   console.error('Failed to execute pg_rewind:', error.message);
+   * }
+   * ```
+   */
+  execute(): Promise<ToolResult>
+}
+
+/**
  * PostgreSQL embedded instance manager
  *
  * This class provides a high-level interface for managing embedded PostgreSQL instances.
@@ -441,6 +561,16 @@ export declare class PostgresInstance {
   getConfigHash(): string
   /** Gets the directory where the PostgreSQL binaries are located. */
   get programDir(): string
+  /** Gets the directory where the PostgreSQL data is stored. */
+  get dataDir(): string
+  /**
+   * # Safety
+   * Promotes a standby server to a primary server.
+   *
+   * @returns Promise that resolves when the server is promoted.
+   * @throws Error if promotion fails.
+   */
+  promote(): Promise<void>
   /**
    * Gets the current state of the PostgreSQL instance
    *
@@ -490,7 +620,7 @@ export declare class PostgresInstance {
    * console.log('PostgreSQL is ready!');
    * ```
    */
-  start(): Promise<void>
+  start(initialize?: boolean | undefined | null): Promise<void>
   /**
    * # Safety
    * Stops the PostgreSQL instance asynchronously
@@ -1375,6 +1505,125 @@ export interface PgRestoreOptions {
    * @type {string | undefined}
    */
   programDir?: string
+}
+
+/**
+ * Configuration options for the PostgreSQL pg_rewind tool.
+ *
+ * This interface defines all available options for synchronizing PostgreSQL data directories
+ * using pg_rewind. The `programDir` and `targetPgdata` fields are required, while other
+ * fields are optional and will use pg_rewind's default values if not specified.
+ *
+ * pg_rewind is used to synchronize a PostgreSQL data directory with another copy of the
+ * same database cluster after they have diverged. This is commonly used for failover
+ * scenarios where you need to rewind a former primary server to become a standby.
+ *
+ * @example Basic usage with connection string
+ * ```typescript
+ * import { PgRewindTool } from 'pg-embedded';
+ *
+ * const rewindTool = new PgRewindTool({
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   targetPgdata: './target_data_dir',
+ *   sourceServer: 'host=localhost port=5432 user=postgres password=secret',
+ *   progress: true,
+ *   dryRun: false
+ * });
+ *
+ * const result = await rewindTool.execute();
+ * console.log('Rewind completed:', result.exitCode === 0);
+ * ```
+ *
+ * @example Simplified usage with auto-configuration
+ * ```typescript
+ * const rewindTool = new PgRewindTool({
+ *   connection: masterConnectionInfo,
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   targetPgdata: './target_data_dir',
+ *   sourceInstance: standbyConnectionInfo,
+ *   autoConfigureWal: true,
+ *   progress: true
+ * });
+ * ```
+ */
+export interface PgRewindOptions {
+  /**
+   * Database connection configuration (required for target server).
+   * Specifies how to connect to the PostgreSQL target server.
+   */
+  connection: ConnectionConfig
+  /** Generic tool options such as silent mode for suppressing output. */
+  tool?: ToolOptions
+  /**
+   * Directory path where the pg_rewind executable is located (required).
+   * This should point to the directory containing the pg_rewind binary.
+   * Equivalent to specifying the PATH to pg_rewind.
+   */
+  programDir: string
+  /**
+   * Path to the target PostgreSQL data directory to be rewound (required).
+   * This is the data directory that will be synchronized with the source.
+   * The target server should be stopped before running pg_rewind.
+   * Equivalent to pg_rewind --target-pgdata flag.
+   */
+  targetPgdata: string
+  /**
+   * Path to the source PostgreSQL data directory (alternative to sourceServer).
+   * Use this when both source and target are on the same machine.
+   * Either sourcePgdata or sourceServer (or sourceInstance) must be specified.
+   * Equivalent to pg_rewind --source-pgdata flag.
+   */
+  sourcePgdata?: string
+  /**
+   * Connection string to the source PostgreSQL server (alternative to sourcePgdata).
+   * Format: 'host=localhost port=5432 user=postgres password=secret dbname=mydb'
+   * Either sourceServer or sourcePgdata (or sourceInstance) must be specified.
+   * Equivalent to pg_rewind --source-server flag.
+   */
+  sourceServer?: string
+  /**
+   * Source server connection configuration (alternative to sourceServer string).
+   * This is a convenient way to pass PostgresInstance.connectionInfo directly
+   * without manually constructing connection strings. Takes precedence over sourceServer.
+   */
+  sourceInstance?: ConnectionConfig
+  /**
+   * Perform a dry run without making any actual changes to files.
+   * Useful for testing and validation. Shows what would be done without doing it.
+   * Equivalent to pg_rewind --dry-run flag.
+   */
+  dryRun?: boolean
+  /**
+   * Display progress information during the rewind operation.
+   * Shows detailed information about the synchronization process.
+   * Equivalent to pg_rewind --progress flag.
+   */
+  progress?: boolean
+  /**
+   * Enable debug output for troubleshooting.
+   * Provides detailed information about the rewind process for debugging.
+   * Equivalent to pg_rewind --debug flag.
+   */
+  debug?: boolean
+  /**
+   * Use restore_command to retrieve WAL files from archive when needed.
+   * This allows pg_rewind to fetch required WAL files from the archive.
+   * Equivalent to pg_rewind --restore-target-wal flag.
+   */
+  restoreTargetWal?: boolean
+  /**
+   * Automatically configure all WAL-related settings required for pg_rewind.
+   * When enabled, this will configure wal_log_hints, archive_mode, archive_command,
+   * restore_command, wal_level, and max_wal_senders in postgresql.conf.
+   * This eliminates the need for manual PostgreSQL configuration.
+   */
+  autoConfigureWal?: boolean
+  /**
+   * Directory path for WAL file archiving (used with autoConfigureWal).
+   * If not specified, a temporary directory will be created automatically.
+   * This directory stores WAL files needed for the rewind operation.
+   */
+  walArchiveDir?: string
 }
 
 /** PostgreSQL error type enumeration */
