@@ -130,81 +130,81 @@ impl PgDumpallTool {
 }
 
 fn to_command(options: &PgDumpallOptions, force_stdout: bool) -> Result<Command> {
-    let mut builder = PgDumpAllBuilder::new();
+  let mut builder = PgDumpAllBuilder::new();
 
-    builder = builder.program_dir(&options.program_dir);
+  builder = builder.program_dir(&options.program_dir);
 
-    let connection = &options.connection;
-    if let Some(host) = &connection.host {
-        builder = builder.host(host);
-    }
-    if let Some(port) = connection.port {
-        builder = builder.port(port);
-    }
-    if let Some(user) = &connection.username {
-        builder = builder.username(user);
-    }
-    if let Some(password) = &connection.password {
-        builder = builder.pg_password(password);
-    }
+  let connection = &options.connection;
+  if let Some(host) = &connection.host {
+    builder = builder.host(host);
+  }
+  if let Some(port) = connection.port {
+    builder = builder.port(port);
+  }
+  if let Some(user) = &connection.username {
+    builder = builder.username(user);
+  }
+  if let Some(password) = &connection.password {
+    builder = builder.pg_password(password);
+  }
 
-    if !force_stdout {
-        if let Some(file) = &options.file {
-            builder = builder.file(file);
-        }
+  if !force_stdout {
+    if let Some(file) = &options.file {
+      builder = builder.file(file);
     }
-    if let Some(globals_only) = options.globals_only {
-        if globals_only {
-            builder = builder.globals_only();
-        }
+  }
+  if let Some(globals_only) = options.globals_only {
+    if globals_only {
+      builder = builder.globals_only();
     }
-    if let Some(roles_only) = options.roles_only {
-        if roles_only {
-            builder = builder.roles_only();
-        }
+  }
+  if let Some(roles_only) = options.roles_only {
+    if roles_only {
+      builder = builder.roles_only();
     }
-    if let Some(tablespaces_only) = options.tablespaces_only {
-        if tablespaces_only {
-            builder = builder.tablespaces_only();
-        }
+  }
+  if let Some(tablespaces_only) = options.tablespaces_only {
+    if tablespaces_only {
+      builder = builder.tablespaces_only();
     }
-    if let Some(verbose) = options.verbose {
-        if verbose {
-            builder = builder.verbose();
-        }
+  }
+  if let Some(verbose) = options.verbose {
+    if verbose {
+      builder = builder.verbose();
     }
-    if let Some(clean) = options.clean {
-        if clean {
-            builder = builder.clean();
-        }
+  }
+  if let Some(clean) = options.clean {
+    if clean {
+      builder = builder.clean();
     }
-    if let Some(no_owner) = options.no_owner {
-        if no_owner {
-            builder = builder.no_owner();
-        }
+  }
+  if let Some(no_owner) = options.no_owner {
+    if no_owner {
+      builder = builder.no_owner();
     }
-    if let Some(no_privileges) = options.no_privileges {
-        if no_privileges {
-            builder = builder.no_privileges();
-        }
+  }
+  if let Some(no_privileges) = options.no_privileges {
+    if no_privileges {
+      builder = builder.no_privileges();
     }
+  }
 
-    let command = builder.build();
-    Ok(command)
+  let command = builder.build();
+  Ok(command)
 }
 
 async fn run_command(command: Command, options: &PgDumpallOptions) -> Result<ToolResult> {
-    let output = TokioCommand::from(command)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await?;
-    ToolResult::from_output(
-        output,
-        options
-            .tool
-            .as_ref()
-            .and_then(|t| t.silent)
-            .unwrap_or(false),
-    )
+  let output = TokioCommand::from(command)
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped())
+    .output()
+    .await?;
+  ToolResult::from_output(
+    output,
+    options
+      .tool
+      .as_ref()
+      .and_then(|t| t.silent)
+      .unwrap_or(false),
+  )
 }
