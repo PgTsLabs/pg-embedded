@@ -394,6 +394,7 @@ if (!nativeBinding) {
 
 module.exports = nativeBinding
 module.exports.ConnectionInfo = nativeBinding.ConnectionInfo
+module.exports.PgBasebackupTool = nativeBinding.PgBasebackupTool
 module.exports.PgDumpallTool = nativeBinding.PgDumpallTool
 module.exports.PgDumpTool = nativeBinding.PgDumpTool
 module.exports.PgIsReadyTool = nativeBinding.PgIsReadyTool
