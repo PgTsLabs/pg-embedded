@@ -1,7 +1,7 @@
 import anyTest, { type TestFn } from 'ava'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { PgDumpTool, PostgresInstance } from '../index.js'
+import { PgDumpTool, PostgresInstance, PgDumpFormat } from '../index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const test = anyTest as TestFn<{ pg: PostgresInstance; pgDump: PgDumpTool }>
@@ -29,6 +29,7 @@ test.before(async (t) => {
       database: 'test_db',
     },
     programDir: path.join(pg.programDir, 'bin'),
+    config: {},
   })
 
   // Create a test table with some data
@@ -54,8 +55,11 @@ test('should dump database to a file', async (t) => {
       password: t.context.pg.connectionInfo.password,
       database: 'test_db',
     },
-    file: dumpFile,
     programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {
+      file: dumpFile,
+      format: PgDumpFormat.Plain,
+    },
   })
   const result = await dumpTool.execute()
   t.is(result.exitCode, 0)
@@ -72,7 +76,9 @@ test('should return dump as string', async (t) => {
       database: 'test_db',
     },
     programDir: path.join(t.context.pg.programDir, 'bin'),
-    create: true,
+    config: {
+      create: true,
+    },
   })
   const result = await dumpTool.execute()
   t.is(result.exitCode, 0)
@@ -88,8 +94,10 @@ test('should dump only data', async (t) => {
       password: t.context.pg.connectionInfo.password,
       database: 'test_db',
     },
-    dataOnly: true,
     programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {
+      dataOnly: true,
+    },
   })
   const result = await dumpTool.execute()
   t.is(result.exitCode, 0)
@@ -105,8 +113,10 @@ test('should dump only schema', async (t) => {
       password: t.context.pg.connectionInfo.password,
       database: 'test_db',
     },
-    schemaOnly: true,
     programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {
+      schemaOnly: true,
+    },
   })
   const result = await dumpTool.execute()
   t.is(result.exitCode, 0)
@@ -124,9 +134,11 @@ test('should return dump as string when calling executeToString', async (t) => {
       password: t.context.pg.connectionInfo.password,
       database: 'test_db',
     },
-    file: dumpFile, // this should be ignored
     programDir: path.join(t.context.pg.programDir, 'bin'),
-    create: true,
+    config: {
+      file: dumpFile, // this should be ignored
+      create: true,
+    },
   })
   const result = await dumpTool.executeToString()
   t.is(result.exitCode, 0)
@@ -142,8 +154,10 @@ test('should exclude a specific table from the dump', async (t) => {
       password: t.context.pg.connectionInfo.password,
       database: 'test_db',
     },
-    excludeTable: 'public.test_table', // Table is actually in public schema
     programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {
+      excludeTable: 'public.test_table', // Table is actually in public schema
+    },
   })
   const result = await dumpTool.executeToString()
   t.is(result.exitCode, 0)

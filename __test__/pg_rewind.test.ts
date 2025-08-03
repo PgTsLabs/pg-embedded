@@ -143,10 +143,12 @@ test('should rewind a former master', async (t) => {
       password: standbyConnection.password,
     },
     programDir: path.join(pgMaster.programDir, 'bin'),
-    targetPgdata: pgMaster.dataDir,
-    sourceServer: `host=${standbyConnection.host} port=${standbyConnection.port} user=${standbyConnection.user} password=${standbyConnection.password}`,
-    progress: true,
-    restoreTargetWal: true, // Enable automatic WAL retrieval from archive
+    config: {
+      targetPgdata: pgMaster.dataDir,
+      sourceServer: `host=${standbyConnection.host} port=${standbyConnection.port} user=${standbyConnection.user} password=${standbyConnection.password}`,
+      progress: true,
+      restoreTargetWal: true, // Enable automatic WAL retrieval from archive
+    },
   })
 
   const result = await rewindTool.execute()

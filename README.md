@@ -188,15 +188,15 @@ const rewindTool = new PgRewindTool({
   connection: targetConnectionInfo,
   programDir: '/path/to/postgres/bin',
   targetPgdata: './target_data_dir',
-  
+
   // ✨ Pass connection info directly, no manual string construction
   sourceInstance: sourceConnectionInfo,
-  
+
   // ✨ Automatically configure all WAL settings
   autoConfigureWal: true,
-  
+
   progress: true,
-  dryRun: false
+  dryRun: false,
 })
 
 const result = await rewindTool.execute()
@@ -208,6 +208,7 @@ if (result.exitCode === 0) {
 ```
 
 **Key Features:**
+
 - 🎯 **One-line operation**: Automatic WAL configuration eliminates manual setup
 - 🔗 **Direct connection info**: Pass `PostgresInstance.connectionInfo` directly
 - 🧪 **Dry run support**: Test operations without making changes
@@ -227,7 +228,7 @@ const backupTool = new PgBasebackupTool({
   pgdata: './backup_directory',
   format: 'p', // plain format
   walMethod: 'stream', // stream WAL files
-  verbose: true
+  verbose: true,
 })
 
 const result = await backupTool.execute()
@@ -245,13 +246,11 @@ import { PsqlTool } from 'pg-embedded'
 
 const psqlTool = new PsqlTool({
   connection: postgres.connectionInfo,
-  programDir: '/path/to/postgres/bin'
+  programDir: '/path/to/postgres/bin',
 })
 
 // Execute SQL commands
-const result = await psqlTool.executeCommand(
-  "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT);"
-)
+const result = await psqlTool.executeCommand('CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT);')
 
 // Execute SQL files
 const fileResult = await psqlTool.executeFile('./schema.sql')
@@ -269,7 +268,7 @@ const dumpTool = new PgDumpTool({
   programDir: '/path/to/postgres/bin',
   file: './backup.sql',
   format: 'p', // plain SQL format
-  verbose: true
+  verbose: true,
 })
 
 const result = await dumpTool.execute()
@@ -286,7 +285,7 @@ const restoreTool = new PgRestoreTool({
   connection: postgres.connectionInfo,
   programDir: '/path/to/postgres/bin',
   inputFile: './backup.sql',
-  verbose: true
+  verbose: true,
 })
 
 const result = await restoreTool.execute()

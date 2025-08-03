@@ -26,7 +26,7 @@ export declare class ConnectionInfo {
  *
  * @example
  * ```typescript
- * import { PgBasebackupTool } from 'pg-embedded';
+ * import { PgBasebackupTool, PgBasebackupFormat, PgBasebackupWalMethod } from 'pg-embedded';
  *
  * const backup = new PgBasebackupTool({
  *   connection: {
@@ -36,8 +36,11 @@ export declare class ConnectionInfo {
  *     password: 'password',
  *   },
  *   programDir: '/path/to/postgres/bin',
- *   pgdata: './backup_dir',
- *   walMethod: 'fetch',
+ *   config: {
+ *     pgdata: './backup_dir',
+ *     format: PgBasebackupFormat.Plain,
+ *     walMethod: PgBasebackupWalMethod.Fetch,
+ *   }
  * });
  *
  * const result = await backup.execute();
@@ -50,10 +53,38 @@ export declare class ConnectionInfo {
  */
 export declare class PgBasebackupTool {
   /**
-   * Creates a new `PgBasebackupTool` instance.
+   * Creates a new `PgBasebackupTool` instance with complete options.
    * @param options - The configuration options for `pg_basebackup`.
    */
   constructor(options: PgBasebackupOptions)
+  /**
+   * Creates a PgBasebackupTool from connection info and basebackup-specific config.
+   *
+   * This is the preferred method when using with PostgresInstance,
+   * as it separates connection concerns from tool-specific configuration.
+   *
+   * @param connection - Database connection configuration
+   * @param program_dir - Directory containing the pg_basebackup executable
+   * @param config - Pg_basebackup-specific configuration options (including pgdata)
+   * @returns A new PgBasebackupTool instance
+   *
+   * @example
+   * ```typescript
+   * import { PgBasebackupTool, PgBasebackupFormat, PgBasebackupWalMethod } from 'pg-embedded';
+   *
+   * const backupTool = PgBasebackupTool.fromConnection(
+   *   instance.connectionInfo,
+   *   instance.programDir + '/bin',
+   *   {
+   *     pgdata: './backup_directory',
+   *     format: PgBasebackupFormat.Plain,
+   *     walMethod: PgBasebackupWalMethod.Fetch,
+   *     verbose: true
+   *   }
+   * );
+   * ```
+   */
+  static fromConnection(connection: ConnectionConfig, programDir: string, config: PgBasebackupConfig): PgBasebackupTool
   /**
    * Executes the `pg_basebackup` command.
    *
@@ -81,7 +112,9 @@ export declare class PgBasebackupTool {
  *     password: 'password',
  *   },
  *   programDir: '/path/to/postgres/bin',
- *   file: 'fulldump.sql',
+ *   config: {
+ *     file: 'fulldump.sql',
+ *   }
  * });
  *
  * const result = await dumpall.execute();
@@ -94,10 +127,35 @@ export declare class PgBasebackupTool {
  */
 export declare class PgDumpallTool {
   /**
-   * Creates a new `PgDumpallTool` instance.
+   * Creates a new `PgDumpallTool` instance with complete options.
    * @param options - The configuration options for `pg_dumpall`.
    */
   constructor(options: PgDumpallOptions)
+  /**
+   * Creates a PgDumpallTool from connection info and dumpall-specific config.
+   *
+   * This is the preferred method when using with PostgresInstance,
+   * as it separates connection concerns from tool-specific configuration.
+   *
+   * @param connection - Database connection configuration
+   * @param program_dir - Directory containing the pg_dumpall executable
+   * @param config - Pg_dumpall-specific configuration options
+   * @returns A new PgDumpallTool instance
+   *
+   * @example
+   * ```typescript
+   * const dumpallTool = PgDumpallTool.fromConnection(
+   *   instance.connectionInfo,
+   *   instance.programDir + '/bin',
+   *   {
+   *     globalsOnly: true,
+   *     clean: true,
+   *     file: './globals.sql'
+   *   }
+   * );
+   * ```
+   */
+  static fromConnection(connection: ConnectionConfig, programDir: string, config: PgDumpallConfig): PgDumpallTool
   /**
    * Executes the `pg_dumpall` command and returns the output as a string.
    *
@@ -126,11 +184,9 @@ export declare class PgDumpallTool {
  * pg_dump utility. It supports all major pg_dump options and can output to files or return
  * the dump as a string.
  *
- * Both `connection` and `programDir` parameters are required for proper operation.
- *
- * @example Basic usage
+ * @example Basic usage (SQL format)
  * ```typescript
- * import { PgDumpTool } from 'pg-embedded';
+ * import { PgDumpTool, PgDumpFormat } from 'pg-embedded';
  *
  * const dumpTool = new PgDumpTool({
  *   connection: {
@@ -140,7 +196,10 @@ export declare class PgDumpallTool {
  *     password: 'password',
  *     database: 'mydb'
  *   },
- *   programDir: '/home/postgresql/17.5.0/bin'
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   config: {
+ *     format: PgDumpFormat.Plain
+ *   }
  * });
  *
  * const result = await dumpTool.execute();
@@ -148,52 +207,18 @@ export declare class PgDumpallTool {
  *   console.log('Database dump:', result.stdout);
  * }
  * ```
- *
- * @example Dump to file
- * ```typescript
- * const dumpTool = new PgDumpTool({
- *   connection: {
- *     host: 'localhost',
- *     port: 5432,
- *     username: 'postgres',
- *     password: 'password',
- *     database: 'mydb'
- *   },
- *   programDir: '/home/postgresql/17.5.0/bin',
- *   file: './backup.sql',
- *   create: true,
- *   clean: true
- * });
- *
- * await dumpTool.execute();
- * ```
- *
- * @example Schema-only dump
- * ```typescript
- * const dumpTool = new PgDumpTool({
- *   connection: {
- *     host: 'localhost',
- *     port: 5432,
- *     username: 'postgres',
- *     password: 'password',
- *     database: 'mydb'
- *   },
- *   programDir: '/home/postgresql/17.5.0/bin',
- *   schemaOnly: true,
- *   noOwner: true,
- *   noPrivileges: true
- * });
- * ```
  */
 export declare class PgDumpTool {
   /**
-   * Creates a new PgDumpTool instance with the specified configuration.
+   * Creates a new PgDumpTool instance with complete options.
    *
-   * @param options - Configuration options for the pg_dump operation (connection and programDir are required)
+   * @param options - Configuration options for the pg_dump operation
    * @returns A new PgDumpTool instance ready to execute dumps
    *
    * @example
    * ```typescript
+   * import { PgDumpTool, PgDumpFormat } from 'pg-embedded';
+   *
    * const dumpTool = new PgDumpTool({
    *   connection: {
    *     host: 'localhost',
@@ -202,11 +227,42 @@ export declare class PgDumpTool {
    *     password: 'password',
    *     database: 'mydb'
    *   },
-   *   programDir: '/home/postgresql/17.5.0/bin'
+   *   programDir: '/home/postgresql/17.5.0/bin',
+   *   config: {
+   *     format: PgDumpFormat.Custom,
+   *     file: './backup.dump'
+   *   }
    * });
    * ```
    */
   constructor(options: PgDumpOptions)
+  /**
+   * Creates a PgDumpTool from connection info and dump-specific config.
+   *
+   * This is the preferred method when using with PostgresInstance,
+   * as it separates connection concerns from tool-specific configuration.
+   *
+   * @param connection - Database connection configuration
+   * @param program_dir - Directory containing the pg_dump executable
+   * @param config - Pg_dump-specific configuration options
+   * @returns A new PgDumpTool instance
+   *
+   * @example
+   * ```typescript
+   * import { PgDumpTool, PgDumpFormat } from 'pg-embedded';
+   *
+   * const dumpTool = PgDumpTool.fromConnection(
+   *   instance.connectionInfo,
+   *   instance.programDir + '/bin',
+   *   {
+   *     format: PgDumpFormat.Custom,
+   *     file: './backup.dump',
+   *     clean: true
+   *   }
+   * );
+   * ```
+   */
+  static fromConnection(connection: ConnectionConfig, programDir: string, config: PgDumpConfig): PgDumpTool
   /**
    * Executes the pg_dump command and returns the backup content as a string.
    *
@@ -218,9 +274,14 @@ export declare class PgDumpTool {
    *
    * @example
    * ```typescript
+   * import { PgDumpTool, PgDumpFormat } from 'pg-embedded';
+   *
    * const dumpTool = new PgDumpTool({
-   *   connection: { host: 'localhost', port: 5432, user: 'postgres' },
+   *   connection: { host: 'localhost', port: 5432, username: 'postgres' },
    *   programDir: '/home/postgresql/17.5.0/bin',
+   *   config: {
+   *     format: PgDumpFormat.Plain
+   *   }
    * });
    * const result = await dumpTool.executeToString();
    * if (result.exitCode === 0) {
@@ -252,26 +313,6 @@ export declare class PgDumpTool {
    *   console.error('Dump failed:', result.stderr);
    * }
    * ```
-   *
-   * @example Dump to file
-   * ```typescript
-   * const dumpTool = new PgDumpTool({
-   *   connection: {
-   *     host: 'localhost',
-   *     port: 5432,
-   *     username: 'postgres',
-   *     password: 'password',
-   *     database: 'mydb'
-   *   },
-   *   programDir: '/home/postgresql/17.5.0/bin',
-   *   file: './backup.sql'
-   * });
-   *
-   * const result = await dumpTool.execute();
-   * if (result.exitCode === 0) {
-   *   console.log('Backup saved to ./backup.sql');
-   * }
-   * ```
    */
   execute(): Promise<ToolResult>
 }
@@ -294,7 +335,8 @@ export declare class PgDumpTool {
  *     password: 'password',
  *     database: 'mydb'
  *   },
- *   programDir: '/home/postgresql/17.5.0/bin'
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   config: {}
  * });
  *
  * const isReady = await readyTool.check();
@@ -313,7 +355,7 @@ export declare class PgDumpTool {
  */
 export declare class PgIsReadyTool {
   /**
-   * Creates a new `PgIsReadyTool` instance.
+   * Creates a new `PgIsReadyTool` instance with complete options.
    *
    * @param options - Configuration options for the pg_isready operation (connection and programDir are required)
    * @returns A new PgIsReadyTool instance ready to check server status
@@ -329,27 +371,80 @@ export declare class PgIsReadyTool {
    *     database: 'mydb'
    *   },
    *   programDir: '/home/postgresql/17.5.0/bin',
-   *   timeout: 10
+   *   config: {
+   *     timeout: 10,
+   *     silent: false
+   *   }
    * });
    * ```
    */
   constructor(options: PgIsReadyOptions)
+  /**
+   * Creates a PgIsReadyTool from connection info and isready-specific config.
+   *
+   * This is the preferred method when using with PostgresInstance,
+   * as it separates connection concerns from tool-specific configuration.
+   *
+   * @param connection - Database connection configuration
+   * @param program_dir - Directory containing the pg_isready executable
+   * @param config - Pg_isready-specific configuration options
+   * @returns A new PgIsReadyTool instance
+   *
+   * @example
+   * ```typescript
+   * const readyTool = PgIsReadyTool.fromConnection(
+   *   instance.connectionInfo,
+   *   instance.programDir + '/bin',
+   *   {
+   *     timeout: 30,
+   *     silent: true
+   *   }
+   * );
+   * ```
+   */
+  static fromConnection(connection: ConnectionConfig, programDir: string, config: PgIsReadyConfig): PgIsReadyTool
   /** Performs a quick check to see if the server is running. */
   check(): Promise<boolean>
   /** Executes `pg_isready` and returns the detailed result. */
   execute(): Promise<ToolResult>
 }
 
-/**
- * A tool for restoring a PostgreSQL database from an archive created by `pg_dump`.
- */
+/** A tool for restoring a PostgreSQL database from an archive created by `pg_dump`. */
 export declare class PgRestoreTool {
   /**
-   * Creates a new `PgRestoreTool` instance.
+   * Creates a new `PgRestoreTool` instance with complete options.
    * @param {PgRestoreOptions} options - The options for the `pg_restore` tool.
    * @returns {PgRestoreTool} A new `PgRestoreTool` instance.
    */
   constructor(options: PgRestoreOptions)
+  /**
+   * Creates a PgRestoreTool from connection info and restore-specific config.
+   *
+   * This is the preferred method when using with PostgresInstance,
+   * as it separates connection concerns from tool-specific configuration.
+   *
+   * @param connection - Database connection configuration
+   * @param program_dir - Directory containing the pg_restore executable
+   * @param config - Pg_restore-specific configuration options (including file)
+   * @returns A new PgRestoreTool instance
+   *
+   * @example
+   * ```typescript
+   * import { PgRestoreTool, PgRestoreFormat } from 'pg-embedded';
+   *
+   * const restoreTool = PgRestoreTool.fromConnection(
+   *   instance.connectionInfo,
+   *   instance.programDir + '/bin',
+   *   {
+   *     file: './backup.dump',
+   *     format: PgRestoreFormat.Custom,
+   *     clean: true,
+   *     noOwner: true
+   *   }
+   * );
+   * ```
+   */
+  static fromConnection(connection: ConnectionConfig, programDir: string, config: PgRestoreConfig): PgRestoreTool
   /**
    * Executes the pg_restore command with the configured options.
    *
@@ -361,6 +456,8 @@ export declare class PgRestoreTool {
    *
    * @example
    * ```typescript
+   * import { PgRestoreTool, PgRestoreFormat } from 'pg-embedded';
+   *
    * const restoreTool = new PgRestoreTool({
    *   connection: {
    *     host: 'localhost',
@@ -369,9 +466,12 @@ export declare class PgRestoreTool {
    *     database: 'restored_db'
    *   },
    *   programDir: '/home/postgresql/17.5.0/bin',
-   *   file: './backup.sql',
-   *   clean: true,
-   *   create: true
+   *   config: {
+   *     file: './backup.dump',
+   *     format: PgRestoreFormat.Custom,
+   *     clean: true,
+   *     create: true
+   *   }
    * });
    *
    * const result = await restoreTool.execute();
@@ -447,7 +547,7 @@ export declare class PgRestoreTool {
  */
 export declare class PgRewindTool {
   /**
-   * Creates a new PgRewindTool instance with the specified configuration.
+   * Creates a new PgRewindTool instance with complete options.
    *
    * @param options - Configuration options for the pg_rewind operation (programDir and targetPgdata are required)
    * @returns A new PgRewindTool instance ready to execute rewind operations
@@ -455,14 +555,43 @@ export declare class PgRewindTool {
    * @example
    * ```typescript
    * const rewindTool = new PgRewindTool({
+   *   connection: targetConnectionInfo,
    *   programDir: '/home/postgresql/17.5.0/bin',
    *   targetPgdata: './target_data_dir',
-   *   sourceServer: 'host=localhost port=5432 user=postgres',
-   *   progress: true
+   *   config: {
+   *     sourceServer: 'host=localhost port=5432 user=postgres',
+   *     progress: true
+   *   }
    * });
    * ```
    */
   constructor(options: PgRewindOptions)
+  /**
+   * Creates a PgRewindTool from connection info and rewind-specific config.
+   *
+   * This is the preferred method when using with PostgresInstance,
+   * as it separates connection concerns from tool-specific configuration.
+   *
+   * @param connection - Database connection configuration for target server
+   * @param program_dir - Directory containing the pg_rewind executable
+   * @param config - Pg_rewind-specific configuration options (including targetPgdata)
+   * @returns A new PgRewindTool instance
+   *
+   * @example
+   * ```typescript
+   * const rewindTool = PgRewindTool.fromConnection(
+   *   targetInstance.connectionInfo,
+   *   targetInstance.programDir + '/bin',
+   *   {
+   *     targetPgdata: './target_data_dir',
+   *     sourceInstance: sourceInstance.connectionInfo,
+   *     progress: true,
+   *     autoConfigureWal: true
+   *   }
+   * );
+   * ```
+   */
+  static fromConnection(connection: ConnectionConfig, programDir: string, config: PgRewindConfig): PgRewindTool
   /**
    * Executes the pg_rewind command with the configured options.
    *
@@ -789,7 +918,8 @@ export declare class PostgresInstance {
  *     password: 'password',
  *     database: 'mydb'
  *   },
- *   programDir: '/home/postgresql/17.5.0/bin'
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   config: {}
  * });
  *
  * const result = await psqlTool.executeCommand('SELECT * FROM users;');
@@ -808,7 +938,7 @@ export declare class PostgresInstance {
  */
 export declare class PsqlTool {
   /**
-   * Creates a new instance of the `PsqlTool`.
+   * Creates a new instance of the `PsqlTool` with complete options.
    *
    * @param options - Configuration options for the psql operation (connection and programDir are required)
    * @returns A new PsqlTool instance ready to execute SQL commands
@@ -823,11 +953,39 @@ export declare class PsqlTool {
    *     password: 'password',
    *     database: 'mydb'
    *   },
-   *   programDir: '/home/postgresql/17.5.0/bin'
+   *   programDir: '/home/postgresql/17.5.0/bin',
+   *   config: {
+   *     flags: ['--csv', '--tuples-only']
+   *   }
    * });
    * ```
    */
   constructor(options: PsqlOptions)
+  /**
+   * Creates a PsqlTool from connection info and psql-specific config.
+   *
+   * This is the preferred method when using with PostgresInstance,
+   * as it separates connection concerns from tool-specific configuration.
+   *
+   * @param connection - Database connection configuration
+   * @param program_dir - Directory containing the psql executable
+   * @param config - Psql-specific configuration options
+   * @returns A new PsqlTool instance
+   *
+   * @example
+   * ```typescript
+   * const psqlTool = PsqlTool.fromConnection(
+   *   instance.connectionInfo,
+   *   instance.programDir + '/bin',
+   *   {
+   *     csv: true,
+   *     tuplesOnly: true,
+   *     variable: ['MY_VAR', 'value']
+   *   }
+   * );
+   * ```
+   */
+  static fromConnection(connection: ConnectionConfig, programDir: string, config: PsqlConfig): PsqlTool
   /**
    * Executes a given SQL command string.
    *
@@ -986,53 +1144,40 @@ export declare function logTrace(message: string): void
 export declare function logWarn(message: string): void
 
 /**
- * Options for configuring the `pg_basebackup` command.
+ * Checkpoint mode options for pg_basebackup.
  *
- * This interface corresponds to the command-line arguments of the `pg_basebackup` utility.
- *
- * @example
- * ```typescript
- * const basebackupOptions: PgBasebackupOptions = {
- *   connection: {
- *     host: 'localhost',
- *     port: 5432,
- *     username: 'postgres',
- *     password: 'password',
- *   },
- *   programDir: '/path/to/postgres/bin',
- *   pgdata: './backup_dir',
- *   format: 'p', // plain format
- *   walMethod: 'fetch',
- * };
- * ```
+ * Specifies how the checkpoint should be performed.
  */
-export interface PgBasebackupOptions {
-  /** Database connection parameters. */
-  connection: ConnectionConfig
-  /** General tool options. */
+export declare const enum PgBasebackupCheckpoint {
+  /** Fast checkpoint (may cause I/O spike) */
+  Fast = 0,
+  /** Spread checkpoint over time (default) */
+  Spread = 1
+}
+
+/**
+ * Configuration for pg_basebackup-specific options, separate from connection settings.
+ *
+ * This contains only the pg_basebackup tool-specific configuration options,
+ * allowing for clean separation when used with PostgresInstance.
+ */
+export interface PgBasebackupConfig {
+  /** Generic tool options like silent mode and timeout. */
   tool?: ToolOptions
-  /**
-   * The directory containing the `pg_basebackup` executable.
-   * Corresponds to the `--pgdata` command-line argument.
-   */
-  programDir: string
   /** Specifies the output directory for the backup. */
   pgdata: string
-  /**
-   * The output format. Can be `p` (plain) or `t` (tar).
-   * Corresponds to the `--format` command-line argument.
-   */
-  format?: string
+  /** The output format for the backup. */
+  format?: PgBasebackupFormat
   /**
    * Enable verbose mode.
    * Corresponds to the `--verbose` command-line argument.
    */
   verbose?: boolean
   /**
-   * Set checkpoint mode to `fast` or `spread`.
+   * Set checkpoint mode.
    * Corresponds to the `--checkpoint` command-line argument.
    */
-  checkpoint?: string
+  checkpoint?: PgBasebackupCheckpoint
   /**
    * Create a temporary replication slot.
    * Corresponds to the `--create-slot` command-line argument.
@@ -1044,20 +1189,35 @@ export interface PgBasebackupOptions {
    */
   maxRate?: string
   /**
-   * Method for including WAL files. Can be `none`, `fetch`, or `stream`.
+   * Method for including WAL files.
    * Corresponds to the `--wal-method` command-line argument.
    */
-  walMethod?: string
+  walMethod?: PgBasebackupWalMethod
 }
 
 /**
- * Options for configuring the `pg_dumpall` command.
+ * PostgreSQL base backup format options.
  *
- * This interface corresponds to the command-line arguments of the `pg_dumpall` utility.
+ * Specifies the output format for the base backup.
+ */
+export declare const enum PgBasebackupFormat {
+  /** Plain format - creates a directory with database files */
+  Plain = 0,
+  /** Tar format - creates tar archive files */
+  Tar = 1
+}
+
+/**
+ * Complete options for configuring the `pg_basebackup` command.
+ *
+ * This interface corresponds to the command-line arguments of the `pg_basebackup` utility.
+ * For use with PostgresInstance, consider using PgBasebackupConfig instead.
  *
  * @example
  * ```typescript
- * const dumpallOptions: PgDumpallOptions = {
+ * import { PgBasebackupTool, PgBasebackupFormat, PgBasebackupWalMethod } from 'pg-embedded';
+ *
+ * const basebackupOptions: PgBasebackupOptions = {
  *   connection: {
  *     host: 'localhost',
  *     port: 5432,
@@ -1065,18 +1225,46 @@ export interface PgBasebackupOptions {
  *     password: 'password',
  *   },
  *   programDir: '/path/to/postgres/bin',
- *   file: 'dump.sql',
- *   globalsOnly: true,
+ *   config: {
+ *     pgdata: './backup_dir',
+ *     format: PgBasebackupFormat.Plain,
+ *     walMethod: PgBasebackupWalMethod.Fetch,
+ *   }
  * };
  * ```
  */
-export interface PgDumpallOptions {
+export interface PgBasebackupOptions {
   /** Database connection parameters. */
   connection: ConnectionConfig
-  /** General tool options. */
-  tool?: ToolOptions
-  /** The directory containing the `pg_dumpall` executable. */
+  /** The directory containing the `pg_basebackup` executable. */
   programDir: string
+  /** Pg_basebackup-specific configuration options. */
+  config: PgBasebackupConfig
+}
+
+/**
+ * WAL method options for pg_basebackup.
+ *
+ * Specifies how WAL files should be handled during backup.
+ */
+export declare const enum PgBasebackupWalMethod {
+  /** Don't include WAL files */
+  None = 0,
+  /** Fetch WAL files at the end of backup */
+  Fetch = 1,
+  /** Stream WAL files during backup */
+  Stream = 2
+}
+
+/**
+ * Configuration for pg_dumpall-specific options, separate from connection settings.
+ *
+ * This contains only the pg_dumpall tool-specific configuration options,
+ * allowing for clean separation when used with PostgresInstance.
+ */
+export interface PgDumpallConfig {
+  /** Generic tool options like silent mode and timeout. */
+  tool?: ToolOptions
   /**
    * Specifies the output file for the dump. If not provided, the output is sent to standard output.
    * Corresponds to the `--file` command-line argument.
@@ -1120,47 +1308,56 @@ export interface PgDumpallOptions {
 }
 
 /**
- * Configuration options for the PostgreSQL pg_dump tool.
+ * Complete options for configuring the `pg_dumpall` command.
  *
- * This interface defines all available options for creating database backups using pg_dump.
- * The `connection` and `programDir` fields are required, while other fields are optional
- * and will use pg_dump's default values if not specified.
+ * This interface corresponds to the command-line arguments of the `pg_dumpall` utility.
+ * For use with PostgresInstance, consider using PgDumpallConfig instead.
  *
  * @example
  * ```typescript
- * import { PgDumpTool } from 'pg-embedded';
- *
- * const dumpTool = new PgDumpTool({
+ * const dumpallOptions: PgDumpallOptions = {
  *   connection: {
  *     host: 'localhost',
  *     port: 5432,
  *     username: 'postgres',
  *     password: 'password',
- *     database: 'mydb'
  *   },
- *   programDir: '/home/postgresql/17.5.0/bin',
- *   file: './backup.sql',
- *   create: true,
- *   clean: true
- * });
- *
- * const result = await dumpTool.execute();
- * console.log('Backup completed:', result.exitCode === 0);
+ *   programDir: '/path/to/postgres/bin',
+ *   config: {
+ *     file: 'dump.sql',
+ *     globalsOnly: true,
+ *   }
+ * };
  * ```
  */
-export interface PgDumpOptions {
-  /**
-   * Database connection configuration (required).
-   * Specifies how to connect to the PostgreSQL server.
-   */
+export interface PgDumpallOptions {
+  /** Database connection parameters. */
   connection: ConnectionConfig
-  /** Generic tool options such as silent mode for suppressing output. */
+  /** The directory containing the `pg_dumpall` executable. */
+  programDir: string
+  /** Pg_dumpall-specific configuration options. */
+  config: PgDumpallConfig
+}
+
+/**
+ * Configuration for pg_dump-specific options, separate from connection settings.
+ *
+ * This contains only the pg_dump tool-specific configuration options,
+ * allowing for clean separation when used with PostgresInstance.
+ */
+export interface PgDumpConfig {
+  /** Generic tool options like silent mode and timeout. */
   tool?: ToolOptions
   /**
-   * Directory path where the pg_dump executable is located (required).
-   * This should point to the directory containing the pg_dump binary.
+   * Output file path. If not specified, output goes to stdout.
+   * Equivalent to pg_dump --file flag.
    */
-  programDir: string
+  file?: string
+  /**
+   * Output format for the dump.
+   * Default is Plain (SQL text format). Equivalent to pg_dump --format flag.
+   */
+  format?: PgDumpFormat
   /**
    * Export only table data, excluding schema definitions.
    * Equivalent to pg_dump --data-only flag.
@@ -1177,55 +1374,25 @@ export interface PgDumpOptions {
    */
   create?: boolean
   /**
-   * Export only the specified extension and its dependencies.
-   * Equivalent to pg_dump --extension flag.
+   * Export only schema definitions, excluding table data.
+   * Equivalent to pg_dump --schema-only flag.
    */
-  extension?: string
-  /**
-   * Character encoding for the dump output (e.g., 'UTF8', 'LATIN1').
-   * Equivalent to pg_dump --encoding flag.
-   */
-  encoding?: string
-  /**
-   * Output file path. If not specified, output goes to stdout.
-   * Equivalent to pg_dump --file flag.
-   */
-  file?: string
-  /**
-   * Output format: 'p' (plain text), 'c' (custom), 'd' (directory), 't' (tar).
-   * Default is 'p' (plain text). Equivalent to pg_dump --format flag.
-   */
-  format?: string
-  /**
-   * Number of parallel worker processes for dumping (custom format only).
-   * Equivalent to pg_dump --jobs flag.
-   */
-  jobs?: number
-  /**
-   * Export only objects in the specified schema.
-   * Equivalent to pg_dump --schema flag.
-   */
-  schema?: string
-  /**
-   * Exclude the specified schema from the dump.
-   * Equivalent to pg_dump --exclude-schema flag.
-   */
-  excludeSchema?: string
+  schemaOnly?: boolean
   /**
    * Do not output commands to set ownership of objects.
    * Equivalent to pg_dump --no-owner flag.
    */
   noOwner?: boolean
   /**
-   * Export only schema definitions, excluding table data.
-   * Equivalent to pg_dump --schema-only flag.
+   * Do not dump access privileges (GRANT/REVOKE commands).
+   * Equivalent to pg_dump --no-privileges flag.
    */
-  schemaOnly?: boolean
+  noPrivileges?: boolean
   /**
-   * Superuser name to use for disabling triggers during data-only dumps.
-   * Equivalent to pg_dump --superuser flag.
+   * Enable verbose output showing detailed progress information.
+   * Equivalent to pg_dump --verbose flag.
    */
-  superuser?: string
+  verbose?: boolean
   /**
    * Export only the specified table and its dependencies.
    * Equivalent to pg_dump --table flag.
@@ -1237,133 +1404,113 @@ export interface PgDumpOptions {
    */
   excludeTable?: string
   /**
-   * Enable verbose output showing detailed progress information.
-   * Equivalent to pg_dump --verbose flag.
+   * Export only objects in the specified schema.
+   * Equivalent to pg_dump --schema flag.
    */
-  verbose?: boolean
+  schema?: string
   /**
-   * Do not dump access privileges (GRANT/REVOKE commands).
-   * Equivalent to pg_dump --no-privileges flag.
+   * Exclude the specified schema from the dump.
+   * Equivalent to pg_dump --exclude-schema flag.
    */
-  noPrivileges?: boolean
+  excludeSchema?: string
+  /**
+   * Character encoding for the dump output (e.g., 'UTF8', 'LATIN1').
+   * Equivalent to pg_dump --encoding flag.
+   */
+  encoding?: string
+  /**
+   * Number of parallel worker processes for dumping (custom format only).
+   * Equivalent to pg_dump --jobs flag.
+   */
+  jobs?: number
   /**
    * Compression level (0-9) for compressed output formats.
    * Higher values mean better compression but slower processing.
    * Equivalent to pg_dump --compress flag.
    */
   compression?: number
+}
+
+/**
+ * PostgreSQL dump output format options.
+ *
+ * Each format has different characteristics and use cases:
+ * - **Plain**: Human-readable SQL text format (.sql files)
+ * - **Custom**: Compressed binary format (.dump/.backup files) - recommended for backups
+ * - **Directory**: Multiple files in a directory - allows parallel processing
+ * - **Tar**: Tar archive format (.tar files)
+ */
+export declare const enum PgDumpFormat {
   /**
-   * Generate output suitable for in-place upgrade utilities.
-   * This is an advanced option rarely used in normal operations.
-   * Equivalent to pg_dump --binary-upgrade flag.
+   * Plain text SQL format (default).
+   * Creates human-readable SQL files that can be executed with psql.
+   * File extension: .sql
    */
-  binaryUpgrade?: boolean
+  Plain = 0,
   /**
-   * Output data as INSERT commands with explicit column names.
-   * Slower than COPY but more portable. Equivalent to pg_dump --column-inserts flag.
+   * Custom compressed binary format.
+   * Most flexible and efficient format, supports compression and selective restore.
+   * File extension: .dump or .backup
    */
-  columnInserts?: boolean
+  Custom = 1,
   /**
-   * Output data as INSERT commands with attribute names (alias for column_inserts).
-   * Equivalent to pg_dump --attribute-inserts flag.
+   * Directory format with multiple files.
+   * Allows parallel dumping and restoring for large databases.
+   * Output: directory containing multiple files
    */
-  attributeInserts?: boolean
+  Directory = 2,
   /**
-   * Disable dollar quoting for function bodies, use regular SQL quoting instead.
-   * Equivalent to pg_dump --disable-dollar-quoting flag.
+   * Tar archive format.
+   * Similar to custom format but in tar format.
+   * File extension: .tar
    */
-  disableDollarQuoting?: boolean
+  Tar = 3
+}
+
+/**
+ * Complete options for the PostgreSQL pg_dump tool.
+ *
+ * This interface defines all available options for creating database backups using pg_dump.
+ * For use with PostgresInstance, consider using PgDumpConfig instead.
+ *
+ * @example
+ * ```typescript
+ * import { PgDumpTool, PgDumpFormat } from 'pg-embedded';
+ *
+ * const dumpTool = new PgDumpTool({
+ *   connection: {
+ *     host: 'localhost',
+ *     port: 5432,
+ *     username: 'postgres',
+ *     password: 'password',
+ *     database: 'mydb'
+ *   },
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   config: {
+ *     file: './backup.dump',
+ *     format: PgDumpFormat.Custom,
+ *     create: true,
+ *     clean: true
+ *   }
+ * });
+ *
+ * const result = await dumpTool.execute();
+ * console.log('Backup completed:', result.exitCode === 0);
+ * ```
+ */
+export interface PgDumpOptions {
   /**
-   * Disable triggers during data restoration to improve performance.
-   * Only applies to data-only dumps. Equivalent to pg_dump --disable-triggers flag.
+   * Database connection configuration (required).
+   * Specifies how to connect to the PostgreSQL server.
    */
-  disableTriggers?: boolean
+  connection: ConnectionConfig
   /**
-   * Enable row-level security policies during the dump.
-   * Equivalent to pg_dump --enable-row-security flag.
+   * Directory path where the pg_dump executable is located (required).
+   * This should point to the directory containing the pg_dump binary.
    */
-  enableRowSecurity?: boolean
-  /**
-   * Output data as INSERT commands instead of COPY commands.
-   * Slower but more portable. Equivalent to pg_dump --inserts flag.
-   */
-  inserts?: boolean
-  /**
-   * Do not dump object comments and descriptions.
-   * Equivalent to pg_dump --no-comments flag.
-   */
-  noComments?: boolean
-  /**
-   * Do not dump publication definitions (PostgreSQL 10+).
-   * Equivalent to pg_dump --no-publications flag.
-   */
-  noPublications?: boolean
-  /**
-   * Do not dump security label assignments.
-   * Equivalent to pg_dump --no-security-labels flag.
-   */
-  noSecurityLabels?: boolean
-  /**
-   * Do not dump subscription definitions (PostgreSQL 10+).
-   * Equivalent to pg_dump --no-subscriptions flag.
-   */
-  noSubscriptions?: boolean
-  /**
-   * Do not dump table access method assignments.
-   * Equivalent to pg_dump --no-table-access-method flag.
-   */
-  noTableAccessMethod?: boolean
-  /**
-   * Do not dump tablespace assignments.
-   * Equivalent to pg_dump --no-tablespaces flag.
-   */
-  noTablespaces?: boolean
-  /**
-   * Do not dump TOAST compression method assignments.
-   * Equivalent to pg_dump --no-toast-compression flag.
-   */
-  noToastCompression?: boolean
-  /**
-   * Do not dump data from unlogged tables.
-   * Unlogged tables are not crash-safe and are automatically truncated on server restart.
-   * Equivalent to pg_dump --no-unlogged-table-data flag.
-   */
-  noUnloggedTableData?: boolean
-  /**
-   * Add ON CONFLICT DO NOTHING clause to INSERT commands.
-   * Helps avoid errors when restoring to a database with existing data.
-   * Equivalent to pg_dump --on-conflict-do-nothing flag.
-   */
-  onConflictDoNothing?: boolean
-  /**
-   * Quote all database object identifiers, even if not required.
-   * Ensures compatibility across different PostgreSQL versions.
-   * Equivalent to pg_dump --quote-all-identifiers flag.
-   */
-  quoteAllIdentifiers?: boolean
-  /**
-   * Number of rows to include in each INSERT command when using --inserts.
-   * Higher values can improve performance but may hit command length limits.
-   * Equivalent to pg_dump --rows-per-insert flag.
-   */
-  rowsPerInsert?: number
-  /**
-   * Use a specific snapshot for the dump to ensure consistency.
-   * The snapshot must be exported by another session.
-   * Equivalent to pg_dump --snapshot flag.
-   */
-  snapshot?: string
-  /**
-   * Use strict naming conventions for database objects.
-   * Equivalent to pg_dump --strict-names flag.
-   */
-  strictNames?: boolean
-  /**
-   * Use SET SESSION AUTHORIZATION commands instead of ALTER OWNER commands.
-   * Useful when the dumping user doesn't have ownership privileges.
-   * Equivalent to pg_dump --use-set-session-authorization flag.
-   */
-  useSetSessionAuthorization?: boolean
+  programDir: string
+  /** Pg_dump-specific configuration options. */
+  config: PgDumpConfig
 }
 
 export type PgEmbedError =
@@ -1378,9 +1525,27 @@ export type PgEmbedError =
   | { type: 'InternalError', field0: string }
 
 /**
- * Options for configuring the `pg_isready` tool.
+ * Configuration for pg_isready-specific options, separate from connection settings.
+ *
+ * This contains only the pg_isready tool-specific configuration options,
+ * allowing for clean separation when used with PostgresInstance.
+ */
+export interface PgIsReadyConfig {
+  /** Generic tool options like silent mode and timeout. */
+  tool?: ToolOptions
+  /** The number of seconds to wait for a connection. */
+  timeout?: number
+  /** If `true`, suppresses status messages. */
+  silent?: boolean
+  /** The specific database name to check (overrides connection database). */
+  dbname?: string
+}
+
+/**
+ * Complete options for configuring the `pg_isready` tool.
  *
  * The `connection` and `programDir` fields are required for proper operation.
+ * For use with PostgresInstance, consider using PgIsReadyConfig instead.
  *
  * @example
  * ```typescript
@@ -1393,173 +1558,120 @@ export type PgEmbedError =
  *     database: 'mydb'
  *   },
  *   programDir: '/home/postgresql/17.5.0/bin',
- *   timeout: 10
+ *   config: {
+ *     timeout: 10,
+ *     silent: false
+ *   }
  * };
  * ```
  */
 export interface PgIsReadyOptions {
   /** Connection settings for the PostgreSQL server (required). */
   connection: ConnectionConfig
-  /** The number of seconds to wait for a connection. */
-  timeout?: number
-  /** If `true`, suppresses status messages. */
-  silent?: boolean
-  /** The specific database name to check. */
-  dbname?: string
   /** The directory where the `pg_isready` executable is located (required). */
   programDir: string
+  /** Pg_isready-specific configuration options. */
+  config: PgIsReadyConfig
 }
 
 /**
- * Options for the `pg_restore` tool.
+ * Configuration for pg_restore-specific options, separate from connection settings.
+ *
+ * This contains only the pg_restore tool-specific configuration options,
+ * allowing for clean separation when used with PostgresInstance.
+ */
+export interface PgRestoreConfig {
+  /** Generic tool options like silent mode and timeout. */
+  tool?: ToolOptions
+  /** The path to the dump file to restore from. */
+  file: string
+  /** The format of the archive. */
+  format?: PgRestoreFormat
+  /** Clean (drop) database objects before recreating them. */
+  clean?: boolean
+  /** Create the database before restoring into it. */
+  create?: boolean
+  /** Exit on error. */
+  exitOnError?: boolean
+  /** Number of concurrent jobs. */
+  jobs?: number
+  /** Execute as a single transaction. */
+  singleTransaction?: boolean
+  /** Verbose mode. */
+  verbose?: boolean
+  /** Restore only the data, not the schema. */
+  dataOnly?: boolean
+  /** Restore only the schema, not the data. */
+  schemaOnly?: boolean
+  /** Superuser name to use for disabling triggers. */
+  superuser?: string
+  /** Restore only the specified table(s). */
+  table?: Array<string>
+  /** Restore only the specified trigger(s). */
+  trigger?: Array<string>
+  /** Do not restore ownership of objects. */
+  noOwner?: boolean
+  /** Do not restore privileges (grant/revoke). */
+  noPrivileges?: boolean
+}
+
+/**
+ * PostgreSQL restore format options.
+ *
+ * Specifies the format of the input archive file.
+ */
+export declare const enum PgRestoreFormat {
+  /** Custom format (created with pg_dump -Fc) */
+  Custom = 0,
+  /** Directory format (created with pg_dump -Fd)   */
+  Directory = 1,
+  /** Tar format (created with pg_dump -Ft) */
+  Tar = 2
+}
+
+/**
+ * Complete options for the `pg_restore` tool.
  * @see https://www.postgresql.org/docs/current/app-pgrestore.html
+ *
+ * @example
+ * ```typescript
+ * import { PgRestoreTool, PgRestoreFormat } from 'pg-embedded';
+ *
+ * const restoreTool = new PgRestoreTool({
+ *   connection: {
+ *     host: 'localhost',
+ *     port: 5432,
+ *     username: 'postgres',
+ *     database: 'restored_db'
+ *   },
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   config: {
+ *     file: './backup.dump',
+ *     format: PgRestoreFormat.Custom,
+ *     clean: true,
+ *     noOwner: true
+ *   }
+ * });
+ * ```
  */
 export interface PgRestoreOptions {
-  /**
-   * Connection configuration for the PostgreSQL server.
-   * @type {ConnectionConfig}
-   */
+  /** Connection configuration for the PostgreSQL server. */
   connection: ConnectionConfig
-  /**
-   * The path to the dump file.
-   * @type {string}
-   */
-  file: string
-  /**
-   * The format of the archive.
-   * @type {string | undefined}
-   */
-  format?: string
-  /**
-   * Clean (drop) database objects before recreating them.
-   * @type {boolean}
-   */
-  clean: boolean
-  /**
-   * Create the database before restoring into it.
-   * @type {boolean}
-   */
-  create: boolean
-  /**
-   * Exit on error.
-   * @type {boolean}
-   */
-  exitOnError: boolean
-  /**
-   * Number of concurrent jobs.
-   * @type {number | undefined}
-   */
-  jobs?: number
-  /**
-   * Execute as a single transaction.
-   * @type {boolean}
-   */
-  singleTransaction: boolean
-  /**
-   * Verbose mode.
-   * @type {boolean}
-   */
-  verbose: boolean
-  /**
-   * The name of the database to restore into.
-   * @type {string | undefined}
-   */
-  dbName?: string
-  /**
-   * Restore only the data, not the schema.
-   * @type {boolean}
-   */
-  dataOnly: boolean
-  /**
-   * Restore only the schema, not the data.
-   * @type {boolean}
-   */
-  schemaOnly: boolean
-  /**
-   * Superuser name to use for disabling triggers.
-   * @type {string | undefined}
-   */
-  superuser?: string
-  /**
-   * Restore only the specified table(s).
-   * @type {string[]}
-   */
-  table: Array<string>
-  /**
-   * Restore only the specified trigger(s).
-   * @type {string[]}
-   */
-  trigger: Array<string>
-  /**
-   * Do not restore ownership of objects.
-   * @type {boolean}
-   */
-  noOwner: boolean
-  /**
-   * Do not restore privileges (grant/revoke).
-   * @type {boolean}
-   */
-  noPrivileges: boolean
-  /**
-   * The directory where the `pg_restore` program is located.
-   * @type {string | undefined}
-   */
-  programDir?: string
+  /** The directory where the `pg_restore` program is located. */
+  programDir: string
+  /** Pg_restore-specific configuration options. */
+  config: PgRestoreConfig
 }
 
 /**
- * Configuration options for the PostgreSQL pg_rewind tool.
+ * Configuration for pg_rewind-specific options, separate from connection settings.
  *
- * This interface defines all available options for synchronizing PostgreSQL data directories
- * using pg_rewind. The `programDir` and `targetPgdata` fields are required, while other
- * fields are optional and will use pg_rewind's default values if not specified.
- *
- * pg_rewind is used to synchronize a PostgreSQL data directory with another copy of the
- * same database cluster after they have diverged. This is commonly used for failover
- * scenarios where you need to rewind a former primary server to become a standby.
- *
- * @example Basic usage with connection string
- * ```typescript
- * import { PgRewindTool } from 'pg-embedded';
- *
- * const rewindTool = new PgRewindTool({
- *   programDir: '/home/postgresql/17.5.0/bin',
- *   targetPgdata: './target_data_dir',
- *   sourceServer: 'host=localhost port=5432 user=postgres password=secret',
- *   progress: true,
- *   dryRun: false
- * });
- *
- * const result = await rewindTool.execute();
- * console.log('Rewind completed:', result.exitCode === 0);
- * ```
- *
- * @example Simplified usage with auto-configuration
- * ```typescript
- * const rewindTool = new PgRewindTool({
- *   connection: masterConnectionInfo,
- *   programDir: '/home/postgresql/17.5.0/bin',
- *   targetPgdata: './target_data_dir',
- *   sourceInstance: standbyConnectionInfo,
- *   autoConfigureWal: true,
- *   progress: true
- * });
- * ```
+ * This contains only the pg_rewind tool-specific configuration options,
+ * allowing for clean separation when used with PostgresInstance.
  */
-export interface PgRewindOptions {
-  /**
-   * Database connection configuration (required for target server).
-   * Specifies how to connect to the PostgreSQL target server.
-   */
-  connection: ConnectionConfig
-  /** Generic tool options such as silent mode for suppressing output. */
+export interface PgRewindConfig {
+  /** Generic tool options like silent mode and timeout. */
   tool?: ToolOptions
-  /**
-   * Directory path where the pg_rewind executable is located (required).
-   * This should point to the directory containing the pg_rewind binary.
-   * Equivalent to specifying the PATH to pg_rewind.
-   */
-  programDir: string
   /**
    * Path to the target PostgreSQL data directory to be rewound (required).
    * This is the data directory that will be synchronized with the source.
@@ -1626,6 +1738,67 @@ export interface PgRewindOptions {
   walArchiveDir?: string
 }
 
+/**
+ * Complete configuration options for the PostgreSQL pg_rewind tool.
+ *
+ * This interface defines all available options for synchronizing PostgreSQL data directories
+ * using pg_rewind. The `programDir` and `targetPgdata` fields are required, while other
+ * fields are optional and will use pg_rewind's default values if not specified.
+ * For use with PostgresInstance, consider using PgRewindConfig instead.
+ *
+ * pg_rewind is used to synchronize a PostgreSQL data directory with another copy of the
+ * same database cluster after they have diverged. This is commonly used for failover
+ * scenarios where you need to rewind a former primary server to become a standby.
+ *
+ * @example Basic usage with connection string
+ * ```typescript
+ * import { PgRewindTool } from 'pg-embedded';
+ *
+ * const rewindTool = new PgRewindTool({
+ *   connection: targetConnectionInfo,
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   config: {
+ *     targetPgdata: './target_data_dir',
+ *     sourceServer: 'host=localhost port=5432 user=postgres password=secret',
+ *     progress: true,
+ *     dryRun: false
+ *   }
+ * });
+ *
+ * const result = await rewindTool.execute();
+ * console.log('Rewind completed:', result.exitCode === 0);
+ * ```
+ *
+ * @example Simplified usage with auto-configuration
+ * ```typescript
+ * const rewindTool = new PgRewindTool({
+ *   connection: targetConnectionInfo,
+ *   programDir: '/home/postgresql/17.5.0/bin',
+ *   config: {
+ *     targetPgdata: './target_data_dir',
+ *     sourceInstance: sourceConnectionInfo,
+ *     autoConfigureWal: true,
+ *     progress: true
+ *   }
+ * });
+ * ```
+ */
+export interface PgRewindOptions {
+  /**
+   * Database connection configuration (required for target server).
+   * Specifies how to connect to the PostgreSQL target server.
+   */
+  connection: ConnectionConfig
+  /**
+   * Directory path where the pg_rewind executable is located (required).
+   * This should point to the directory containing the pg_rewind binary.
+   * Equivalent to specifying the PATH to pg_rewind.
+   */
+  programDir: string
+  /** Pg_rewind-specific configuration options. */
+  config: PgRewindConfig
+}
+
 /** PostgreSQL error type enumeration */
 export declare const enum PostgresError {
   /** Setup error */
@@ -1673,34 +1846,191 @@ export interface PostgresErrorInfo {
  * ```
  */
 export interface PostgresSettings {
-  /** PostgreSQL version (e.g., "15.0", ">=14.0")  */
+  /** PostgreSQL version (e.g., "15.0", ">=14.0") */
   version?: string
-  /** Host address for database connection (default: "localhost")  */
+  /** Host address for database connection (default: "localhost") */
   host?: string
-  /** Port number (0-65535, default: 5432, 0 for random)  */
+  /** Port number (0-65535, default: 5432, 0 for random) */
   port?: number
-  /** Username for database connection (default: "postgres")  */
+  /** Username for database connection (default: "postgres") */
   username?: string
-  /** Password for database connection (default: "postgres")  */
+  /** Password for database connection (default: "postgres") */
   password?: string
-  /** Default database name (default: "postgres")  */
+  /** Default database name (default: "postgres") */
   databaseName?: string
-  /** Custom data directory path  */
+  /** Custom data directory path */
   dataDir?: string
-  /** Custom installation directory path  */
+  /** Custom installation directory path */
   installationDir?: string
-  /** Timeout in seconds for database operations (default: 30)  */
+  /** Timeout in seconds for database operations (default: 30) */
   timeout?: number
-  /** Setup timeout in seconds for PostgreSQL initialization (default: 300 on Windows, 30 on other platforms)  */
+  /** Setup timeout in seconds for PostgreSQL initialization (default: 300 on Windows, 30 on other platforms) */
   setupTimeout?: number
-  /** Whether to persist data between runs (default: false)  */
+  /** Whether to persist data between runs (default: false) */
   persistent?: boolean
 }
 
 /**
- * Options for configuring the `psql` tool, primarily for connection settings.
+ * Configuration for psql-specific options, separate from connection settings.
+ *
+ * This contains only the psql tool-specific configuration options,
+ * allowing for clean separation when used with PostgresInstance.
+ */
+export interface PsqlConfig {
+  /** Generic tool options like silent mode and timeout. */
+  tool?: ToolOptions
+  /**
+   * Run only single command (SQL or internal) and exit.
+   * Equivalent to psql --command flag.
+   */
+  command?: string
+  /**
+   * Execute commands from file, then exit.
+   * Equivalent to psql --file flag.
+   */
+  file?: string
+  /**
+   * List available databases, then exit.
+   * Equivalent to psql --list flag.
+   */
+  list?: boolean
+  /**
+   * Set psql variable NAME to VALUE (e.g., ON_ERROR_STOP=1).
+   * Equivalent to psql --variable flag.
+   */
+  variable?: [string, string]
+  /**
+   * Output version information, then exit.
+   * Equivalent to psql --version flag.
+   */
+  version?: boolean
+  /**
+   * Do not read startup file (~/.psqlrc).
+   * Equivalent to psql --no-psqlrc flag.
+   */
+  noPsqlrc?: boolean
+  /**
+   * Execute as a single transaction (if non-interactive).
+   * Equivalent to psql --single-transaction flag.
+   */
+  singleTransaction?: boolean
+  /**
+   * Show help, then exit. Possible values: options, commands, variables.
+   * Equivalent to psql --help flag.
+   */
+  help?: string
+  /**
+   * Echo all input from script.
+   * Equivalent to psql --echo-all flag.
+   */
+  echoAll?: boolean
+  /**
+   * Echo failed commands.
+   * Equivalent to psql --echo-errors flag.
+   */
+  echoErrors?: boolean
+  /**
+   * Echo commands sent to server.
+   * Equivalent to psql --echo-queries flag.
+   */
+  echoQueries?: boolean
+  /**
+   * Display queries that internal commands generate.
+   * Equivalent to psql --echo-hidden flag.
+   */
+  echoHidden?: boolean
+  /**
+   * Send session log to file.
+   * Equivalent to psql --log-file flag.
+   */
+  logFile?: string
+  /**
+   * Disable enhanced command line editing (readline).
+   * Equivalent to psql --no-readline flag.
+   */
+  noReadline?: boolean
+  /**
+   * Send query results to file (or |pipe).
+   * Equivalent to psql --output flag.
+   */
+  output?: string
+  /**
+   * Run quietly (no messages, only query output).
+   * Equivalent to psql --quiet flag.
+   */
+  quiet?: boolean
+  /**
+   * Single-step mode (confirm each query).
+   * Equivalent to psql --single-step flag.
+   */
+  singleStep?: boolean
+  /**
+   * Single-line mode (end of line terminates SQL command).
+   * Equivalent to psql --single-line flag.
+   */
+  singleLine?: boolean
+  /**
+   * Unaligned table output mode.
+   * Equivalent to psql --no-align flag.
+   */
+  noAlign?: boolean
+  /**
+   * CSV table output mode.
+   * Equivalent to psql --csv flag.
+   */
+  csv?: boolean
+  /**
+   * Field separator for unaligned output (default "|").
+   * Equivalent to psql --field-separator flag.
+   */
+  fieldSeparator?: string
+  /**
+   * HTML table output mode.
+   * Equivalent to psql --html flag.
+   */
+  html?: boolean
+  /**
+   * Set printing option VAR to ARG (see \pset command).
+   * Equivalent to psql --pset flag.
+   */
+  pset?: [string, string]
+  /**
+   * Record separator for unaligned output (default newline).
+   * Equivalent to psql --record-separator flag.
+   */
+  recordSeparator?: string
+  /**
+   * Print rows only (no headers, footers).
+   * Equivalent to psql --tuples-only flag.
+   */
+  tuplesOnly?: boolean
+  /**
+   * HTML table tag attributes (e.g., width, border).
+   * Equivalent to psql --table-attr flag.
+   */
+  tableAttr?: string
+  /**
+   * Turn on expanded table output mode.
+   * Equivalent to psql --expanded flag.
+   */
+  expanded?: boolean
+  /**
+   * Set field separator for unaligned output to zero byte.
+   * Equivalent to psql --field-separator-zero flag.
+   */
+  fieldSeparatorZero?: boolean
+  /**
+   * Set record separator for unaligned output to zero byte.
+   * Equivalent to psql --record-separator-zero flag.
+   */
+  recordSeparatorZero?: boolean
+}
+
+/**
+ * Complete options for configuring the `psql` tool, including connection settings.
  *
  * The `connection` and `programDir` fields are required for proper operation.
+ * For use with PostgresInstance, consider using PsqlConfig instead.
  *
  * @example
  * ```typescript
@@ -1713,29 +2043,22 @@ export interface PostgresSettings {
  *     database: 'testdb',
  *   },
  *   programDir: '/home/postgresql/17.5.0/bin',
- *   variables: ['MY_VAR=some_value', 'COUNT=42'],
- *   flags: ['--csv', '--single-transaction', '--tuples-only'],
+ *   config: {
+ *     variable: ['MY_VAR', 'some_value'],
+ *     csv: true,
+ *     singleTransaction: true,
+ *     tuplesOnly: true,
+ *   }
  * };
  * ```
  */
 export interface PsqlOptions {
   /** Connection settings for the PostgreSQL server (required). */
   connection: ConnectionConfig
-  /** Generic tool options like silent mode. */
-  tool?: ToolOptions
-  /**
-   * Variables to set for the psql session in KEY=VALUE format.
-   * For example, `['MY_VAR=hello', 'COUNT=42']`.
-   * Each string should be in the format 'NAME=VALUE'.
-   */
-  variables?: Array<string>
-  /**
-   * A list of boolean flags to pass to `psql`.
-   * For example, `['--csv', '--tuples-only']`.
-   */
-  flags?: Array<string>
   /** The directory where the psql executable is located (required). */
   programDir: string
+  /** Psql-specific configuration options. */
+  config: PsqlConfig
 }
 
 /**

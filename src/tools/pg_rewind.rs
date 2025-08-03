@@ -9,57 +9,15 @@ use std::process::Stdio;
 use tokio::process::Command as TokioCommand;
 
 #[napi(object)]
-#[derive(Clone, Debug, Deserialize)]
-/// Configuration options for the PostgreSQL pg_rewind tool.
+#[derive(Clone, Debug, Default, Deserialize)]
+/// Configuration for pg_rewind-specific options, separate from connection settings.
 ///
-/// This interface defines all available options for synchronizing PostgreSQL data directories
-/// using pg_rewind. The `programDir` and `targetPgdata` fields are required, while other
-/// fields are optional and will use pg_rewind's default values if not specified.
-///
-/// pg_rewind is used to synchronize a PostgreSQL data directory with another copy of the
-/// same database cluster after they have diverged. This is commonly used for failover
-/// scenarios where you need to rewind a former primary server to become a standby.
-///
-/// @example Basic usage with connection string
-/// ```typescript
-/// import { PgRewindTool } from 'pg-embedded';
-///
-/// const rewindTool = new PgRewindTool({
-///   programDir: '/home/postgresql/17.5.0/bin',
-///   targetPgdata: './target_data_dir',
-///   sourceServer: 'host=localhost port=5432 user=postgres password=secret',
-///   progress: true,
-///   dryRun: false
-/// });
-///
-/// const result = await rewindTool.execute();
-/// console.log('Rewind completed:', result.exitCode === 0);
-/// ```
-///
-/// @example Simplified usage with auto-configuration
-/// ```typescript
-/// const rewindTool = new PgRewindTool({
-///   connection: masterConnectionInfo,
-///   programDir: '/home/postgresql/17.5.0/bin',
-///   targetPgdata: './target_data_dir',
-///   sourceInstance: standbyConnectionInfo,
-///   autoConfigureWal: true,
-///   progress: true
-/// });
-/// ```
-pub struct PgRewindOptions {
-  /// Database connection configuration (required for target server).
-  /// Specifies how to connect to the PostgreSQL target server.
-  #[serde(flatten)]
-  pub connection: ConnectionConfig,
-  /// Generic tool options such as silent mode for suppressing output.
+/// This contains only the pg_rewind tool-specific configuration options,
+/// allowing for clean separation when used with PostgresInstance.
+pub struct PgRewindConfig {
+  /// Generic tool options like silent mode and timeout.
   #[serde(flatten)]
   pub tool: Option<ToolOptions>,
-  /// Directory path where the pg_rewind executable is located (required).
-  /// This should point to the directory containing the pg_rewind binary.
-  /// Equivalent to specifying the PATH to pg_rewind.
-  #[napi(js_name = "programDir")]
-  pub program_dir: String,
   /// Path to the target PostgreSQL data directory to be rewound (required).
   /// This is the data directory that will be synchronized with the source.
   /// The target server should be stopped before running pg_rewind.
@@ -112,6 +70,64 @@ pub struct PgRewindOptions {
   /// This directory stores WAL files needed for the rewind operation.
   #[napi(js_name = "walArchiveDir")]
   pub wal_archive_dir: Option<String>,
+}
+
+#[napi(object)]
+#[derive(Clone, Debug, Deserialize)]
+/// Complete configuration options for the PostgreSQL pg_rewind tool.
+///
+/// This interface defines all available options for synchronizing PostgreSQL data directories
+/// using pg_rewind. The `programDir` and `targetPgdata` fields are required, while other
+/// fields are optional and will use pg_rewind's default values if not specified.
+/// For use with PostgresInstance, consider using PgRewindConfig instead.
+///
+/// pg_rewind is used to synchronize a PostgreSQL data directory with another copy of the
+/// same database cluster after they have diverged. This is commonly used for failover
+/// scenarios where you need to rewind a former primary server to become a standby.
+///
+/// @example Basic usage with connection string
+/// ```typescript
+/// import { PgRewindTool } from 'pg-embedded';
+///
+/// const rewindTool = new PgRewindTool({
+///   connection: targetConnectionInfo,
+///   programDir: '/home/postgresql/17.5.0/bin',
+///   config: {
+///     targetPgdata: './target_data_dir',
+///     sourceServer: 'host=localhost port=5432 user=postgres password=secret',
+///     progress: true,
+///     dryRun: false
+///   }
+/// });
+///
+/// const result = await rewindTool.execute();
+/// console.log('Rewind completed:', result.exitCode === 0);
+/// ```
+///
+/// @example Simplified usage with auto-configuration
+/// ```typescript
+/// const rewindTool = new PgRewindTool({
+///   connection: targetConnectionInfo,
+///   programDir: '/home/postgresql/17.5.0/bin',
+///   config: {
+///     targetPgdata: './target_data_dir',
+///     sourceInstance: sourceConnectionInfo,
+///     autoConfigureWal: true,
+///     progress: true
+///   }
+/// });
+/// ```
+pub struct PgRewindOptions {
+  /// Database connection configuration (required for target server).
+  /// Specifies how to connect to the PostgreSQL target server.
+  pub connection: ConnectionConfig,
+  /// Directory path where the pg_rewind executable is located (required).
+  /// This should point to the directory containing the pg_rewind binary.
+  /// Equivalent to specifying the PATH to pg_rewind.
+  #[napi(js_name = "programDir")]
+  pub program_dir: String,
+  /// Pg_rewind-specific configuration options.
+  pub config: PgRewindConfig,
 }
 
 #[napi]
@@ -179,7 +195,7 @@ pub struct PgRewindTool {
 
 #[napi]
 impl PgRewindTool {
-  /// Creates a new PgRewindTool instance with the specified configuration.
+  /// Creates a new PgRewindTool instance with complete options.
   ///
   /// @param options - Configuration options for the pg_rewind operation (programDir and targetPgdata are required)
   /// @returns A new PgRewindTool instance ready to execute rewind operations
@@ -187,14 +203,54 @@ impl PgRewindTool {
   /// @example
   /// ```typescript
   /// const rewindTool = new PgRewindTool({
+  ///   connection: targetConnectionInfo,
   ///   programDir: '/home/postgresql/17.5.0/bin',
   ///   targetPgdata: './target_data_dir',
-  ///   sourceServer: 'host=localhost port=5432 user=postgres',
-  ///   progress: true
+  ///   config: {
+  ///     sourceServer: 'host=localhost port=5432 user=postgres',
+  ///     progress: true
+  ///   }
   /// });
   /// ```
   #[napi(constructor)]
   pub fn new(options: PgRewindOptions) -> Self {
+    Self { options }
+  }
+
+  #[napi(factory)]
+  /// Creates a PgRewindTool from connection info and rewind-specific config.
+  ///
+  /// This is the preferred method when using with PostgresInstance,
+  /// as it separates connection concerns from tool-specific configuration.
+  ///
+  /// @param connection - Database connection configuration for target server
+  /// @param program_dir - Directory containing the pg_rewind executable
+  /// @param config - Pg_rewind-specific configuration options (including targetPgdata)
+  /// @returns A new PgRewindTool instance
+  ///
+  /// @example
+  /// ```typescript
+  /// const rewindTool = PgRewindTool.fromConnection(
+  ///   targetInstance.connectionInfo,
+  ///   targetInstance.programDir + '/bin',
+  ///   {
+  ///     targetPgdata: './target_data_dir',
+  ///     sourceInstance: sourceInstance.connectionInfo,
+  ///     progress: true,
+  ///     autoConfigureWal: true
+  ///   }
+  /// );
+  /// ```
+  pub fn from_connection(
+    connection: ConnectionConfig,
+    program_dir: String,
+    config: PgRewindConfig,
+  ) -> Self {
+    let options = PgRewindOptions {
+      connection,
+      program_dir,
+      config,
+    };
     Self { options }
   }
 
@@ -238,7 +294,7 @@ impl PgRewindTool {
   /// ```
   pub async fn execute(&self) -> Result<ToolResult> {
     // Auto-configure WAL settings if requested
-    if self.options.auto_configure_wal.unwrap_or(false) {
+    if self.options.config.auto_configure_wal.unwrap_or(false) {
       self.auto_configure_wal_settings().await?;
     }
 
@@ -278,11 +334,11 @@ impl PgRewindTool {
     println!("[DEBUG] Starting auto_configure_wal_settings");
 
     // Create WAL archive directory if not specified
-    let archive_dir = if let Some(dir) = &self.options.wal_archive_dir {
+    let archive_dir = if let Some(dir) = &self.options.config.wal_archive_dir {
       dir.clone()
     } else {
       // Use a temporary directory next to target_pgdata
-      let target_path = Path::new(&self.options.target_pgdata);
+      let target_path = Path::new(&self.options.config.target_pgdata);
       let parent = target_path.parent().unwrap_or(Path::new("."));
       parent.join("wal_archive").to_string_lossy().to_string()
     };
@@ -297,7 +353,7 @@ impl PgRewindTool {
     })?;
 
     // Configure target PostgreSQL instance
-    let config_path = Path::new(&self.options.target_pgdata).join("postgresql.conf");
+    let config_path = Path::new(&self.options.config.target_pgdata).join("postgresql.conf");
 
     println!("[DEBUG] Config path: {config_path:?}");
 
@@ -342,18 +398,19 @@ impl PgRewindTool {
 
 fn to_command(options: &PgRewindOptions) -> Result<Command> {
   let mut builder = PgRewindBuilder::new();
+  let config = &options.config;
 
   builder = builder.program_dir(&options.program_dir);
 
-  builder = builder.target_pgdata(&options.target_pgdata);
+  builder = builder.target_pgdata(&config.target_pgdata);
 
-  if let Some(source_pgdata) = &options.source_pgdata {
+  if let Some(source_pgdata) = &config.source_pgdata {
     builder = builder.source_pgdata(source_pgdata);
   }
 
-  if let Some(source_server) = &options.source_server {
+  if let Some(source_server) = &config.source_server {
     builder = builder.source_server(source_server);
-  } else if let Some(source_instance) = &options.source_instance {
+  } else if let Some(source_instance) = &config.source_instance {
     // Build connection string from sourceInstance
     let mut conn_str = String::new();
     if let Some(host) = &source_instance.host {
@@ -394,25 +451,25 @@ fn to_command(options: &PgRewindOptions) -> Result<Command> {
     }
   }
 
-  if let Some(dry_run) = options.dry_run {
+  if let Some(dry_run) = config.dry_run {
     if dry_run {
       builder = builder.dry_run();
     }
   }
 
-  if let Some(progress) = options.progress {
+  if let Some(progress) = config.progress {
     if progress {
       builder = builder.progress();
     }
   }
 
-  if let Some(debug) = options.debug {
+  if let Some(debug) = config.debug {
     if debug {
       builder = builder.debug();
     }
   }
 
-  if let Some(restore_target_wal) = options.restore_target_wal {
+  if let Some(restore_target_wal) = config.restore_target_wal {
     if restore_target_wal {
       builder = builder.restore_target_wal();
     }
@@ -431,6 +488,7 @@ async fn run_command(command: Command, options: &PgRewindOptions) -> Result<Tool
   ToolResult::from_output(
     output,
     options
+      .config
       .tool
       .as_ref()
       .and_then(|t| t.silent)

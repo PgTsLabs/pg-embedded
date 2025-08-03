@@ -22,6 +22,7 @@ test('check() returns true when server is ready', async (t) => {
   const pgIsReady = new PgIsReadyTool({
     connection: { port: pg.connectionInfo.port },
     programDir: path.join(pg.programDir, 'bin'),
+    config: {},
   })
   const isReady = await pgIsReady.check()
   t.true(isReady)
@@ -33,6 +34,7 @@ test('execute() returns exit code 0 when server is ready', async (t) => {
   const pgIsReady = new PgIsReadyTool({
     connection: { port: pg.connectionInfo.port },
     programDir: path.join(pg.programDir, 'bin'),
+    config: {},
   })
   const result = await pgIsReady.execute()
   t.is(result.exitCode, 0)
@@ -43,6 +45,7 @@ test('check() returns false when server is not ready', async (t) => {
   const pgIsReady = new PgIsReadyTool({
     connection: { port: 1234 }, // Wrong port
     programDir: path.join(pg.programDir, 'bin'),
+    config: {},
   })
   const isReady = await pgIsReady.check()
   t.false(isReady)
@@ -54,6 +57,7 @@ test('execute() returns a non-zero exit code when server is not ready', async (t
   const pgIsReady = new PgIsReadyTool({
     connection: { port: 1234 }, // Wrong port
     programDir: path.join(pg.programDir, 'bin'),
+    config: {},
   })
   const result = await pgIsReady.execute()
   t.not(result.exitCode, 0)

@@ -30,8 +30,10 @@ test('should dump all databases to a file', async (t) => {
       username: t.context.pg.connectionInfo.username,
       password: t.context.pg.connectionInfo.password,
     },
-    file: dumpFile,
     programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {
+      file: dumpFile,
+    },
   })
   const result = await dumpallTool.execute()
   t.is(result.exitCode, 0)
@@ -46,6 +48,7 @@ test('should return dump as string', async (t) => {
       password: t.context.pg.connectionInfo.password,
     },
     programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {},
   })
   const result = await dumpallTool.executeToString()
   t.is(result.exitCode, 0)
@@ -60,8 +63,10 @@ test('should dump only globals', async (t) => {
       username: t.context.pg.connectionInfo.username,
       password: t.context.pg.connectionInfo.password,
     },
-    globalsOnly: true,
     programDir: path.join(t.context.pg.programDir, 'bin'),
+    config: {
+      globals_only: true,
+    },
   })
   const result = await dumpallTool.executeToString()
   t.is(result.exitCode, 0)

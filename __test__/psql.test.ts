@@ -32,6 +32,7 @@ test('executeCommand() executes a simple SELECT', async (t) => {
   const psql = new PsqlTool({
     connection: { port: pg.connectionInfo.port, database: 'testdb', username: 'postgres', password: 'password' },
     programDir: path.join(pg.programDir, 'bin'),
+    config: {},
   })
   const result = await psql.executeCommand('SELECT 1;')
   t.is(result.exitCode, 0)
@@ -43,6 +44,7 @@ test('executeFile() executes a SQL file', async (t) => {
   const psql = new PsqlTool({
     connection: { port: pg.connectionInfo.port, database: 'testdb', username: 'postgres', password: 'password' },
     programDir: path.join(pg.programDir, 'bin'),
+    config: {},
   })
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -60,8 +62,10 @@ test('variables option works', async (t) => {
   // Test that variables are properly set and accessible
   const psql = new PsqlTool({
     connection: { port: pg.connectionInfo.port, database: 'testdb', username: 'postgres', password: 'password' },
-    variables: ['MY_VAR=hello_world', 'COUNT=42'],
     programDir: path.join(pg.programDir, 'bin'),
+    config: {
+      variable: ['MY_VAR', 'hello_world'],
+    },
   })
 
   // Use \set command to verify variables are working
@@ -81,8 +85,10 @@ test('flags option works for --csv', async (t) => {
   const { pg } = t.context as any
   const psql = new PsqlTool({
     connection: { port: pg.connectionInfo.port, database: 'testdb', username: 'postgres', password: 'password' },
-    flags: ['--csv'],
     programDir: path.join(pg.programDir, 'bin'),
+    config: {
+      csv: true,
+    },
   })
   const result = await psql.executeCommand('SELECT 1 as "col"')
   t.is(result.exitCode, 0)
