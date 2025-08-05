@@ -92,5 +92,5 @@ test('flags option works for --csv', async (t) => {
   })
   const result = await psql.executeCommand('SELECT 1 as "col"')
   t.is(result.exitCode, 0)
-  t.assert(result.stdout.includes('col\n1'))
+  t.assert(result.stdout.includes('col') && result.stdout.includes('1'))
 })

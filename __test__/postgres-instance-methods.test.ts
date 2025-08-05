@@ -126,6 +126,7 @@ test('createDump should fail when instance is not running', async (t) => {
 // Test createBaseBackup method
 test('createBaseBackup should create a base backup', async (t) => {
   const backupDir = path.join(t.context.assetsDir, 'base_backup')
+  await fs.mkdir(backupDir, { recursive: true })
 
   await t.context.pg.createBaseBackup(
     {
