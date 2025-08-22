@@ -46,10 +46,10 @@ fn set_postgresql_version() {
         pg_part.to_string()
       } else {
         // Fallback: based on postgresql_embedded 0.19.0, it typically uses PostgreSQL 17.x
-        "17.5".to_string()
+        "17.6".to_string()
       }
     } else {
-      "17.5".to_string() // Updated fallback to match current version
+      "17.6".to_string() // Updated fallback to match current version
     }
   };
 

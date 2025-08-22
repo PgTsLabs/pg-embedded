@@ -35,7 +35,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: '10.13.1'
+          version: '10.15.0'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -58,7 +58,7 @@ jobs:
           PG_VERSION=$(node -e "
             const pkg = require('./package.json');
             const match = pkg.version.match(/\+pg([\d.]+)/);
-            console.log(match ? match[1] : '17.5');
+            console.log(match ? match[1] : '17.6');
           ")
           echo "POSTGRESQL_VERSION=$PG_VERSION" >> $GITHUB_ENV
           echo "postgresql_version=$PG_VERSION" >> $GITHUB_OUTPUT
@@ -115,7 +115,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: '10.13.1'
+          version: '10.15.0'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -184,7 +184,7 @@ jobs:
           PG_VERSION=$(node -e "
             const pkg = require('./package.json');
             const match = pkg.version.match(/\+pg([\d.]+)/);
-            console.log(match ? match[1] : '17.5');
+            console.log(match ? match[1] : '17.6');
           ")
           echo "POSTGRESQL_VERSION=$PG_VERSION" >> $GITHUB_ENV
           echo "postgresql_version=$PG_VERSION" >> $GITHUB_OUTPUT
@@ -255,7 +255,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: '10.13.1'
+          version: '10.15.0'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -299,7 +299,7 @@ jobs:
   #     - name: setup pnpm
   #       uses: pnpm/action-setup@v4
   #       with:
-  #         version: '10.13.1'
+  #         version: '10.15.0'
   #     - name: Setup node
   #       uses: actions/setup-node@v4
   #       with:
@@ -365,7 +365,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: '10.13.1'
+          version: '10.15.0'
       - name: Setup node
         uses: actions/setup-node@v4
         with:
