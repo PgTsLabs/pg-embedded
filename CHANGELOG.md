@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2+pg17.6] - 2025-08-24
+
+### Changed
+
+- **🐘 PostgreSQL Update**: Bumped embedded PostgreSQL binaries to `17.6` across all platforms to include the latest upstream fixes and improvements.
+- **🏗️ Build Defaults**: Updated build-time defaults to prefer the PostgreSQL version parsed from the package version, with a sane fallback to `17.6` (see `build.rs`).
+- **🛠️ CI Reliability**: CI now consistently extracts `POSTGRESQL_VERSION` from `package.json` with a `17.6` fallback and uses bash explicitly where needed, improving cross-platform behavior and build stability. Added resilient build retries and artifact checks in workflow.
+
+### Documentation
+
+- **📚 Scripts Guide**: Updated examples in `scripts/README.md` to demonstrate `pg:update 17.6` usage and workflows.
+- **📝 README**: Refreshed version management instructions to reference PostgreSQL `17.6`.
+
+### Fixed
+
+- **🔧 Version Propagation**: Ensured `POSTGRESQL_VERSION` is reliably set at build time (via env or derived from package version) so native bindings and tools align with the declared PostgreSQL version.
+
+---
+
 ## [0.2.1+pg17.5] - 2025-08-04
 
 ### Added
