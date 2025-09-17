@@ -1,5 +1,9 @@
 # pg-embedded
 
+[![npm version][npm-version-src]][npm-version-href]
+[![npm downloads][npm-downloads-src]][npm-downloads-href]
+[![License][license-src]][license-href]
+
 A Node.js library for running embedded PostgreSQL instances. This library provides a simple and efficient way to start, manage, and interact with PostgreSQL databases directly from your Node.js applications without requiring a separate PostgreSQL installation.
 
 ## Features
@@ -886,3 +890,18 @@ If you need help or have questions:
 3. Search existing [issues](https://github.com/PgTsLabs/pg-embedded/issues) for similar problems
 4. Create a new [issue](https://github.com/PgTsLabs/pg-embedded/issues/new) if you found a bug
 5. Start a [discussion](https://github.com/PgTsLabs/pg-embedded/discussions) for questions or ideas
+
+#### License
+
+<sup>
+Licensed under <a href="./LICENSE">Apache License, Version 2.0</a>.
+</sup>
+
+<!-- Badges -->
+
+[npm-version-src]: https://img.shields.io/npm/v/pg-embedded?style=flat&colorA=080f12&colorB=1fa669
+[npm-version-href]: https://npmjs.com/package/pg-embedded
+[npm-downloads-src]: https://img.shields.io/npm/dm/pg-embedded?style=flat&colorA=080f12&colorB=1fa669
+[npm-downloads-href]: https://npmjs.com/package/pg-embedded
+[license-src]: https://img.shields.io/github/license/PgTsLabs/pg-embedded.svg?style=flat&colorA=080f12&colorB=1fa669
+[license-href]: https://github.com/PgTsLabs/pg-embedded/blob/main/LICENSE
