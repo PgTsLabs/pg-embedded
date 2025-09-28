@@ -2,6 +2,8 @@
 -- PostgreSQL database cluster dump
 --
 
+\restrict OguFcvVA9uZeU6DzB6bDVaInLyMpe0dOZGrfOB0PyMOFZzzx5ycOq3755mNfOMK
+
 SET default_transaction_read_only = off;
 
 SET client_encoding = 'UTF8';
@@ -12,7 +14,7 @@ SET standard_conforming_strings = on;
 --
 
 CREATE ROLE postgres;
-ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS PASSWORD 'SCRAM-SHA-256$4096:hs8bI37xh0+hWpyEGZexmQ==$eSLGpzKqK98OdePyQINGpZZjFi+RIl/rTnSWR8n/p80=:lj6weuXdI2AYT6+E+Z35qjGV8V8r/XENbdL+nnlHLN0=';
+ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS PASSWORD 'SCRAM-SHA-256$4096:2EsV4Rcnwbho1ReaPBQZ3w==$FMYArVoBdZ+sg/ja2nTPhZVn1Nb9HzExWELPe6mdhjM=:E5ymR41iS8t5GFJD0Y7skh8t3rcG7IUN6dsRQHXUD+8=';
 
 --
 -- User Configurations
@@ -24,6 +26,8 @@ ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION
 
 
 
+
+\unrestrict OguFcvVA9uZeU6DzB6bDVaInLyMpe0dOZGrfOB0PyMOFZzzx5ycOq3755mNfOMK
 
 --
 -- Databases
@@ -39,8 +43,10 @@ ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 17.5
--- Dumped by pg_dump version 17.5
+\restrict 8OQCgWDj4Z6KpurNtuPmVUSGao7NqdrlJLCz8zTsZlBirIiPsDtNuqBwhJFSMnp
+
+-- Dumped from database version 18.0
+-- Dumped by pg_dump version 18.0
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -57,6 +63,8 @@ SET row_security = off;
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict 8OQCgWDj4Z6KpurNtuPmVUSGao7NqdrlJLCz8zTsZlBirIiPsDtNuqBwhJFSMnp
 
 --
 -- Database "postgres" dump
@@ -68,8 +76,10 @@ SET row_security = off;
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 17.5
--- Dumped by pg_dump version 17.5
+\restrict Juu8YGgAUSL5w1WY8nigsdPbLctJb8Ly4wOZFHhUw8RZdzMUyKyV3KPL3JHxDPY
+
+-- Dumped from database version 18.0
+-- Dumped by pg_dump version 18.0
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -86,6 +96,8 @@ SET row_security = off;
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict Juu8YGgAUSL5w1WY8nigsdPbLctJb8Ly4wOZFHhUw8RZdzMUyKyV3KPL3JHxDPY
 
 --
 -- PostgreSQL database cluster dump complete

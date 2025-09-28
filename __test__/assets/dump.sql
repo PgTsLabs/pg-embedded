@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 17.5
--- Dumped by pg_dump version 17.5
+\restrict HPVQXe0ilUBWbwZSbKJjghqHYEfP9eLJqsU7TZ5KplKnVh0faVKCHI9lDdmvt7l
+
+-- Dumped from database version 18.0
+-- Dumped by pg_dump version 18.0
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -99,4 +101,6 @@ ALTER TABLE ONLY public.test_table
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict HPVQXe0ilUBWbwZSbKJjghqHYEfP9eLJqsU7TZ5KplKnVh0faVKCHI9lDdmvt7l
 
