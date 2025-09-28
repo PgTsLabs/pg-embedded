@@ -107,7 +107,7 @@
     "check": "run-s format lint test:basic",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
-    "test:startup": "node test-pg-startup.js",
+    "test:startup": "node scripts/test-pg-startup.js",
     "test:basic": "ava __test__/basic.test.ts __test__/connection.test.ts __test__/async-integration.test.ts",
     "test:performance": "ava __test__/performance-benchmarks.test.ts",
     "test:stability": "ava __test__/stability.test.ts",
