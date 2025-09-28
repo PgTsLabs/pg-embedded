@@ -1,6 +1,6 @@
 {
   "name": "pg-embedded",
-  "version": "0.2.2+pg17.6",
+  "version": "0.2.2+pg18.0",
   "description": "Embedded PostgreSQL database for Node.js - Easy setup, high performance, TypeScript support",
   "type": "module",
   "module": "index.js",

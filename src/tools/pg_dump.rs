@@ -362,7 +362,7 @@ impl PgDumpTool {
       builder = builder.jobs(jobs.to_string());
     }
     if let Some(compression) = &config.compression {
-      builder = builder.compression(compression.to_string());
+      builder = builder.compress(compression.to_string());
     }
     if let Some(format) = &config.format {
       builder = builder.format(format.to_pg_dump_format());
