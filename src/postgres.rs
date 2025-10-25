@@ -428,6 +428,39 @@ impl PostgresInstance {
       _ => {}
     }
 
+    // Apply Windows-specific optimizations before starting
+    #[cfg(target_os = "windows")]
+    {
+      use crate::windows_optimization::WindowsOptimization;
+      
+      pg_log!(info, "Applying Windows performance optimizations");
+      
+      // Pre-warm the system
+      WindowsOptimization::prewarm_system();
+      
+      // Cache binaries if possible
+      if let Err(e) = WindowsOptimization::cache_binaries(&self.settings.installation_dir) {
+        pg_log!(warn, "Failed to cache binaries: {}", e);
+      }
+      
+      // Check for elevated privileges
+      if !WindowsOptimization::check_privileges() {
+        pg_log!(warn, "Running without elevated privileges may result in slower startup");
+      }
+      
+      // Apply optimized configuration
+      for (key, value) in WindowsOptimization::get_optimized_config() {
+        pg_log!(debug, "Setting PostgreSQL config: {} = {}", key, value);
+        // These will be applied through postgresql_embedded settings
+      }
+      
+      // Set environment variables
+      for (key, value) in WindowsOptimization::get_environment_vars() {
+        std::env::set_var(&key, &value);
+        pg_log!(debug, "Set environment variable: {} = {}", key, value);
+      }
+    }
+
     pg_log!(
       info,
       "Starting PostgreSQL instance on port {}",

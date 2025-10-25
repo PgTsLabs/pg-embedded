@@ -105,10 +105,13 @@ impl PostgresSettings {
     if let Some(setup_timeout) = self.setup_timeout {
       settings.timeout = Some(std::time::Duration::from_secs(setup_timeout as u64));
     } else {
-      // Windows需要更长的超时时间，因为PostgreSQL初始化较慢
+      // Windows需要更长的超时时间，但可以根据系统能力动态调整
       #[cfg(target_os = "windows")]
       {
-        settings.timeout = Some(std::time::Duration::from_secs(300)); // 5分钟
+        // 使用优化的超时设置（SSD: 60秒, HDD: 120秒）
+        use crate::windows_optimization::WindowsOptimization;
+        let optimized_timeout = WindowsOptimization::get_optimized_timeout();
+        settings.timeout = Some(std::time::Duration::from_secs(optimized_timeout as u64));
       }
       #[cfg(not(target_os = "windows"))]
       {

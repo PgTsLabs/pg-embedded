@@ -39,6 +39,9 @@ postgresql_embedded = { version = "0.20.0", default-features = false, features =
   "bundled",
 ] }
 
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3", features = ["processthreadsapi", "securitybaseapi", "winnt", "winbase"] }
+
 [build-dependencies]
 napi-build = "2"
 chrono = { version = "0.4", features = ["std"] }

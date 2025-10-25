@@ -6,6 +6,9 @@ mod tools;
 mod types;
 mod version;
 
+#[cfg(target_os = "windows")]
+mod windows_optimization;
+
 pub use error::*;
 pub use logger::*;
 pub use postgres::*;
