@@ -1,6 +1,7 @@
 import test from 'ava'
 import process from 'node:process'
 import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.js'
+import { cleanupSharedMemorySegments, isSharedMemoryError } from './_test-utils.js'
 
 // Helper function: Safely stop instance
 async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30) {
@@ -14,9 +15,9 @@ async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30)
 }
 
 // Helper function: Safely cleanup instance
-function safeCleanupInstance(instance: PostgresInstance) {
+async function safeCleanupInstance(instance: PostgresInstance) {
   try {
-    instance.cleanup()
+    await instance.cleanup()
   } catch (error) {
     console.warn(`Error cleaning up instance: ${error}`)
   }
@@ -28,6 +29,9 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      if (attempt === 1) {
+        await cleanupSharedMemorySegments()
+      }
       console.log(`Starting instance attempt ${attempt}/${maxAttempts}...`)
       await instance.startWithTimeout(timeoutSeconds)
 
@@ -46,6 +50,10 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
       lastError = startupError
       console.error(`Startup attempt ${attempt} failed:`, startupError)
 
+      if (isSharedMemoryError(startupError)) {
+        await cleanupSharedMemorySegments()
+      }
+
       if (attempt < maxAttempts) {
         console.log('Waiting 5 seconds before retry...')
         await new Promise((resolve) => setTimeout(resolve, 5000))
@@ -53,7 +61,7 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
         // Cleanup failed instance
         try {
           await safeStopInstance(instance)
-          safeCleanupInstance(instance)
+          await safeCleanupInstance(instance)
         } catch (cleanupError) {
           console.warn('Error cleaning up failed instance:', cleanupError)
         }
@@ -246,7 +254,7 @@ test.serial('Stability: Long-running instance stability test', async (t) => {
     await safeStopInstance(instance)
     t.is(instance.state, InstanceState.Stopped)
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
   }
 })
 
@@ -300,13 +308,7 @@ test.serial('Stability: Memory leak detection test', async (t) => {
       }
 
       // Cleanup instances
-      instances.forEach((instance) => {
-        try {
-          instance.cleanup()
-        } catch (error) {
-          console.warn('Error cleaning up instance:', error)
-        }
-      })
+      await Promise.all(instances.map((instance) => safeCleanupInstance(instance)))
       instances.length = 0
 
       // Force garbage collection if available
@@ -351,13 +353,7 @@ test.serial('Stability: Memory leak detection test', async (t) => {
     )
   } finally {
     // Ensure cleanup of all instances
-    instances.forEach((instance) => {
-      try {
-        instance.cleanup()
-      } catch {
-        // Ignore cleanup errors
-      }
-    })
+    await Promise.all(instances.map((instance) => safeCleanupInstance(instance)))
   }
 })
 
@@ -460,8 +456,6 @@ test.serial('Stability: Concurrent stress test', async (t) => {
     })
   } finally {
     // Cleanup all instances
-    instances.forEach((instance) => {
-      instance.cleanup()
-    })
+    await Promise.all(instances.map((instance) => safeCleanupInstance(instance)))
   }
 })

@@ -16,9 +16,9 @@ async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30)
 }
 
 // Helper function: Safely cleanup instance
-function safeCleanupInstance(instance: PostgresInstance) {
+async function safeCleanupInstance(instance: PostgresInstance) {
   try {
-    instance.cleanup()
+    await instance.cleanup()
   } catch (error) {
     console.warn(`Error cleaning up instance: ${error}`)
   }
@@ -85,7 +85,7 @@ test.serial('Error handling: Repeated start/stop operations', async (t) => {
       await instance.createDatabase('should_fail_db')
     })
   } finally {
-    instance.cleanup()
+    await instance.cleanup()
   }
 })
 
@@ -112,7 +112,7 @@ test.serial('Error handling: Database operations on stopped instance', async (t)
       await instance.dropDatabase('any_db')
     })
   } finally {
-    instance.cleanup()
+    await instance.cleanup()
   }
 })
 
@@ -140,11 +140,11 @@ test.serial('Error handling: Duplicate database creation', async (t) => {
     await instance.dropDatabase('duplicate_test_db')
     await safeStopInstance(instance)
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
   }
 })
 
-test.serial('Error handling: Connection info access when stopped', (t) => {
+test.serial('Error handling: Connection info access when stopped', async (t) => {
   const instance = new PostgresInstance({
     port: 5447,
     username: 'connectionuser',
@@ -158,11 +158,11 @@ test.serial('Error handling: Connection info access when stopped', (t) => {
       instance.connectionInfo
     })
   } finally {
-    instance.cleanup()
+    await instance.cleanup()
   }
 })
 
-test.serial('Error handling: Health check on stopped instance', (t) => {
+test.serial('Error handling: Health check on stopped instance', async (t) => {
   const instance = new PostgresInstance({
     port: 5448,
     username: 'healthuser',
@@ -174,6 +174,6 @@ test.serial('Error handling: Health check on stopped instance', (t) => {
     // Should be unhealthy when stopped
     t.is(instance.isHealthy(), false)
   } finally {
-    instance.cleanup()
+    await instance.cleanup()
   }
 })

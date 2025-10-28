@@ -2,6 +2,8 @@ import anyTest, { type TestFn } from 'ava'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PgRewindTool, PostgresInstance, PgBasebackupTool, PsqlTool } from '../index.js'
+import { rimraf } from 'rimraf'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -15,71 +17,103 @@ const test = anyTest as TestFn<{
 // 🎯 Demonstrate truly simplified pg_rewind usage
 test.before(async (t) => {
   const backupDir = path.resolve(__dirname, 'assets', 'standby_backup_simplified')
+  await rimraf(backupDir)
 
-  // 1. Start the master server
-  const master = new PostgresInstance({
-    databaseName: 'master_db',
-    username: 'postgres',
-    password: 'password',
-    port: 0, // Auto-assign available port to avoid conflicts
-  })
-  await master.start()
+  let master: PostgresInstance | undefined
+  let standby: PostgresInstance | undefined
 
-  // 2. Create initial data on the master server
-  const psqlTool = new PsqlTool({
-    connection: master.connectionInfo,
-    programDir: path.join(master.programDir, 'bin'),
-    config: {},
-  })
-  await psqlTool.executeCommand(
-    "CREATE TABLE test_table (id SERIAL PRIMARY KEY, data TEXT); INSERT INTO test_table (data) VALUES ('initial data');",
-  )
+  try {
+    // 1. Start the master server
+    master = new PostgresInstance({
+      databaseName: 'master_db',
+      username: 'postgres',
+      password: 'password',
+      port: 0, // Auto-assign available port to avoid conflicts
+      persistent: false,
+      timeout: 180,
+    })
+    await startInstanceWithRetry(master, 3, 180)
 
-  // 3. Use pg_basebackup to create the standby server (ensure shared history)
-  const basebackupTool = new PgBasebackupTool({
-    connection: master.connectionInfo,
-    programDir: path.join(master.programDir, 'bin'),
-    config: {
-      pgdata: backupDir,
-      format: 0, // PgBasebackupFormat.Plain
-      walMethod: 2, // PgBasebackupWalMethod.Stream
-      verbose: true,
-    },
-  })
-  await basebackupTool.execute()
+    // 2. Create initial data on the master server
+    const psqlTool = new PsqlTool({
+      connection: master.connectionInfo,
+      programDir: path.join(master.programDir, 'bin'),
+      config: {},
+    })
+    await psqlTool.executeCommand(
+      "CREATE TABLE test_table (id SERIAL PRIMARY KEY, data TEXT); INSERT INTO test_table (data) VALUES ('initial data');",
+    )
 
-  // 4. Start the standby server (using different port)
-  const standby = new PostgresInstance({
-    databaseName: 'standby_db',
-    username: 'postgres',
-    password: 'password',
-    port: 0, // Auto-assign available port to avoid conflicts
-    dataDir: backupDir,
-  })
-  await standby.start()
+    // 3. Use pg_basebackup to create the standby server (ensure shared history)
+    const basebackupTool = new PgBasebackupTool({
+      connection: master.connectionInfo,
+      programDir: path.join(master.programDir, 'bin'),
+      config: {
+        pgdata: backupDir,
+        format: 0, // PgBasebackupFormat.Plain
+        walMethod: 2, // PgBasebackupWalMethod.Stream
+        verbose: true,
+      },
+    })
+    const backupResult = await basebackupTool.execute()
+    if (backupResult.exitCode !== 0) {
+      throw new Error(`pg_basebackup failed: ${backupResult.stderr}`)
+    }
 
-  // 5. Create divergent data on both master and standby servers
-  await psqlTool.executeCommand("INSERT INTO test_table (data) VALUES ('master data');")
+    // 4. Start the standby server (using different port)
+    standby = new PostgresInstance({
+      databaseName: 'standby_db',
+      username: 'postgres',
+      password: 'password',
+      port: 0, // Auto-assign available port to avoid conflicts
+      dataDir: backupDir,
+      persistent: false,
+      timeout: 180,
+    })
+    await startInstanceWithRetry(standby, 3, 180)
 
-  const standbyPsqlTool = new PsqlTool({
-    connection: standby.connectionInfo,
-    programDir: path.join(master.programDir, 'bin'),
-    config: {},
-  })
-  await standbyPsqlTool.executeCommand("INSERT INTO test_table (data) VALUES ('standby data');")
+    // 5. Create divergent data on both master and standby servers
+    await psqlTool.executeCommand("INSERT INTO test_table (data) VALUES ('master data');")
 
-  // 6. Save connection info and stop the target server
-  t.context.pgMaster = master
-  t.context.pgStandby = standby
-  t.context.masterConnectionInfo = master.connectionInfo
-  t.context.standbyConnectionInfo = standby.connectionInfo
+    const standbyPsqlTool = new PsqlTool({
+      connection: standby.connectionInfo,
+      programDir: path.join(master.programDir, 'bin'),
+      config: {},
+    })
+    await standbyPsqlTool.executeCommand("INSERT INTO test_table (data) VALUES ('standby data');")
 
-  await master.stop() // Stop the target server (the server to be rewound)
+    // 6. Save connection info and stop the target server
+    t.context.pgMaster = master
+    t.context.pgStandby = standby
+    t.context.masterConnectionInfo = master.connectionInfo
+    t.context.standbyConnectionInfo = standby.connectionInfo
+
+    await safeStopInstance(master) // Stop the target server (the server to be rewound)
+  } catch (error) {
+    if (standby) {
+      await safeStopInstance(standby)
+      await safeCleanupInstance(standby)
+    }
+    if (master) {
+      await safeStopInstance(master)
+      await safeCleanupInstance(master)
+    }
+    await rimraf(backupDir).catch(() => {})
+    throw error
+  }
 })
 
 test.after.always(async (t) => {
-  await t.context.pgMaster?.stop().catch(() => {})
-  await t.context.pgStandby?.stop().catch(() => {})
+  const { pgMaster, pgStandby } = t.context
+  if (pgMaster) {
+    await safeStopInstance(pgMaster)
+    await safeCleanupInstance(pgMaster)
+  }
+  if (pgStandby) {
+    await safeStopInstance(pgStandby)
+    await safeCleanupInstance(pgStandby)
+  }
+  await rimraf(path.resolve(__dirname, 'assets', 'standby_backup_simplified')).catch(() => {})
 })
 
 test('should demonstrate simplified API usage', async (t) => {

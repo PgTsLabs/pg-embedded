@@ -1,61 +1,92 @@
 import test from 'ava'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { PgDumpTool, PostgresInstance, PgRestoreTool, PsqlTool, PgDumpFormat, PgRestoreFormat } from '../index.js'
 import fs from 'fs'
+import { rimraf } from 'rimraf'
+import {
+  PgDumpTool,
+  PostgresInstance,
+  PgRestoreTool,
+  PsqlTool,
+  PgDumpFormat,
+  PgRestoreFormat,
+} from '../index.js'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-let pg: PostgresInstance
+let pg: PostgresInstance | undefined
 const dbName = `test_db_restore_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 const dumpFilePath = path.join(__dirname, 'test_restore_dump.sql')
+let dataDir: string | undefined
 
 test.before(async () => {
+  dataDir = path.join(__dirname, 'data', dbName)
+  await rimraf(dataDir)
+
   pg = new PostgresInstance({
-    dataDir: path.join(__dirname, 'data', dbName),
-    port: 5433,
+    dataDir,
+    port: 0,
+    username: 'postgres',
+    password: 'password',
+    persistent: false,
+    timeout: 180,
   })
-  await pg.start()
-  await pg.createDatabase(dbName)
 
-  const programDir = path.join(pg.programDir, 'bin')
+  try {
+    await startInstanceWithRetry(pg, 3, 180)
+    await pg.createDatabase(dbName)
 
-  // Manually construct connection config to ensure it's correct
-  const connectionConfig = {
-    host: pg.connectionInfo.host || 'localhost',
-    port: pg.connectionInfo.port || 5433,
-    username: pg.connectionInfo.username || 'postgres',
-    password: pg.connectionInfo.password || '',
-    database: dbName,
-  }
+    const programDir = path.join(pg.programDir, 'bin')
 
-  const psql = new PsqlTool({ connection: connectionConfig, programDir, config: {} })
-  await psql.executeCommand(`
-      CREATE TABLE test_table (id INT, name VARCHAR(255));
-      INSERT INTO test_table VALUES (1, 'test1'), (2, 'test2');
-    `)
+    // Manually construct connection config to ensure it's correct
+    const connectionConfig = {
+      host: pg.connectionInfo.host || 'localhost',
+      port: pg.connectionInfo.port,
+      username: pg.connectionInfo.username || 'postgres',
+      password: pg.connectionInfo.password || '',
+      database: dbName,
+    }
 
-  const pgDump = new PgDumpTool({
-    connection: connectionConfig,
-    programDir,
-    config: {
-      file: dumpFilePath,
-      format: PgDumpFormat.Custom, // Use custom format for pg_restore compatibility
-    },
-  })
-  const dumpResult = await pgDump.execute()
-  if (dumpResult.exitCode !== 0) {
-    throw new Error(`Failed to create dump: ${dumpResult.stderr}`)
+    const psql = new PsqlTool({ connection: connectionConfig, programDir, config: {} })
+    await psql.executeCommand(`
+        CREATE TABLE test_table (id INT, name VARCHAR(255));
+        INSERT INTO test_table VALUES (1, 'test1'), (2, 'test2');
+      `)
+
+    const pgDump = new PgDumpTool({
+      connection: connectionConfig,
+      programDir,
+      config: {
+        file: dumpFilePath,
+        format: PgDumpFormat.Custom, // Use custom format for pg_restore compatibility
+      },
+    })
+    const dumpResult = await pgDump.execute()
+    if (dumpResult.exitCode !== 0) {
+      throw new Error(`Failed to create dump: ${dumpResult.stderr}`)
+    }
+  } catch (error) {
+    if (pg) {
+      await safeStopInstance(pg)
+      await safeCleanupInstance(pg)
+    }
+    await rimraf(dataDir).catch(() => {})
+    throw error
   }
 })
 
 test.after.always(async () => {
   if (pg) {
-    await pg.stop()
+    await safeStopInstance(pg)
+    await safeCleanupInstance(pg)
   }
   if (fs.existsSync(dumpFilePath)) {
     fs.unlinkSync(dumpFilePath)
+  }
+  if (dataDir) {
+    await rimraf(dataDir).catch(() => {})
   }
 })
 
@@ -65,7 +96,7 @@ test('should restore the database from a file', async (t) => {
 
   const restoreConnectionConfig = {
     host: pg.connectionInfo.host || 'localhost',
-    port: pg.connectionInfo.port || 5433,
+    port: pg.connectionInfo.port,
     username: pg.connectionInfo.username || 'postgres',
     password: pg.connectionInfo.password || '',
     database: restoreDbName,
@@ -111,7 +142,7 @@ test('should restore with clean and ifExists options', async (t) => {
 
   const restoreConnectionConfig = {
     host: pg.connectionInfo.host || 'localhost',
-    port: pg.connectionInfo.port || 5433,
+    port: pg.connectionInfo.port,
     username: pg.connectionInfo.username || 'postgres',
     password: pg.connectionInfo.password || '',
     database: restoreDbName,
@@ -153,7 +184,7 @@ test('should restore data only', async (t) => {
 
   const restoreConnectionConfig2 = {
     host: pg.connectionInfo.host || 'localhost',
-    port: pg.connectionInfo.port || 5433,
+    port: pg.connectionInfo.port,
     username: pg.connectionInfo.username || 'postgres',
     password: pg.connectionInfo.password || '',
     database: restoreDbName,

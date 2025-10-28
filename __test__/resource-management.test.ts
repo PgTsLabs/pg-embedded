@@ -1,15 +1,13 @@
 import test from 'ava'
 import { PostgresInstance, InstanceState } from '../index.js'
 
-test('PostgresInstance can be cleaned up manually', (t) => {
+test('PostgresInstance can be cleaned up manually', async (t) => {
   const instance = new PostgresInstance()
 
   t.is(instance.state, InstanceState.Stopped)
 
   // Manual cleanup should not throw errors
-  t.notThrows(() => {
-    instance.cleanup()
-  })
+  await t.notThrowsAsync(instance.cleanup())
 
   t.is(instance.state, InstanceState.Stopped)
 })
@@ -22,7 +20,7 @@ test('PostgresInstance has timeout methods', (t) => {
   t.is(typeof instance.stopWithTimeout, 'function')
 })
 
-test('Multiple instances can be created and cleaned up', (t) => {
+test('Multiple instances can be created and cleaned up', async (t) => {
   const instances = []
 
   // Create multiple instances
@@ -37,21 +35,19 @@ test('Multiple instances can be created and cleaned up', (t) => {
   }
 
   // Cleanup all instances
-  instances.forEach((instance) => {
-    t.notThrows(() => {
-      instance.cleanup()
-    })
+  for (const instance of instances) {
+    await t.notThrowsAsync(instance.cleanup())
     t.is(instance.state, InstanceState.Stopped)
-  })
+  }
 })
 
-test('Instance state is properly managed', (t) => {
+test('Instance state is properly managed', async (t) => {
   const instance = new PostgresInstance()
 
   // Initial state should be stopped
   t.is(instance.state, InstanceState.Stopped)
 
   // State should still be stopped after cleanup
-  instance.cleanup()
+  await instance.cleanup()
   t.is(instance.state, InstanceState.Stopped)
 })

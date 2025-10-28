@@ -1,54 +1,84 @@
 import anyTest, { type TestFn } from 'ava'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import fs from 'node:fs/promises'
+import { rimraf } from 'rimraf'
 import { PgDumpTool, PostgresInstance, PgDumpFormat } from '../index.js'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const test = anyTest as TestFn<{ pg: PostgresInstance; pgDump: PgDumpTool }>
 
 test.before(async (t) => {
+  const dataDir = path.resolve(__dirname, 'assets', `pg_dump_${Date.now()}_${Math.random()}`)
+  const tempDir = path.resolve(__dirname, 'tmp', `pg_dump_output_${Date.now()}_${Math.random()}`)
+  await rimraf(dataDir)
+  await rimraf(tempDir)
+
   const pg = new PostgresInstance({
     databaseName: 'test_db',
     username: 'postgres',
     password: 'password',
     port: 0, // Auto-assign available port to avoid conflicts
-  })
-  await pg.start()
-
-  // Create the test database that we want to dump
-  await pg.createDatabase('test_db')
-
-  // Create some test data in the database
-  const { PsqlTool } = await import('../index.js')
-  const psql = new PsqlTool({
-    connection: {
-      host: pg.connectionInfo.host,
-      port: pg.connectionInfo.port,
-      username: pg.connectionInfo.username,
-      password: pg.connectionInfo.password,
-      database: 'test_db',
-    },
-    programDir: path.join(pg.programDir, 'bin'),
-    config: {},
+    dataDir,
+    persistent: false,
+    timeout: 180,
   })
 
-  // Create a test table with some data
-  await psql.executeCommand('CREATE SCHEMA IF NOT EXISTS test_schema;')
-  await psql.executeCommand('SET search_path TO test_schema;')
-  await psql.executeCommand('CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));')
-  await psql.executeCommand("INSERT INTO test_table (name) VALUES ('test1'), ('test2');")
+  try {
+    await startInstanceWithRetry(pg, 3, 180)
+    await fs.mkdir(tempDir, { recursive: true })
 
-  t.context.pg = pg
+    // Create the test database that we want to dump
+    await pg.createDatabase('test_db')
+
+    // Create some test data in the database
+    const { PsqlTool } = await import('../index.js')
+    const psql = new PsqlTool({
+      connection: {
+        host: pg.connectionInfo.host,
+        port: pg.connectionInfo.port,
+        username: pg.connectionInfo.username,
+        password: pg.connectionInfo.password,
+        database: 'test_db',
+      },
+      programDir: path.join(pg.programDir, 'bin'),
+      config: {},
+    })
+
+    // Create a test table with some data
+    await psql.executeCommand('CREATE SCHEMA IF NOT EXISTS test_schema;')
+    await psql.executeCommand('SET search_path TO test_schema;')
+    await psql.executeCommand('CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));')
+    await psql.executeCommand("INSERT INTO test_table (name) VALUES ('test1'), ('test2');")
+
+    t.context.pg = pg
+    t.context.dataDir = dataDir
+    t.context.tempDir = tempDir
+  } catch (error) {
+    await safeStopInstance(pg)
+    await safeCleanupInstance(pg)
+    await rimraf(dataDir).catch(() => {})
+    await rimraf(tempDir).catch(() => {})
+    throw error
+  }
 })
 
 test.after.always(async (t) => {
   if (t.context.pg) {
-    await t.context.pg.stop()
+    await safeStopInstance(t.context.pg)
+    await safeCleanupInstance(t.context.pg)
+  }
+  if (t.context.dataDir) {
+    await rimraf(t.context.dataDir).catch(() => {})
+  }
+  if (t.context.tempDir) {
+    await rimraf(t.context.tempDir).catch(() => {})
   }
 })
 
 test('should dump database to a file', async (t) => {
-  const dumpFile = path.resolve(__dirname, 'assets', 'dump.sql')
+  const dumpFile = path.join(t.context.tempDir, 'dump.sql')
   const dumpTool = new PgDumpTool({
     connection: {
       host: t.context.pg.connectionInfo.host,
@@ -127,7 +157,7 @@ test('should dump only schema', async (t) => {
 })
 
 test('should return dump as string when calling executeToString', async (t) => {
-  const dumpFile = path.resolve(__dirname, 'assets', 'dump_to_string.sql')
+  const dumpFile = path.join(t.context.tempDir, 'dump_to_string.sql')
   const dumpTool = new PgDumpTool({
     connection: {
       host: t.context.pg.connectionInfo.host,

@@ -65,7 +65,7 @@ test('getPackageVersion returns package version', (t) => {
   console.log('Package Version:', version)
 })
 
-test('PostgresInstance.getPostgreSQLVersion returns same version as global function', (t) => {
+test('PostgresInstance.getPostgreSQLVersion returns same version as global function', async (t) => {
   const instance = new PostgresInstance({
     port: 5555,
     username: 'version_test_user',
@@ -81,7 +81,7 @@ test('PostgresInstance.getPostgreSQLVersion returns same version as global funct
 
     console.log('Instance PostgreSQL Version:', instanceVersion)
   } finally {
-    instance.cleanup()
+    await instance.cleanup()
   }
 })
 

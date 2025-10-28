@@ -66,23 +66,29 @@ test.serial('Complete async workflow: setup -> start -> database operations -> s
     t.true(error.message.includes('not running'))
   } finally {
     // Ensure cleanup
-    instance.cleanup()
+    await instance.cleanup()
   }
 })
 
 test.serial('Async Promise behavior validation', async (t) => {
   const instance = new PostgresInstance({
-    port: 5435,
+    port: 0,
     username: 'promiseuser',
     password: 'promisepass',
     persistent: false,
+    timeout: 180,
   })
 
   try {
     // Verify all async methods return Promise
     const startPromise = instance.start()
     t.true(startPromise instanceof Promise)
-    await startPromise
+    try {
+      await startPromise
+    } catch (error) {
+      console.warn('start() failed, retrying with startInstanceWithRetry:', error)
+      await startInstanceWithRetry(instance, 3, 180)
+    }
 
     const createDbPromise = instance.createDatabase('promise_test_db')
     t.true(createDbPromise instanceof Promise)
@@ -101,7 +107,7 @@ test.serial('Async Promise behavior validation', async (t) => {
     t.true(stopPromise instanceof Promise)
     await stopPromise
   } finally {
-    instance.cleanup()
+    await instance.cleanup()
   }
 })
 
@@ -133,7 +139,7 @@ test.serial('Async error handling', async (t) => {
     console.warn('Skipping error handling test due to instance startup failure:', error)
     t.pass() // Mark test as passed to avoid failure due to environment issues
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
     releaseTestPort(instance)
   }
 })
@@ -172,6 +178,6 @@ test.serial('Async concurrent safety', async (t) => {
 
     await safeStopInstance(instance)
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
   }
 })

@@ -170,7 +170,9 @@
     },
     "nodeArguments": [
       "--import",
-      "@oxc-node/core/register"
+      "@oxc-node/core/register",
+      "--import",
+      "./__test__/setup.ts"
     ]
   },
   "prettier": {

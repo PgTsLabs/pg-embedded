@@ -1,6 +1,7 @@
 import test from 'ava'
 import process from 'node:process'
 import { PostgresInstance, InstanceState, initLogger, LogLevel } from '../index.js'
+import { cleanupSharedMemorySegments, isSharedMemoryError } from './_test-utils.js'
 
 // Helper function: Safely stop instance
 async function safeStopInstance(instance: PostgresInstance, timeoutSeconds = 30) {
@@ -28,6 +29,9 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      if (attempt === 1) {
+        await cleanupSharedMemorySegments()
+      }
       console.log(`Starting instance attempt ${attempt}/${maxAttempts}...`)
       await instance.startWithTimeout(timeoutSeconds)
 
@@ -45,6 +49,10 @@ async function safeStartInstance(instance: PostgresInstance, maxAttempts = 3, ti
     } catch (startupError) {
       lastError = startupError
       console.error(`Startup attempt ${attempt} failed:`, startupError)
+
+      if (isSharedMemoryError(startupError)) {
+        await cleanupSharedMemorySegments()
+      }
 
       if (attempt < maxAttempts) {
         console.log('Waiting 5 seconds before retry...')
@@ -981,7 +989,7 @@ test.serial('Performance: Database operation throughput test', async (t) => {
 
     await safeStopInstance(instance)
   } finally {
-    safeCleanupInstance(instance)
+    await safeCleanupInstance(instance)
   }
 })
 

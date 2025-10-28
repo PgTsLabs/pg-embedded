@@ -2,10 +2,17 @@ import anyTest, { type TestFn } from 'ava'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { PostgresInstance, PgDumpFormat, PgBasebackupFormat, PgRestoreFormat, PgBasebackupWalMethod } from '../index.js'
+import {
+  PostgresInstance,
+  PgDumpFormat,
+  PgBasebackupFormat,
+  PgRestoreFormat,
+  PgBasebackupWalMethod,
+} from '../index.js'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const test = anyTest as TestFn<{
+const test = anyTest.serial as TestFn<{
   pg: PostgresInstance
   standbyPg: PostgresInstance
   testDbName: string
@@ -16,62 +23,86 @@ test.before(async (t) => {
   const assetsDir = path.resolve(__dirname, 'assets', 'postgres-methods')
   await fs.mkdir(assetsDir, { recursive: true })
 
-  // Create primary PostgreSQL instance
-  const pg = new PostgresInstance({
-    databaseName: 'postgres',
-    username: 'postgres',
-    password: 'password',
-    port: 0, // Auto-assign available port to avoid conflicts
-  })
-  await pg.start()
+  let pg: PostgresInstance | undefined
+  let standbyPg: PostgresInstance | undefined
 
-  // Create standby PostgreSQL instance for rewind tests
-  const standbyPg = new PostgresInstance({
-    databaseName: 'postgres',
-    username: 'postgres',
-    password: 'password',
-    port: 0, // Auto-assign available port to avoid conflicts
-  })
-  await standbyPg.start()
+  try {
+    // Create primary PostgreSQL instance
+    pg = new PostgresInstance({
+      databaseName: 'postgres',
+      username: 'postgres',
+      password: 'password',
+      port: 0, // Auto-assign available port to avoid conflicts
+      timeout: 180,
+    })
+    await startInstanceWithRetry(pg, 3, 180)
 
-  const testDbName = 'test_methods_db'
+    // Create standby PostgreSQL instance for rewind tests
+    standbyPg = new PostgresInstance({
+      databaseName: 'postgres',
+      username: 'postgres',
+      password: 'password',
+      port: 0, // Auto-assign available port to avoid conflicts
+      timeout: 180,
+    })
+    await startInstanceWithRetry(standbyPg, 3, 180)
 
-  // Create test database and populate with data
-  await pg.createDatabase(testDbName)
+    const testDbName = 'test_methods_db'
 
-  // Create some test data
-  const { PsqlTool } = await import('../index.js')
-  const psql = new PsqlTool({
-    connection: {
-      host: pg.connectionInfo.host,
-      port: pg.connectionInfo.port,
-      username: pg.connectionInfo.username,
-      password: pg.connectionInfo.password,
-      database: testDbName,
-    },
-    programDir: path.join(pg.programDir, 'bin'),
-    config: {},
-  })
+    // Create test database and populate with data
+    await pg.createDatabase(testDbName)
 
-  await psql.executeCommand('CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));')
-  await psql.executeCommand(
-    "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');",
-  )
-  await psql.executeCommand('CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10,2));')
-  await psql.executeCommand("INSERT INTO products (name, price) VALUES ('Widget A', 19.99), ('Widget B', 29.99);")
+    // Create some test data
+    const { PsqlTool } = await import('../index.js')
+    const psql = new PsqlTool({
+      connection: {
+        host: pg.connectionInfo.host,
+        port: pg.connectionInfo.port,
+        username: pg.connectionInfo.username,
+        password: pg.connectionInfo.password,
+        database: testDbName,
+      },
+      programDir: path.join(pg.programDir, 'bin'),
+      config: {},
+    })
 
-  t.context.pg = pg
-  t.context.standbyPg = standbyPg
-  t.context.testDbName = testDbName
-  t.context.assetsDir = assetsDir
+    await psql.executeCommand('CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));')
+    await psql.executeCommand(
+      "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');",
+    )
+    await psql.executeCommand(
+      'CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10,2));',
+    )
+    await psql.executeCommand("INSERT INTO products (name, price) VALUES ('Widget A', 19.99), ('Widget B', 29.99);")
+
+    t.context.pg = pg
+    t.context.standbyPg = standbyPg
+    t.context.testDbName = testDbName
+    t.context.assetsDir = assetsDir
+  } catch (error) {
+    if (standbyPg) {
+      await safeStopInstance(standbyPg)
+      await safeCleanupInstance(standbyPg)
+    }
+    if (pg) {
+      await safeStopInstance(pg)
+      await safeCleanupInstance(pg)
+    }
+    throw error
+  }
 })
 
 test.after.always(async (t) => {
   if (t.context.pg) {
-    await t.context.pg.stop()
+    await safeStopInstance(t.context.pg)
+    await safeCleanupInstance(t.context.pg)
   }
   if (t.context.standbyPg) {
-    await t.context.standbyPg.stop()
+    await safeStopInstance(t.context.standbyPg)
+    await safeCleanupInstance(t.context.standbyPg)
+  }
+  if (t.context.assetsDir) {
+    await fs.rm(t.context.assetsDir, { recursive: true, force: true })
   }
 })
 
@@ -126,9 +157,10 @@ test('createDump should fail when instance is not running', async (t) => {
 // Test createBaseBackup method
 test('createBaseBackup should create a base backup', async (t) => {
   const backupDir = path.join(t.context.assetsDir, 'base_backup')
+  await fs.rm(backupDir, { recursive: true, force: true })
   await fs.mkdir(backupDir, { recursive: true })
 
-  await t.context.pg.createBaseBackup(
+  const result = await t.context.pg.createBaseBackup(
     {
       pgdata: backupDir,
       format: PgBasebackupFormat.Plain,
@@ -136,6 +168,8 @@ test('createBaseBackup should create a base backup', async (t) => {
     },
     t.context.testDbName,
   )
+
+  t.is(result.exitCode, 0, `pg_basebackup exit code: ${result.exitCode}. stderr: ${result.stderr}`)
 
   // Verify backup directory was created
   const stats = await fs.stat(backupDir)
@@ -145,6 +179,9 @@ test('createBaseBackup should create a base backup', async (t) => {
   const files = await fs.readdir(backupDir)
   t.true(files.includes('postgresql.conf'))
   t.true(files.includes('PG_VERSION'))
+
+  // Cleanup backup directory to keep workspace tidy between test runs
+  await fs.rm(backupDir, { recursive: true, force: true })
 })
 
 test('createBaseBackup should fail when instance is not running', async (t) => {

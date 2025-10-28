@@ -4,27 +4,46 @@ import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { rimraf } from 'rimraf'
 import { PsqlTool, PostgresInstance } from '../index.js'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
 
 test.beforeEach(async (t: any) => {
   const dataDir = `data/psql-test-${Date.now()}-${Math.random()}`
   await rimraf(dataDir)
-  const pg = new PostgresInstance({
-    dataDir,
-    username: 'postgres',
-    password: 'password',
-    persistent: false,
-  })
+  let pg: PostgresInstance | undefined
 
-  await pg.setup()
-  await pg.start()
-  await pg.createDatabase('testdb')
-  t.context.pg = pg
+  try {
+    pg = new PostgresInstance({
+      dataDir,
+      username: 'postgres',
+      password: 'password',
+      persistent: false,
+      timeout: 180,
+    })
+
+    await startInstanceWithRetry(pg, 3, 180)
+    await pg.createDatabase('testdb')
+
+    t.context.pg = pg
+    t.context.dataDir = dataDir
+  } catch (error) {
+    if (pg) {
+      await safeStopInstance(pg)
+      await safeCleanupInstance(pg)
+    }
+    await rimraf(dataDir).catch(() => {})
+    throw error
+  }
 })
 
 test.afterEach.always(async (t) => {
-  const { pg } = t.context as any
-  await pg.stop()
-  await pg.cleanup()
+  const { pg, dataDir } = t.context as any
+  if (pg) {
+    await safeStopInstance(pg)
+    await safeCleanupInstance(pg)
+  }
+  if (dataDir) {
+    await rimraf(dataDir).catch(() => {})
+  }
 })
 
 test('executeCommand() executes a simple SELECT', async (t) => {

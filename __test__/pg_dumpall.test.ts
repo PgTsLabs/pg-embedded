@@ -1,28 +1,60 @@
 import anyTest, { type TestFn } from 'ava'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import fs from 'node:fs/promises'
+import { rimraf } from 'rimraf'
 import { PgDumpallTool, PostgresInstance } from '../index.js'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const test = anyTest as TestFn<{ pg: PostgresInstance; pgDumpall: PgDumpallTool }>
 
 test.before(async (t) => {
+  const dataDir = path.resolve(__dirname, 'assets', `pg_dumpall_${Date.now()}_${Math.random()}`)
+  const tempDir = path.resolve(__dirname, 'tmp', `pg_dumpall_output_${Date.now()}_${Math.random()}`)
+  await rimraf(dataDir)
+  await rimraf(tempDir)
+
   const pg = new PostgresInstance({
     databaseName: 'test_db',
     username: 'postgres',
     password: 'password',
     port: 0, // Auto-assign available port to avoid conflicts
+    dataDir,
+    persistent: false,
+    timeout: 180,
   })
-  await pg.start()
-  t.context.pg = pg
+
+  try {
+    await startInstanceWithRetry(pg, 3, 180)
+    await fs.mkdir(tempDir, { recursive: true })
+    t.context.pg = pg
+    t.context.dataDir = dataDir
+    t.context.tempDir = tempDir
+  } catch (error) {
+    await safeStopInstance(pg)
+    await safeCleanupInstance(pg)
+    await rimraf(dataDir).catch(() => {})
+    await rimraf(tempDir).catch(() => {})
+    throw error
+  }
 })
 
 test.after.always(async (t) => {
-  await t.context.pg.stop()
+  if (t.context.pg) {
+    await safeStopInstance(t.context.pg)
+    await safeCleanupInstance(t.context.pg)
+  }
+  if (t.context.dataDir) {
+    await rimraf(t.context.dataDir).catch(() => {})
+  }
+  if (t.context.tempDir) {
+    await rimraf(t.context.tempDir).catch(() => {})
+  }
 })
 
 test('should dump all databases to a file', async (t) => {
-  const dumpFile = path.resolve(__dirname, 'assets', 'dumpall.sql')
+  const dumpFile = path.join(t.context.tempDir, 'dumpall.sql')
   const dumpallTool = new PgDumpallTool({
     connection: {
       host: t.context.pg.connectionInfo.host,

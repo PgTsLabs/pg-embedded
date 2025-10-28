@@ -60,7 +60,7 @@ async function testStartup() {
     process.exit(1)
   } finally {
     try {
-      instance.cleanup()
+      await instance.cleanup()
     } catch (cleanupError) {
       console.warn('Cleanup error:', cleanupError)
     }

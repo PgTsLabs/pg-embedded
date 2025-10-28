@@ -1,17 +1,19 @@
 import test from 'ava'
 import { InstanceState, PostgresInstance } from '../index.js'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
 
 test.beforeEach(async (t: any) => {
-  const postgres = new PostgresInstance({ port: 0, persistent: false })
+  const postgres = new PostgresInstance({ port: 0, persistent: false, timeout: 180 })
   await postgres.setup()
-  await postgres.start()
+  await startInstanceWithRetry(postgres, 3, 180)
   t.context.postgres = postgres
 })
 
 test.afterEach.always(async (t: any) => {
   const { postgres } = t.context
-  if (postgres && postgres.state === InstanceState.Running) {
-    await postgres.stop()
+  if (postgres) {
+    await safeStopInstance(postgres)
+    await safeCleanupInstance(postgres)
   }
 })
 

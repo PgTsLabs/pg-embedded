@@ -1,5 +1,70 @@
 // Test utility functions
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { PostgresInstance } from '../index.js'
+
+const execFileAsync = promisify(execFile)
+const SHM_ERROR_PATTERN = 'could not create shared memory segment'
+
+export function isSharedMemoryError(error: unknown): boolean {
+  if (!error) {
+    return false
+  }
+
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes(SHM_ERROR_PATTERN)
+}
+
+export async function cleanupSharedMemorySegments(): Promise<void> {
+  if (!['darwin', 'linux'].includes(process.platform)) {
+    return
+  }
+
+  try {
+    const { stdout } = await execFileAsync('ipcs', ['-mob'])
+    const lines = stdout.split('\n')
+    const idsToRemove: string[] = []
+    const currentUser = process.env.USER || process.env.LOGNAME
+
+    for (const line of lines) {
+      if (!line.trim().startsWith('m ')) {
+        continue
+      }
+
+      const parts = line.trim().split(/\s+/)
+      if (parts.length < 8) {
+        continue
+      }
+
+      const owner = parts[4]
+      const nattch = parts[6]
+      const id = parts[1]
+
+      if (owner === currentUser && nattch === '0') {
+        idsToRemove.push(id)
+      }
+    }
+
+    if (!idsToRemove.length) {
+      return
+    }
+
+    await Promise.all(
+      idsToRemove.map(async (id) => {
+        try {
+          await execFileAsync('ipcrm', ['-m', id])
+        } catch (cleanupError) {
+          console.warn(`Warning: Failed to remove shared memory segment ${id}:`, cleanupError)
+        }
+      }),
+    )
+  } catch (error) {
+    // Ignore environments without ipcs/ipcrm support
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.warn('Warning: Shared memory cleanup failed:', error)
+    }
+  }
+}
 
 // Port manager to avoid port conflicts
 class PortManager {
@@ -37,9 +102,9 @@ export async function safeStopInstance(instance: PostgresInstance): Promise<void
 }
 
 // Helper function to safely cleanup an instance
-export function safeCleanupInstance(instance: PostgresInstance): void {
+export async function safeCleanupInstance(instance: PostgresInstance): Promise<void> {
   try {
-    instance.cleanup()
+    await instance.cleanup()
   } catch (error) {
     console.warn('Warning: Failed to cleanup instance:', error)
   }
@@ -69,11 +134,18 @@ export async function startInstanceWithRetry(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      if (attempt === 1) {
+        await cleanupSharedMemorySegments()
+      }
       await instance.startWithTimeout(timeoutSeconds)
       return // Successfully started
     } catch (error) {
       lastError = error as Error
       console.warn(`Start attempt ${attempt} failed:`, error)
+
+      if (isSharedMemoryError(error)) {
+        await cleanupSharedMemorySegments()
+      }
 
       if (attempt < maxRetries) {
         // Wait before retrying
@@ -81,7 +153,7 @@ export async function startInstanceWithRetry(
 
         // Cleanup failed instance
         try {
-          instance.cleanup()
+          await instance.cleanup()
         } catch (cleanupError) {
           console.warn('Error cleaning up failed instance:', cleanupError)
         }

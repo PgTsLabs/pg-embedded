@@ -18,7 +18,7 @@ test('PostgresInstance health check works', (t) => {
   t.is(instance.state, InstanceState.Stopped)
 })
 
-test('Multiple instances can coexist', (t) => {
+test('Multiple instances can coexist', async (t) => {
   const instances = []
 
   // Create multiple instances, each with different port
@@ -43,23 +43,21 @@ test('Multiple instances can coexist', (t) => {
   })
 
   // Cleanup all instances
-  instances.forEach((instance) => {
-    instance.cleanup()
-  })
+  await Promise.all(instances.map((instance) => instance.cleanup()))
 })
 
-test('Instance state transitions are tracked', (t) => {
+test('Instance state transitions are tracked', async (t) => {
   const instance = new PostgresInstance()
 
   // Initial state
   t.is(instance.state, InstanceState.Stopped)
 
   // Manual cleanup should not change stopped state
-  instance.cleanup()
+  await instance.cleanup()
   t.is(instance.state, InstanceState.Stopped)
 })
 
-test('Instance ID is persistent', (t) => {
+test('Instance ID is persistent', async (t) => {
   const instance = new PostgresInstance()
   const id1 = instance.instanceId
   const id2 = instance.instanceId
@@ -68,6 +66,6 @@ test('Instance ID is persistent', (t) => {
   t.is(id1, id2)
 
   // ID should still exist after cleanup
-  instance.cleanup()
+  await instance.cleanup()
   t.is(instance.instanceId, id1)
 })
