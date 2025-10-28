@@ -1112,7 +1112,7 @@ test.serial('Performance: Resource cleanup efficiency test', async (t) => {
   try {
     // Start all instances
     console.log(`Starting ${instanceCount} instances...`)
-    const startupPromises = instances.map((instance) => instance.start())
+    const startupPromises = instances.map((instance) => safeStartInstance(instance, 3, 180))
     await Promise.all(startupPromises)
 
     // Verify all instances are running
@@ -1268,7 +1268,7 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
   try {
     for (let i = 0; i < iterations; i++) {
       const startTime = Date.now()
-      await warmInstance.start()
+      await safeStartInstance(warmInstance, 3, 120)
       const warmStartTime = Date.now() - startTime
       warmStartTimes.push(warmStartTime)
 
@@ -1279,7 +1279,7 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
       t.is(warmInstance.state, InstanceState.Stopped)
     }
   } finally {
-    await warmInstance.cleanup()
+    await safeCleanupInstance(warmInstance)
   }
 
   // Analyze results
@@ -1312,7 +1312,7 @@ test.serial('Performance: Startup time optimization verification', async (t) => 
   })
 
   try {
-    await lastColdInstance.start()
+    await safeStartInstance(lastColdInstance, 3, 120)
     const recordedStartupTime = lastColdInstance.getStartupTime()
     t.truthy(recordedStartupTime, 'Should record startup time')
     t.true(recordedStartupTime! > 0, 'Recorded startup time should be positive')

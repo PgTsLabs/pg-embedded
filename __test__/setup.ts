@@ -4,7 +4,8 @@ import { cleanupSharedMemorySegments, isSharedMemoryError } from './_test-utils.
 await cleanupSharedMemorySegments()
 
 const DEFAULT_MAX_PARALLEL_STARTS = Number.parseInt(
-  process.env.PG_EMBEDDED_TEST_MAX_PARALLEL_STARTS ?? '2',
+  process.env.PG_EMBEDDED_TEST_MAX_PARALLEL_STARTS ??
+    (process.platform === 'win32' ? '1' : '2'),
 )
 
 const MAX_PARALLEL_STARTS = Math.max(1, DEFAULT_MAX_PARALLEL_STARTS)
@@ -85,3 +86,9 @@ if (!(PostgresInstance.prototype as any)._pgEmbeddedPatchedStart) {
     return runWithStartGuards(() => originalStart.call(this, initialize))
   }
 }
+
+process.once('beforeExit', () => {
+  cleanupSharedMemorySegments().catch((error) => {
+    console.warn('Warning: final shared memory cleanup failed:', error)
+  })
+})

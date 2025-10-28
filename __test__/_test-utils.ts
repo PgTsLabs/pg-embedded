@@ -21,27 +21,71 @@ export async function cleanupSharedMemorySegments(): Promise<void> {
   }
 
   try {
-    const { stdout } = await execFileAsync('ipcs', ['-mob'])
+    const commandArgs: string[][] = process.platform === 'darwin' ? [['-mob'], ['-m']] : [['-m']]
+
+    let stdout: string | null = null
+    let lastError: unknown = null
+
+    for (const args of commandArgs) {
+      try {
+        const result = await execFileAsync('ipcs', args)
+        stdout = result.stdout
+        break
+      } catch (error) {
+        lastError = error
+        continue
+      }
+    }
+
+    if (!stdout) {
+      throw lastError
+    }
+
     const lines = stdout.split('\n')
     const idsToRemove: string[] = []
     const currentUser = process.env.USER || process.env.LOGNAME
 
     for (const line of lines) {
-      if (!line.trim().startsWith('m ')) {
+      const trimmed = line.trim()
+      if (!trimmed) {
         continue
       }
 
-      const parts = line.trim().split(/\s+/)
-      if (parts.length < 8) {
-        continue
-      }
+      if (process.platform === 'darwin') {
+        if (!trimmed.startsWith('m ')) {
+          continue
+        }
 
-      const owner = parts[4]
-      const nattch = parts[6]
-      const id = parts[1]
+        const parts = trimmed.split(/\s+/)
+        if (parts.length < 8) {
+          continue
+        }
 
-      if (owner === currentUser && nattch === '0') {
-        idsToRemove.push(id)
+        const owner = parts[4]
+        const nattch = parts[6]
+        const id = parts[1]
+
+        if (owner === currentUser && nattch === '0') {
+          idsToRemove.push(id)
+        }
+      } else {
+        // Linux util-linux `ipcs -m` output format
+        if (trimmed.startsWith('------') || trimmed.startsWith('key ') || trimmed.startsWith('Shared')) {
+          continue
+        }
+
+        const parts = trimmed.split(/\s+/)
+        if (parts.length < 6) {
+          continue
+        }
+
+        const id = parts[1]
+        const owner = parts[2]
+        const nattch = parts[5]
+
+        if (owner === currentUser && nattch === '0') {
+          idsToRemove.push(id)
+        }
       }
     }
 

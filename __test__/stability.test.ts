@@ -380,7 +380,7 @@ test.serial('Stability: Concurrent stress test', async (t) => {
     const startTime = Date.now()
 
     // Start all instances concurrently
-    await Promise.all(instances.map((instance) => instance.start()))
+    await Promise.all(instances.map((instance) => safeStartInstance(instance, 3, 180)))
 
     // Execute stress test concurrently
     const stressPromises = instances.map(async (instance, instanceIndex) => {

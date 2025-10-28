@@ -4,7 +4,6 @@ import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from '.
 
 test.beforeEach(async (t: any) => {
   const postgres = new PostgresInstance({ port: 0, persistent: false, timeout: 180 })
-  await postgres.setup()
   await startInstanceWithRetry(postgres, 3, 180)
   t.context.postgres = postgres
 })

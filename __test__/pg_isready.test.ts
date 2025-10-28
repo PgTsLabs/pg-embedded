@@ -1,18 +1,38 @@
 import test from 'ava'
-import { PostgresInstance, PgIsReadyTool } from '../index.js'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { rimraf } from 'rimraf'
+import { PostgresInstance, PgIsReadyTool } from '../index.js'
+import { startInstanceWithRetry, safeCleanupInstance, safeStopInstance } from './_test-utils.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 test.beforeEach(async (t) => {
-  const pg = new PostgresInstance({ port: 0, persistent: false })
+  const dataDir = path.resolve(__dirname, 'tmp', `pg_isready_${Date.now()}_${Math.random()}`)
+  await rimraf(dataDir)
 
-  await pg.start()
-  t.context = { pg }
+  const pg = new PostgresInstance({ port: 0, persistent: false, timeout: 180, dataDir })
+
+  try {
+    await startInstanceWithRetry(pg, 3, 180)
+    t.context = { pg, dataDir }
+  } catch (error) {
+    await safeStopInstance(pg)
+    await safeCleanupInstance(pg)
+    await rimraf(dataDir).catch(() => {})
+    throw error
+  }
 })
 
 test.afterEach.always(async (t) => {
   const { pg } = t.context as any
   if (pg) {
-    await pg.stop()
+    await safeStopInstance(pg)
+    await safeCleanupInstance(pg)
+  }
+  const { dataDir } = t.context as any
+  if (dataDir) {
+    await rimraf(dataDir).catch(() => {})
   }
 })
 
