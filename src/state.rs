@@ -220,27 +220,19 @@ mod tests {
     let mut manager = InstanceStateManager::new();
 
     // Stopped -> Starting
-    assert!(manager
-      .validate_transition(InstanceState::Starting)
-      .is_ok());
+    assert!(manager.validate_transition(InstanceState::Starting).is_ok());
     manager.set_state(InstanceState::Starting);
 
     // Starting -> Running
-    assert!(manager
-      .validate_transition(InstanceState::Running)
-      .is_ok());
+    assert!(manager.validate_transition(InstanceState::Running).is_ok());
     manager.set_state(InstanceState::Running);
 
     // Running -> Stopping
-    assert!(manager
-      .validate_transition(InstanceState::Stopping)
-      .is_ok());
+    assert!(manager.validate_transition(InstanceState::Stopping).is_ok());
     manager.set_state(InstanceState::Stopping);
 
     // Stopping -> Stopped
-    assert!(manager
-      .validate_transition(InstanceState::Stopped)
-      .is_ok());
+    assert!(manager.validate_transition(InstanceState::Stopped).is_ok());
   }
 
   #[test]
@@ -248,9 +240,7 @@ mod tests {
     let mut manager = InstanceStateManager::new();
 
     // Stopped -> Running (invalid)
-    assert!(manager
-      .validate_transition(InstanceState::Running)
-      .is_err());
+    assert!(manager.validate_transition(InstanceState::Running).is_err());
 
     // Stopped -> Stopping (invalid)
     assert!(manager

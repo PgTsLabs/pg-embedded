@@ -1,9 +1,7 @@
 use crate::{
-  error::Result,
-  tools::common::ConnectionConfig,
-  PgBasebackupConfig, PgBasebackupTool, PgDumpConfig, PgDumpTool, PgDumpallConfig,
-  PgDumpallTool, PgRestoreConfig, PgRestoreTool, PgRewindConfig, PgRewindTool, PsqlConfig,
-  PsqlTool, ToolResult,
+  error::Result, tools::common::ConnectionConfig, PgBasebackupConfig, PgBasebackupTool,
+  PgDumpConfig, PgDumpTool, PgDumpallConfig, PgDumpallTool, PgRestoreConfig, PgRestoreTool,
+  PgRewindConfig, PgRewindTool, PsqlConfig, PsqlTool, ToolResult,
 };
 
 /// Unified tool manager following SRP and OCP principles
@@ -151,7 +149,8 @@ impl ToolManager {
   /// - Output file paths are handled correctly on all platforms
   /// - Includes all databases, roles, and tablespaces
   pub async fn dumpall(&self, config: PgDumpallConfig) -> Result<ToolResult> {
-    let tool = PgDumpallTool::from_connection(self.connection_config.clone(), self.bin_dir(), config);
+    let tool =
+      PgDumpallTool::from_connection(self.connection_config.clone(), self.bin_dir(), config);
     tool.execute().await
   }
 

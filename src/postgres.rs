@@ -1,5 +1,7 @@
 use crate::{
-  error::{convert_postgresql_error, database_error, setup_error, start_error, stop_error, timeout_error},
+  error::{
+    convert_postgresql_error, database_error, setup_error, start_error, stop_error, timeout_error,
+  },
   logger::pg_log,
   settings::PostgresSettings,
   state::InstanceStateManager,
