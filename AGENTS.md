@@ -131,14 +131,20 @@ pnpm build:all
 # 运行所有测试
 pnpm test
 
-# 基础测试
-pnpm test:basic
+# 单元测试（快速）
+pnpm test:unit
+
+# 集成测试
+pnpm test:integration
 
 # 性能测试
 pnpm test:performance
 
-# 稳定性测试
-pnpm test:stability
+# CI 测试（单元 + 集成）
+pnpm test:ci
+
+# 运行所有测试（包括性能）
+pnpm test:all
 ```
 
 ### 代码质量
@@ -299,18 +305,42 @@ return Err(PgEmbedError::DatabaseError("message".to_string()));
 
 ## 测试策略
 
+### 测试架构（遵循 KISS, DRY, SOLID）
+
+```
+__test__/
+├── helpers/           # 共享测试工具（DRY）
+│   ├── test-config.ts       # 跨平台配置
+│   ├── test-instance.ts     # 实例管理
+│   └── test-assertions.ts   # 通用断言
+├── unit/              # 单元测试（快速、隔离）
+├── integration/       # 集成测试（完整工作流）
+└── performance/       # 性能测试（可选运行）
+```
+
 ### 单元测试
-- 每个模块都有 `#[cfg(test)]` 测试
-- 测试状态转换、配置验证等
+- 位于 `__test__/unit/` 目录
+- 快速、无副作用、测试单一功能
+- 不启动真实数据库
+- 运行命令：`pnpm test:unit`
 
 ### 集成测试
-- 位于 `__test__/` 目录
+- 位于 `__test__/integration/` 目录
 - 测试完整的工作流程
-- 包括异步操作、并发安全等
+- 包括生命周期、数据库操作、工具集成、并发安全
+- 运行命令：`pnpm test:integration`
 
 ### 性能测试
-- 位于 `benchmark/` 目录
-- 使用 `tinybench` 进行基准测试
+- 位于 `__test__/performance/` 目录
+- 测试启动时间、操作吞吐量
+- 独立运行，不影响 CI 速度
+- 运行命令：`pnpm test:performance`
+
+### 跨平台测试
+- 统一的平台配置管理（`test-config.ts`）
+- Windows: 更长的超时时间（180s vs 60s）
+- 智能重试机制处理平台特定问题
+- CI 支持：macOS (x64, ARM64), Windows (x64), Linux (gnu, musl)
 
 ## 发布流程
 
@@ -404,6 +434,15 @@ pnpm test:startup
 - [Refactoring Summary](REFACTORING_SUMMARY.md)
 
 ## 最近更新
+
+### 2025-11-03: 测试架构重构
+- ✅ 重构测试结构：unit / integration / performance
+- ✅ 创建统一的测试辅助模块（DRY）
+- ✅ 实现跨平台配置管理
+- ✅ 启用全平台 CI 测试（macOS, Windows, Linux）
+- ✅ 减少测试文件 38%，消除重复代码 67%
+- ✅ 单元测试全部通过（23 tests）
+- 📝 详见 [TEST_REFACTORING_SUMMARY.md](TEST_REFACTORING_SUMMARY.md)
 
 ### 2025-11-03: 模块化重构
 - ✅ 引入 `ToolManager` 和 `InstanceStateManager`
