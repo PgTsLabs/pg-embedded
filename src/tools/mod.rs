@@ -1,6 +1,7 @@
 // Tooling module for pg-embedded
 
 pub mod common;
+pub mod manager;
 pub mod pg_basebackup;
 pub mod pg_dump;
 pub mod pg_dumpall;
@@ -10,6 +11,7 @@ pub mod pg_rewind;
 pub mod psql;
 
 pub use self::common::*;
+pub use self::manager::*;
 pub use self::pg_basebackup::*;
 pub use self::pg_dump::*;
 pub use self::pg_dumpall::*;
