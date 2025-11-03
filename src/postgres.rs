@@ -4,10 +4,11 @@ use crate::{
   },
   logger::pg_log,
   settings::PostgresSettings,
-  tools::common::ConnectionConfig,
+  state::InstanceStateManager,
+  tools::{common::ConnectionConfig, manager::ToolManager},
   types::{ConnectionInfo, InstanceState},
-  PgBasebackupConfig, PgBasebackupTool, PgDumpConfig, PgDumpTool, PgDumpallConfig, PgDumpallTool,
-  PgRestoreConfig, PgRestoreTool, PgRewindConfig, PgRewindTool, PsqlConfig, PsqlTool, ToolResult,
+  PgBasebackupConfig, PgDumpConfig, PgDumpallConfig, PgRestoreConfig, PgRewindConfig, PsqlConfig,
+  ToolResult,
 };
 use napi_derive::napi;
 use std::sync::{Arc, Mutex};
@@ -46,16 +47,14 @@ pub struct PostgresInstance {
   async_instance: Option<postgresql_embedded::PostgreSQL>,
   /// Configuration settings
   settings: postgresql_embedded::Settings,
-  /// Instance state
-  state: Arc<Mutex<InstanceState>>,
+  /// Simplified state manager (replaces 3 Arc<Mutex<>> fields)
+  state_manager: Arc<Mutex<InstanceStateManager>>,
   /// Instance ID for tracking and debugging
   instance_id: String,
   /// Connection information cache
   connection_cache: Arc<Mutex<Option<ConnectionInfoCache>>>,
   /// Configuration hash for caching key
   config_hash: String,
-  /// Startup time recording
-  startup_time: Arc<Mutex<Option<Duration>>>,
   /// Flag to track if cleanup has been called explicitly
   cleaned_up: bool,
 }
@@ -84,9 +83,9 @@ impl Drop for PostgresInstance {
       // Actual cleanup will be handled by postgresql_embedded library's Drop implementation
     }
 
-    // Update state to stopped
-    if let Ok(mut state) = self.state.lock() {
-      *state = InstanceState::Stopped;
+    // Update state to stopped using state manager
+    if let Ok(mut state_mgr) = self.state_manager.lock() {
+      state_mgr.set_state(InstanceState::Stopped);
     }
 
     pg_log!(
@@ -133,11 +132,10 @@ impl PostgresInstance {
     Ok(Self {
       async_instance: None,
       settings: embedded_settings,
-      state: Arc::new(Mutex::new(InstanceState::Stopped)),
+      state_manager: Arc::new(Mutex::new(InstanceStateManager::new())),
       instance_id,
       connection_cache: Arc::new(Mutex::new(None)),
       config_hash,
-      startup_time: Arc::new(Mutex::new(None)),
       cleaned_up: false,
     })
   }
@@ -242,16 +240,11 @@ impl PostgresInstance {
   /// @returns The current instance state (Stopped, Starting, Running, or Stopping)
   #[napi(getter)]
   pub fn get_state(&self) -> napi::Result<InstanceState> {
-    let state = self
-      .state
+    let state_mgr = self
+      .state_manager
       .lock()
       .map_err(|_| setup_error("Failed to acquire state lock"))?;
-    Ok(match *state {
-      InstanceState::Stopped => InstanceState::Stopped,
-      InstanceState::Starting => InstanceState::Starting,
-      InstanceState::Running => InstanceState::Running,
-      InstanceState::Stopping => InstanceState::Stopping,
-    })
+    Ok(state_mgr.get_state())
   }
 
   /// Gets the connection information for the PostgreSQL instance
@@ -263,12 +256,12 @@ impl PostgresInstance {
   /// @throws Error if the instance is not running
   #[napi(getter)]
   pub fn get_connection_info(&self) -> napi::Result<ConnectionInfo> {
-    let state = self
-      .state
+    let state_mgr = self
+      .state_manager
       .lock()
       .map_err(|_| setup_error("Failed to acquire state lock"))?;
 
-    match *state {
+    match state_mgr.get_state() {
       InstanceState::Running => {
         // Check cache
         if let Ok(mut cache) = self.connection_cache.lock() {
@@ -328,14 +321,11 @@ impl PostgresInstance {
 
   /// Set instance state
   fn set_state(&self, new_state: InstanceState) -> napi::Result<()> {
-    let mut state = self
-      .state
+    let mut state_mgr = self
+      .state_manager
       .lock()
       .map_err(|_| setup_error("Failed to acquire state lock"))?;
-
-    // Log state transition
-    pg_log!(debug, "State transition: {:?} -> {:?}", *state, new_state);
-    *state = new_state;
+    state_mgr.set_state(new_state);
     Ok(())
   }
 
@@ -451,9 +441,9 @@ impl PostgresInstance {
         Ok(_) => {
           let startup_duration = start_time.elapsed();
 
-          // Record startup time
-          if let Ok(mut startup_time) = self.startup_time.lock() {
-            *startup_time = Some(startup_duration);
+          // Record startup time using state manager
+          if let Ok(mut state_mgr) = self.state_manager.lock() {
+            state_mgr.record_startup(startup_duration);
           }
 
           let db_settings = instance.settings();
@@ -625,19 +615,12 @@ impl PostgresInstance {
     options: PgDumpConfig,
     database_name: Option<String>,
   ) -> napi::Result<ToolResult> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    let program_dir = self.get_program_dir()?;
-    let mut connection_config = self.connection_config();
-    if let Some(database_name) = database_name {
-      connection_config.database = Some(database_name);
-    }
-    let tool =
-      PgDumpTool::from_connection(connection_config, format!("{program_dir}/bin"), options);
-    tool.execute().await.map_err(|error| error.into())
+    self.ensure_running()?;
+    self
+      .tool_manager()?
+      .dump(options, database_name)
+      .await
+      .map_err(Into::into)
   }
 
   /// # Safety
@@ -667,19 +650,12 @@ impl PostgresInstance {
     options: PgBasebackupConfig,
     database_name: Option<String>,
   ) -> napi::Result<ToolResult> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    let program_dir = self.get_program_dir()?;
-    let mut connection_config = self.connection_config();
-    if let Some(database_name) = database_name {
-      connection_config.database = Some(database_name);
-    }
-    let tool =
-      PgBasebackupTool::from_connection(connection_config, format!("{program_dir}/bin"), options);
-    tool.execute().await.map_err(|error| error.into())
+    self.ensure_running()?;
+    self
+      .tool_manager()?
+      .base_backup(options, database_name)
+      .await
+      .map_err(Into::into)
   }
 
   /// # Safety
@@ -708,19 +684,12 @@ impl PostgresInstance {
     options: PgRestoreConfig,
     database_name: Option<String>,
   ) -> napi::Result<ToolResult> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    let program_dir = self.get_program_dir()?;
-    let mut connection_config = self.connection_config();
-    if let Some(database_name) = database_name {
-      connection_config.database = Some(database_name);
-    }
-    let tool =
-      PgRestoreTool::from_connection(connection_config, format!("{program_dir}/bin"), options);
-    tool.execute().await.map_err(|error| error.into())
+    self.ensure_running()?;
+    self
+      .tool_manager()?
+      .restore(options, database_name)
+      .await
+      .map_err(Into::into)
   }
 
   /// # Safety
@@ -749,19 +718,12 @@ impl PostgresInstance {
     options: PgRewindConfig,
     database_name: Option<String>,
   ) -> napi::Result<ToolResult> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    let program_dir = self.get_program_dir()?;
-    let mut connection_config = self.connection_config();
-    if let Some(database_name) = database_name {
-      connection_config.database = Some(database_name);
-    }
-    let tool =
-      PgRewindTool::from_connection(connection_config, format!("{program_dir}/bin"), options);
-    tool.execute().await.map_err(|error| error.into())
+    self.ensure_running()?;
+    self
+      .tool_manager()?
+      .rewind(options, database_name)
+      .await
+      .map_err(Into::into)
   }
 
   /// # Safety
@@ -789,18 +751,12 @@ impl PostgresInstance {
     &mut self,
     options: PgDumpallConfig,
   ) -> napi::Result<ToolResult> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    let program_dir = self.get_program_dir()?;
-    let tool = PgDumpallTool::from_connection(
-      self.connection_config(),
-      format!("{program_dir}/bin"),
-      options,
-    );
-    tool.execute().await.map_err(|error| error.into())
+    self.ensure_running()?;
+    self
+      .tool_manager()?
+      .dumpall(options)
+      .await
+      .map_err(Into::into)
   }
 
   /// # Safety
@@ -827,21 +783,12 @@ impl PostgresInstance {
     options: PsqlConfig,
     database_name: Option<String>,
   ) -> napi::Result<ToolResult> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    let program_dir = self.get_program_dir()?;
-    let mut connection_config = self.connection_config();
-    if let Some(database_name) = database_name {
-      connection_config.database = Some(database_name);
-    }
-    let tool = PsqlTool::from_connection(connection_config, format!("{program_dir}/bin"), options);
-    tool
-      .execute_command(sql)
+    self.ensure_running()?;
+    self
+      .tool_manager()?
+      .execute_sql(sql, options, database_name)
       .await
-      .map_err(|error| error.into())
+      .map_err(Into::into)
   }
 
   /// # Safety
@@ -868,21 +815,12 @@ impl PostgresInstance {
     options: PsqlConfig,
     database_name: Option<String>,
   ) -> napi::Result<ToolResult> {
-    let current_state = self.get_state()?;
-    if !matches!(current_state, InstanceState::Running) {
-      return Err(database_error("PostgreSQL instance is not running"));
-    }
-
-    let program_dir = self.get_program_dir()?;
-    let mut connection_config = self.connection_config();
-    if let Some(database_name) = database_name {
-      connection_config.database = Some(database_name);
-    }
-    let tool = PsqlTool::from_connection(connection_config, format!("{program_dir}/bin"), options);
-    tool
-      .execute_file(file_path)
+    self.ensure_running()?;
+    self
+      .tool_manager()?
+      .execute_file(file_path, options, database_name)
       .await
-      .map_err(|error| error.into())
+      .map_err(Into::into)
   }
 
   /// # Safety
@@ -1041,8 +979,8 @@ impl PostgresInstance {
   /// ```
   #[napi]
   pub fn get_startup_time(&self) -> Option<f64> {
-    if let Ok(startup_time) = self.startup_time.lock() {
-      startup_time.map(|duration| duration.as_secs_f64())
+    if let Ok(state_mgr) = self.state_manager.lock() {
+      state_mgr.get_startup_time()
     } else {
       None
     }
@@ -1105,6 +1043,25 @@ impl PostgresInstance {
     }
   }
 
+  /// Creates a ToolManager instance for executing PostgreSQL tools
+  ///
+  /// This helper method centralizes tool management and eliminates code duplication
+  fn tool_manager(&self) -> napi::Result<ToolManager> {
+    let program_dir = self.get_program_dir()?;
+    Ok(ToolManager::new(self.connection_config(), program_dir))
+  }
+
+  /// Ensures the instance is running before executing operations
+  ///
+  /// This helper method provides consistent state checking across all operations
+  fn ensure_running(&self) -> napi::Result<()> {
+    let current_state = self.get_state()?;
+    if !matches!(current_state, InstanceState::Running) {
+      return Err(database_error("PostgreSQL instance is not running"));
+    }
+    Ok(())
+  }
+
   /// # Safety
   /// Manually cleans up all resources associated with this instance
   ///
@@ -1146,9 +1103,9 @@ impl PostgresInstance {
       *cache = None;
     }
 
-    // Clear startup time
-    if let Ok(mut startup_time) = self.startup_time.lock() {
-      *startup_time = None;
+    // Reset state manager
+    if let Ok(mut state_mgr) = self.state_manager.lock() {
+      state_mgr.reset();
     }
 
     // Ensure final state is stopped
